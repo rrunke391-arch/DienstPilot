@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Runke · Lenk- und Ruhezeiten-Prüfer · Projektversion</title>
+  <link rel="stylesheet" href="src/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="hero">
+      <div>
+        <div class="pill">🚌 Linienverkehr · Dienstprüfung</div>
+        <h1>Runke · Lenk- und Ruhezeiten-Prüfer</h1>
+        <p>Alle Runke-Dienste aus der Planungsübersicht 13.04.2026–01.07.2026 sind vorgeladen. Trage Pausen und Lenkblöcke manuell nach; die App prüft Tageslenkzeit, 4,5-Stunden-Grenze, Fahrtunterbrechungen, Ruhezeit zwischen Diensten, Wochenlenkzeit und 14-Tage-Grenze.</p>
+      </div>
+      <div class="status-panel" id="overallPanel">
+        <small>Gesamtstatus</small>
+        <strong id="overallStatus">OK</strong>
+        <small id="overallDetail">0 Verstöße · 0 Hinweise</small>
+      </div>
+    </header>
+
+    <section class="metrics">
+      <div class="card"><div class="metric-title">📋 Dienste</div><div class="metric-value" id="metricDuties">0</div><div class="metric-note">eingetragen</div></div>
+      <div class="card"><div class="metric-title">⏱ Lenkzeit gesamt</div><div class="metric-value" id="metricDriving">0 Std. 00 Min.</div><div class="metric-note">aus Lenkblöcken</div></div>
+      <div class="card"><div class="metric-title">🗓 Dienstzeit gesamt</div><div class="metric-value" id="metricShift">0 Std. 00 Min.</div><div class="metric-note">Beginn bis Ende</div></div>
+      <div class="card"><div class="metric-title">✓ Prüfstatus</div><div class="metric-value" id="metricStatus">OK</div><div class="metric-note">nach eingegebenen Daten</div></div>
+    </section>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="eingabe">Dienste eingeben</button>
+      <button class="tab" data-tab="auswertung">Auswertung</button>
+      <button class="tab" data-tab="katalog">Dienstkatalog</button>
+      <button class="tab" data-tab="daten">Speichern/Laden</button>
+      <button class="tab" data-tab="tests">Tests</button>
+    </nav>
+
+    <main>
+      <section id="tab-eingabe">
+        <div class="toolbar">
+          <button class="btn-primary" id="addDuty">+ Dienst hinzufügen</button>
+          <button class="btn-secondary" id="resetExample">↻ Runke-Plan laden</button>
+          <button class="btn-secondary" id="clearDuties">Alle löschen</button>
+        </div>
+        <div class="notice" style="margin-bottom:16px;">
+          Runke-Dienste sind vorgeladen. Da in der Planungsübersicht keine Pausen und keine Lenkblöcke stehen, bleiben diese Felder leer. Trage dort deine tatsächlichen Pausen ein, z. B. <strong>09:15-09:45 12:00-12:15</strong>, und ergänze die Lenkblöcke für die Fahrtunterbrechungsprüfung.
+        </div>
+        <div id="dutiesContainer"></div>
+      </section>
+
+      <section id="tab-auswertung" class="hidden">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+            <div>
+              <h2>Prüfergebnis</h2>
+              <p class="muted">Die Prüfung basiert auf den eingetragenen Lenkblöcken und Pausen. Dienstbeginn und Dienstende allein reichen für eine vollständige rechtliche Prüfung nicht aus.</p>
+            </div>
+            <span id="resultBadge"></span>
+          </div>
+          <div id="messages"></div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <h2>Dienste im Überblick</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Datum</th><th>Dienst</th><th>Zeit</th><th>Dienstlänge</th><th>Lenkzeit</th><th>Pausen</th><th>Pausenregel</th><th>Dienstzeit-Pause</th><th>Fahrtunterbrechung</th>
+                </tr>
+              </thead>
+              <tbody id="overviewRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-katalog" class="hidden">
+        <div class="card">
+          <h2>Hinterlegter Dienstkatalog</h2>
+          <p class="muted">Bei Eingabe einer Dienstnummer werden Beginn und Ende automatisch übernommen. Freitag-Abweichungen werden anhand des Datums gesetzt. Eigene Dienste kannst du hier dauerhaft im Browser speichern.</p>
+
+          <div class="card" style="margin-top:16px; box-shadow:none;">
+            <h2 style="font-size:18px;">Eigene Dienstvorlage hinzufügen</h2>
+            <div class="grid grid-4" style="margin-top:12px;">
+              <label><span class="label">Dienstnummer</span><input id="templateNumber" inputmode="numeric" placeholder="z. B. 4001"></label>
+              <label><span class="label">Dienstanfang</span><input id="templateStart" type="time" value="06:00"></label>
+              <label><span class="label">Dienstende</span><input id="templateEnd" type="time" value="14:00"></label>
+              <label><span class="label">Tage</span><input id="templateDays" value="Mo-Fr" placeholder="z. B. Mo-Fr"></label>
+            </div>
+            <div class="grid grid-3" style="margin-top:12px;">
+              <label><span class="label">Freitag-Ende optional</span><input id="templateFridayEnd" type="time"></label>
+              <div></div>
+              <div style="display:flex; align-items:end;"><button class="btn-primary" id="addTemplate">Dienstvorlage speichern</button></div>
+            </div>
+          </div>
+
+          <div class="catalog-grid" id="catalogGrid"></div>
+        </div>
+      </section>
+
+      <section id="tab-daten" class="hidden">
+        <div class="card">
+          <h2>Daten speichern oder laden</h2>
+          <p class="muted">Du kannst deine eingetragenen Dienste als JSON sichern und später wieder einfügen.</p>
+          <div class="toolbar">
+            <button class="btn-primary" id="exportData">Daten in Feld schreiben</button>
+            <button class="btn-secondary" id="importData">Daten aus Feld laden</button>
+            <button class="btn-secondary" id="downloadJson">JSON-Datei herunterladen</button>
+          </div>
+          <textarea id="dataBox" placeholder="Hier erscheinen deine gespeicherten Dienste oder du fügst JSON-Daten ein."></textarea>
+        </div>
+      </section>
+
+      <section id="tab-tests" class="hidden">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+            <div>
+              <h2>Interne Tests</h2>
+              <p class="muted">Diese Tests prüfen Kernfälle der App-Logik direkt im Browser.</p>
+            </div>
+            <span id="testsBadge"></span>
+          </div>
+          <div id="testsRows"></div>
+        </div>
+      </section>
+    </main>
+
+    <section class="notice" style="margin-top:22px;">
+      Wichtig: Runke ist vorgeladen, aber Pausen und Lenkblöcke sind bewusst leer, weil sie in der Planungsübersicht nicht enthalten sind. Für eine echte Prüfung müssen die Lenkblöcke und Pausen manuell richtig eingetragen werden. Beginn und Ende eines Dienstes allein reichen nicht, weil Dienstzeit, Arbeitszeit, Bereitschaft, Pause und Lenkzeit rechtlich unterschiedlich sind. Manuell eingetragene Pausen können als Minutenwerte oder als Uhrzeit-Bereiche erfasst werden. Die Ein-Sechstel-Regelung gilt hier als Vorprüfung für Linienverkehr bis 50 km mit durchschnittlichem Haltestellenabstand bis 3 km. Die wöchentliche Ruhezeit wird hier nur als Hinweis über große Lücken sichtbar, aber nicht vollständig rechtssicher bewertet.
+    </section>
+  </div>
+
+<script src="src/app.js"></script>
+</body>
+</html>
