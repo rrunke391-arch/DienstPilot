@@ -246,3 +246,127 @@
       .replaceAll("'", '&#039;');
   }
 })();
+
+(() => {
+  'use strict';
+
+  function ready(callback) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', callback, { once: true });
+    } else {
+      callback();
+    }
+  }
+
+  function installJahresurlaubStyle() {
+    if (document.getElementById('jahresurlaubDienstplanStyle')) return;
+    const style = document.createElement('style');
+    style.id = 'jahresurlaubDienstplanStyle';
+    style.textContent = `
+      .jahresurlaub-dienstplan-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: 6px;
+        white-space: nowrap;
+      }
+      .day-group.jahresurlaub-day > summary {
+        box-shadow: inset 4px 0 0 #16a34a;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function getAllJahresurlaubDates() {
+    const selected = new Set();
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith('dienstpilot_urlaubswunsch_')) continue;
+      try {
+        const arr = JSON.parse(localStorage.getItem(key) || '[]');
+        if (Array.isArray(arr)) {
+          arr.forEach((date) => selected.add(date));
+        }
+      } catch {
+        /* defekten Eintrag ignorieren */
+      }
+    }
+    return selected;
+  }
+
+  function applyJahresurlaubToDienstplan() {
+    installJahresurlaubStyle();
+    const selected = getAllJahresurlaubDates();
+
+    document.querySelectorAll('details.day-group[data-day]').forEach((dayEl) => {
+      const date = dayEl.getAttribute('data-day');
+      const summary = dayEl.querySelector(':scope > summary');
+      if (!summary || !date) return;
+
+      let badge = summary.querySelector('.jahresurlaub-dienstplan-badge');
+      if (selected.has(date)) {
+        dayEl.classList.add('jahresurlaub-day', 'vacation');
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'vacation-badge jahresurlaub-dienstplan-badge';
+          badge.textContent = '🌴 Jahresurlaub';
+          const beforeDuty = summary.querySelector('.summary-duty');
+          if (beforeDuty) {
+            summary.insertBefore(badge, beforeDuty);
+          } else {
+            summary.appendChild(badge);
+          }
+        }
+      } else {
+        dayEl.classList.remove('jahresurlaub-day');
+        if (badge) badge.remove();
+      }
+    });
+  }
+
+  function renameUrlaubswunschUi() {
+    const oldBtn = document.getElementById('openUrlaubswunsch');
+    const newBtn = document.getElementById('openJahresurlaub');
+    [oldBtn, newBtn].filter(Boolean).forEach((btn) => {
+      btn.textContent = '🌴 Jahresurlaub';
+      btn.title = 'Jahresurlaub öffnen';
+    });
+
+    document.querySelectorAll('.urlaubswunsch-head h2').forEach((title) => {
+      title.textContent = '🌴 Jahresurlaub';
+    });
+    document.querySelectorAll('.urlaubswunsch-head p').forEach((text) => {
+      text.textContent = 'Jahreskalender: Tage anklicken, um Jahresurlaub zu markieren oder wieder zu entfernen.';
+    });
+    document.querySelectorAll('#urlaubswunschInfo').forEach((info) => {
+      info.innerHTML = info.innerHTML
+        .replaceAll('Urlaubswunsch-Tag', 'Jahresurlaub-Tag')
+        .replaceAll('Urlaubswunsch-Tage', 'Jahresurlaub-Tage');
+    });
+  }
+
+  function refreshJahresurlaub() {
+    renameUrlaubswunschUi();
+    applyJahresurlaubToDienstplan();
+  }
+
+  ready(() => {
+    refreshJahresurlaub();
+
+    document.addEventListener('click', (event) => {
+      if (event.target.closest?.('#openUrlaubswunsch, #openJahresurlaub, .urlaubswunsch-day, #urlaubswunschClear, #urlaubswunschPrev, #urlaubswunschNext')) {
+        setTimeout(refreshJahresurlaub, 50);
+        setTimeout(refreshJahresurlaub, 250);
+      }
+    });
+
+    const observer = new MutationObserver(() => {
+      window.clearTimeout(observer._timer);
+      observer._timer = window.setTimeout(refreshJahresurlaub, 60);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    setTimeout(refreshJahresurlaub, 800);
+    setTimeout(refreshJahresurlaub, 1800);
+  });
+})();
