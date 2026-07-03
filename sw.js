@@ -4,7 +4,7 @@
 // aus dem Cache beantwortet und User-Edits scheinen wieder verschwunden.
 // Versionswechsel = neuer Cache-Name -> alter Cache wird beim activate geloescht.
 
-const CACHE_VERSION = 'dienstpilot-1';
+const CACHE_VERSION = 'dienstpilot-2';
 const CACHE_NAME = `dienstpilot-${CACHE_VERSION}`;
 
 // App-Shell: was zwingend offline verfuegbar sein muss.
@@ -36,13 +36,6 @@ self.addEventListener('activate', (event) => {
           .map((k) => caches.delete(k))
     );
     await self.clients.claim();
-    // Phase 5: nach Aktivierung der neuen SW-Version alle offenen Tabs
-    // automatisch neu laden — sonst laeuft im Tab weiter die alte gecachte
-    // app.js, die noch das blinde overwrite-on-load haette und die lokalen
-    // Reviews durch Server-Stand ueberschreiben koennte. Per client.navigate()
-    // wird der Tab vom NEUEN SW bedient und holt die neue app.js inkl.
-    // Merge-Schutz. postMessage ist als Fallback fuer die Faelle dabei, in
-    // denen client.navigate() gesperrt ist (Safari, manche embed-Kontexte).
     const clients = await self.clients.matchAll({ type: 'window' });
     for (const client of clients) {
       try { client.postMessage({ type: 'sw-activated', version: CACHE_VERSION }); } catch {}
@@ -57,24 +50,13 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
-  // KRITISCH: API-Endpoints NIEMALS cachen — der Server ist die Quelle der
-  // Wahrheit fuer Plan-Sync, Catalog-Reviews etc. Wenn der SW die Response
-  // cached, liest die App alte Werte aus dem Cache statt vom Server, und
-  // User-Edits "verschwinden" beim naechsten Reload weil der gecachte alte
-  // Stand das localStorage ueberschreibt. Bug-Verlust in phase5-60: Reviews
-  // gingen verloren, weil /api/catalog-review (kein .json-Suffix) im Cache-
-  // First-Pfad gelandet ist.
+  // API-Endpoints nie cachen.
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(fetch(req));
     return;
   }
 
-  // HTML-Navigationen: Network-First. Damit kommen reine Text-Aenderungen
-  // im index.html (z. B. eine Tab-Umbenennung) beim naechsten Reload sofort
-  // an, ohne dass erst der SW-Update-Cycle durchlaufen muss. Kein Phantom-
-  // Stuck-Mode mehr, wo der Cache-First-Pfad das alte index.html ausliefert,
-  // obwohl der Server schon laengst die neue Version hat. Cache-Fallback
-  // bleibt — Offline funktioniert weiter.
+  // HTML-Navigationen: Network-First.
   const isHtmlNav = req.mode === 'navigate'
     || (req.headers.get('accept') || '').includes('text/html');
   if (isHtmlNav) {
@@ -92,7 +74,6 @@ self.addEventListener('fetch', (event) => {
 
   const isJson = url.pathname.endsWith('.json');
   if (isJson) {
-    // Network-First fuer Datendateien: aktuelle Daten gewinnen, Cache als Fallback.
     event.respondWith(
       fetch(req)
         .then((res) => {
