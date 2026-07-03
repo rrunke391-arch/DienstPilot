@@ -1,0 +1,1932 @@
+:root {
+      --slate-950: #020617;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-300: #cbd5e1;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --white: #ffffff;
+      --green-bg: #ecfdf5;
+      --green-text: #065f46;
+      --green-border: #a7f3d0;
+      --amber-bg: #fffbeb;
+      --amber-text: #92400e;
+      --amber-border: #fde68a;
+      --red-bg: #fef2f2;
+      --red-text: #991b1b;
+      --red-border: #fecaca;
+      --shadow: 0 10px 30px rgba(15, 23, 42, .08);
+      --radius: 24px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--slate-950);
+      background: linear-gradient(135deg, var(--slate-50), var(--white), var(--slate-100));
+    }
+    .app { max-width: 1280px; margin: 0 auto; padding: 24px; }
+    .hero {
+      background: var(--slate-950);
+      color: white;
+      border-radius: 32px;
+      padding: 32px;
+      box-shadow: var(--shadow);
+      display: flex;
+      justify-content: flex-start;
+      gap: 28px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    /* Phase 5: Logo seitlich vom Brand-Block (Variante B). Auf Phone wraps
+       das Logo nach oben, weil flex-wrap aktiv ist. */
+    .hero-logo {
+      width: clamp(72px, 10vw, 110px);
+      height: auto;
+      flex-shrink: 0;
+      filter: drop-shadow(0 4px 14px rgba(0, 0, 0, .35));
+    }
+    .hero-text { flex: 1 1 auto; min-width: 0; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.15);
+      padding: 6px 12px;
+      color: var(--slate-200);
+      font-size: 14px;
+      background: rgba(255,255,255,.08);
+    }
+    h1 { margin: 14px 0 8px; font-size: clamp(32px, 5vw, 56px); line-height: 1; letter-spacing: -0.04em; }
+    /* Phase 5: Brand-Hierarchie im Hero — drei Stufen.
+         .brand          → "🚌 DienstPilot"  (groß, prominent)
+         .brand-subtitle → "Dienstplan Runke" (medium, weiß-ish; .empty = grau, wenn kein Profil)
+         .brand-tagline  → Funktionsbeschreibung (klein, gesperrt, slate-500) */
+    h1.brand { margin: 0; font-size: clamp(40px, 6vw, 64px); letter-spacing: -0.04em; line-height: 1; }
+    .brand-subtitle {
+      margin-top: 18px;
+      font-size: clamp(22px, 3vw, 30px);
+      font-weight: 600;
+      color: white;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+    }
+    .brand-subtitle.empty {
+      color: var(--slate-500);
+      font-weight: 500;
+      font-style: italic;
+    }
+    .brand-tagline {
+      margin-top: 10px;
+      font-size: 14px;
+      color: var(--slate-500);
+      font-weight: 500;
+    }
+    h2 { margin: 0; font-size: 22px; }
+    p { line-height: 1.6; }
+    .hero p { max-width: 780px; color: var(--slate-300); margin: 0; }
+    .status-panel {
+      min-width: 220px;
+      text-align: center;
+      border-radius: 28px;
+      padding: 20px;
+      background: rgba(255,255,255,.10);
+    }
+    .status-panel small { color: var(--slate-300); }
+    .status-panel strong { display: block; font-size: 28px; margin: 4px 0; }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 24px 0; }
+    .card {
+      border: 1px solid var(--slate-200);
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+    .metric-title { color: var(--slate-500); font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .metric-value { font-size: 28px; font-weight: 800; margin-top: 8px; }
+    .metric-note { color: var(--slate-500); font-size: 12px; margin-top: 4px; }
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      background: var(--slate-100);
+      padding: 8px;
+      border-radius: 20px;
+      max-width: 920px;
+      margin-bottom: 18px;
+    }
+    .tab {
+      border: 0;
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: transparent;
+      color: var(--slate-600);
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .tab.active { background: white; color: var(--slate-950); box-shadow: 0 6px 18px rgba(15,23,42,.08); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 14px 10px; margin: 14px 0; align-items: center; }
+    .toolbar-group {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      padding: 4px 10px 4px 4px;
+      border-radius: 14px;
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+    }
+    .toolbar-pick {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: white;
+      border: 1px solid var(--slate-300);
+      border-radius: 16px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--slate-950);
+    }
+    .toolbar-pick:hover { background: var(--slate-50); }
+    /* Phase 5: Date-Picker-Input visuell ausblenden — der Klick aufs Label
+       öffnet trotzdem den Picker. So zeigt der Knopf nur "📅 Monat hinzufügen"
+       statt der "tt.mm.jjjj"-Striche, die Browser im leeren Input rendern. */
+    .toolbar-pick input[type="month"] {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      padding: 0;
+      margin: 0;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      color: transparent;
+    }
+    button {
+      border: 0;
+      border-radius: 16px;
+      padding: 10px 14px;
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-primary { background: var(--slate-950); color: white; }
+    .btn-secondary { background: white; color: var(--slate-950); border: 1px solid var(--slate-300); }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-small { padding: 7px 10px; border-radius: 12px; font-size: 13px; }
+    .duty-card { margin-bottom: 16px; }
+    .duty-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
+
+    /* Visual separator between future-or-current months (top of list) and
+       past months (bottom). Today's month stays at the top for fast access;
+       this divider stops past months from looking like a chronology bug. */
+    .past-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 28px 0 16px;
+      color: var(--slate-500);
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .past-divider::before, .past-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--slate-300);
+    }
+    .month-group.past { opacity: 0.78; }
+    .month-group.past > summary { color: var(--slate-600); }
+    .month-group.past > summary .month-count { color: var(--slate-500); }
+
+    /* Phase 4 calendar grouping */
+    .month-group {
+      background: white;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+      padding: 0 18px;
+    }
+    .month-group[open] { padding-bottom: 16px; }
+    .month-group > summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 18px 8px 18px 4px;
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--slate-900);
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      user-select: none;
+    }
+    .month-group > summary::-webkit-details-marker { display: none; }
+    .month-group > summary::before {
+      content: "▶";
+      font-size: 11px;
+      color: var(--slate-500);
+      transition: transform 0.15s ease;
+      display: inline-block;
+    }
+    .month-group[open] > summary::before { transform: rotate(90deg); }
+    .month-group > summary .month-count { color: var(--slate-500); font-size: 14px; font-weight: 600; }
+    .month-group .duty-card { margin-bottom: 12px; border-color: var(--slate-100); box-shadow: none; }
+    .month-group .duty-card:last-child { margin-bottom: 0; }
+
+    .day-badge {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 10px;
+      background: var(--slate-100);
+      border: 1px solid var(--slate-200);
+      border-radius: 14px;
+      padding: 8px 14px;
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--slate-900);
+      margin-bottom: 8px;
+    }
+    .day-badge.today { background: var(--slate-950); color: white; border-color: var(--slate-950); }
+    .day-badge .dow {
+      color: var(--slate-500);
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .day-badge.today .dow { color: var(--slate-300); }
+
+    /* Calendar-week collapsible (KW), nested inside month */
+    .week-group {
+      border: 1px solid var(--slate-300);
+      border-radius: 14px;
+      margin: 8px 0;
+      background: var(--slate-100);
+    }
+    .week-group[open] { background: white; padding-bottom: 6px; }
+    /* Phase 5: KW-Summary behält Grau auch wenn ausgeklappt — sonst verschwimmen
+       mehrere offene Wochen optisch ineinander. */
+    .week-group[open] > summary {
+      background: var(--slate-100);
+      border-radius: 14px 14px 0 0;
+      border-bottom: 1px solid var(--slate-200);
+    }
+    .week-group > summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      font-size: 14px;
+      font-weight: 700;
+      user-select: none;
+    }
+    .week-group > summary::-webkit-details-marker { display: none; }
+    .week-group > summary::before {
+      content: "▶";
+      font-size: 10px;
+      color: var(--slate-500);
+      transition: transform 0.15s ease;
+      display: inline-block;
+      min-width: 10px;
+    }
+    .week-group[open] > summary::before { transform: rotate(90deg); }
+    .week-group .week-num { color: var(--slate-900); font-weight: 800; }
+    .week-group .week-range { color: var(--slate-600); font-weight: 600; }
+    .week-group .week-count { color: var(--slate-500); margin-left: auto; font-weight: 600; font-size: 13px; }
+    .week-group.this-week > summary { background: var(--slate-100); border-radius: 14px 14px 0 0; }
+    /* Phase 4 indentation: weeks indented from month, days from week,
+       cards from day. Vertical rails (border-left) make the hierarchy
+       visible at a glance. Corners symmetric on all four sides — earlier
+       0/14/14/0 made the left corners square, which read as a visual bug. */
+    .month-group > details.week-group { margin-left: 22px; border-left: 3px solid var(--slate-100); border-radius: 14px; }
+    .month-group > details.week-group > summary { padding-left: 18px; }
+    .week-group > details.day-group { margin: 6px 0 6px 22px; border-left: 3px solid var(--slate-100); border-radius: 16px; }
+    .week-group > details.day-group > summary { padding-left: 18px; }
+    .day-group > .duty-card { margin: 6px 14px 14px 22px; }
+
+    /* Per-day collapsible inside each month */
+    .day-group {
+      border: 1px solid var(--slate-200);
+      border-radius: 16px;
+      margin: 8px 0;
+      background: var(--slate-50);
+    }
+    .day-group[open] { background: white; }
+    .day-group > summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      user-select: none;
+      font-size: 15px;
+    }
+    .day-group > summary::-webkit-details-marker { display: none; }
+    .day-group > summary::before {
+      content: "▶";
+      font-size: 9px;
+      color: var(--slate-500);
+      transition: transform 0.15s ease;
+      display: inline-block;
+      min-width: 9px;
+    }
+    .day-group[open] > summary::before { transform: rotate(90deg); }
+    .day-group .summary-dow { color: var(--slate-500); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; min-width: 28px; }
+    .day-group .summary-date { font-weight: 800; color: var(--slate-900); }
+    .day-group .summary-duty { color: var(--slate-700); margin-left: auto; font-weight: 700; }
+    .day-group .summary-duty.warn { color: var(--amber-text); }
+    /* Per-day status badge: green/amber/red for OK / Prüfen / Verstoß */
+    .summary-status {
+      border-radius: 999px;
+      border: 1px solid;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .summary-status.ok { background: var(--green-bg); color: var(--green-text); border-color: var(--green-border); }
+    .summary-status.warn { background: var(--amber-bg); color: var(--amber-text); border-color: var(--amber-border); }
+    .summary-status.fail { background: var(--red-bg); color: var(--red-text); border-color: var(--red-border); }
+    .day-group.today > summary .summary-status { box-shadow: 0 0 0 2px rgba(255,255,255,.2); }
+    /* Aggregate counts in week/month summaries */
+    .summary-counts { display: inline-flex; gap: 6px; align-items: center; }
+    .summary-counts .summary-status { padding: 2px 8px; font-size: 11px; }
+    /* Total Dienstzeit roll-up for billing — week/month summaries */
+    .summary-total {
+      color: var(--slate-700);
+      font-weight: 800;
+      font-size: 13px;
+      background: var(--slate-100);
+      border-radius: 8px;
+      padding: 3px 10px;
+      white-space: nowrap;
+    }
+    .month-group > summary .summary-total { font-size: 14px; }
+
+    /* Phase 4 upload feedback — replaces the muted one-liner with a
+       prominent panel that's hard to miss on a phone. */
+    .upload-status {
+      border: 1px solid;
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin: 12px 0 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      box-shadow: var(--shadow);
+    }
+    .upload-status.hidden { display: none; }
+    .upload-status.uploading { background: var(--slate-50); color: var(--slate-700); border-color: var(--slate-200); }
+    .upload-status.success   { background: var(--green-bg);  color: var(--green-text);  border-color: var(--green-border); }
+    .upload-status.partial   { background: var(--amber-bg);  color: var(--amber-text);  border-color: var(--amber-border); }
+    .upload-status.error     { background: var(--red-bg);    color: var(--red-text);    border-color: var(--red-border); }
+    .upload-status .upload-headline { font-weight: 900; font-size: 16px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .upload-status ul { margin: 6px 0 0; padding-left: 22px; }
+    .upload-status li { margin: 2px 0; }
+    .upload-status .upload-tip { margin-top: 10px; font-size: 13px; opacity: 0.85; }
+    .upload-status .upload-dismiss {
+      float: right;
+      background: transparent;
+      border: 0;
+      font-size: 18px;
+      color: inherit;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      opacity: 0.7;
+    }
+    .upload-status .upload-dismiss:hover { opacity: 1; }
+    /* Per-day AI-extraction mark in summary */
+    .summary-ai { font-size: 14px; }
+    .summary-ai.missing { opacity: 0.4; }
+
+    /* Inline operational hint on the duty card (📌 from extraction.hinweise) */
+    .duty-hinweise {
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: var(--amber-bg);
+      color: var(--amber-text);
+      border: 1px solid var(--amber-border);
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    /* Inline rule-failure / warning reason on the duty card */
+    .duty-issue {
+      margin-top: 8px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.4;
+      border: 1px solid;
+    }
+    .duty-issue.fail { background: var(--red-bg); color: var(--red-text); border-color: var(--red-border); }
+    .duty-issue.warn { background: var(--amber-bg); color: var(--amber-text); border-color: var(--amber-border); }
+    .duty-issue strong { display: block; }
+
+    @keyframes upload-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .upload-status.uploading .upload-headline::before {
+      content: "";
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      animation: upload-spin 0.9s linear infinite;
+      display: inline-block;
+    }
+    /* Today: soft grey background + darker grey frame. The previous black
+       block was too harsh against the calmer surrounding palette. */
+    .day-group.today > summary {
+      background: var(--slate-100);
+      color: var(--slate-900);
+      border-radius: 14px 14px 0 0;
+    }
+    .day-group.today > summary::before { color: var(--slate-600); }
+    .day-group.today > summary .summary-dow { color: var(--slate-600); }
+    .day-group.today > summary .summary-date,
+    .day-group.today > summary .summary-duty { color: var(--slate-900); }
+    /* Frame today's container so it stands out without shouting. Override
+       the asymmetric 0/16/16/0 corners from the indent rule — symmetric
+       rounding on all four corners reads cleaner. */
+    .week-group > details.day-group.today {
+      border: 2px solid var(--slate-500);
+      border-radius: 14px;
+    }
+    .day-group.today:not([open]) > summary { border-radius: 12px; }
+    .day-group .duty-card { margin: 6px 14px 14px 22px; box-shadow: none; border-color: var(--slate-100); }
+
+    /* Phase 5: Feiertag (rot) und Schulferien (blau) — leichte Tönung der Tageskarte. */
+    .day-group.holiday > summary {
+      background: #fef2f2;
+      border-left: 3px solid #dc2626;
+    }
+    .day-group.holiday[open] > summary { background: #fee2e2; }
+    .day-group.ferien:not(.holiday) > summary {
+      background: #eff6ff;
+      border-left: 3px solid #2563eb;
+    }
+    .day-group.ferien[open]:not(.holiday) > summary { background: #dbeafe; }
+    .holiday-badge, .ferien-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .holiday-badge { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .ferien-badge { background: #dbeafe; color: #1e3a8a; border: 1px solid #bfdbfe; }
+
+    /* Leerer Tag (kein Dienst, nicht Frei) — gedämpft. */
+    .day-group.empty-day > summary { color: var(--slate-500); }
+    .day-group.empty-day > summary .summary-duty { color: var(--slate-500); font-weight: 600; font-style: italic; }
+    .empty-day-card {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 10px 14px 14px 22px;
+      align-items: center;
+    }
+    .empty-day-card .btn-small { font-size: 13px; padding: 6px 12px; }
+    .empty-day-card .add-duty-select {
+      flex: 1 1 220px;
+      min-width: 200px;
+      padding: 6px 10px;
+      font-size: 13px;
+      border-radius: 12px;
+      border: 1px solid var(--slate-300);
+      background: white;
+      cursor: pointer;
+    }
+
+    /* Frei-Tag — neutrale graue Pille. */
+    .summary-status.frei {
+      background: var(--slate-100);
+      color: var(--slate-700);
+      border-color: var(--slate-300);
+    }
+    .summary-duty.frei { color: var(--slate-600); font-weight: 700; }
+    .frei-card { background: var(--slate-50); }
+    .frei-card .duty-head h2 { color: var(--slate-700); font-weight: 800; }
+
+    /* Toolbar-Toggle (z. B. „Sonntage ausblenden"). */
+    .toolbar-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      color: var(--slate-700);
+      cursor: pointer;
+      user-select: none;
+      padding: 8px 4px;
+    }
+    .toolbar-toggle input { width: auto; margin: 0; }
+
+    /* Phase 5: empty-state für Kalender ohne Dienste und ohne shownMonths. */
+    .empty-calendar {
+      text-align: center;
+      padding: 48px 24px;
+      background: white;
+      border: 1px dashed var(--slate-300);
+      border-radius: 18px;
+      color: var(--slate-700);
+    }
+    .empty-calendar-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-calendar h2 { margin: 0 0 8px; color: var(--slate-900); font-weight: 800; }
+    .empty-calendar p { margin: 0 auto 20px; max-width: 420px; color: var(--slate-600); font-size: 14px; line-height: 1.5; }
+    .empty-calendar-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+
+    /* Phase 5: Tachograph-style activity bar — visualisiert Lenkblöcke,
+       Pausen, Standzeiten und Vor-/Nachrüsten als proportionale Segmente. */
+    .duty-timeline {
+      margin-top: 14px;
+      padding: 10px 0 4px;
+      font-size: 12px;
+    }
+    .tl-bar {
+      display: flex;
+      width: 100%;
+      height: 32px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+      border: 1px solid var(--slate-200);
+    }
+    .tl-seg {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      min-width: 0;
+      transition: filter 0.1s ease;
+    }
+    .tl-seg:hover { filter: brightness(1.08); }
+    .tl-lenken    { background: #1e40af; } /* kräftiges Blau für Lenken */
+    .tl-pause     { background: #15803d; } /* sattes Grün für echte Pause */
+    .tl-standzeit { background: #65a30d; color: #052e16; } /* helleres Grün für Standzeit */
+    .tl-rahmen    { background: #94a3b8; color: #f1f5f9; } /* Slate-Grau für Vor-/Nachrüsten */
+
+    .tl-axis {
+      position: relative;
+      height: 18px;
+      margin-top: 4px;
+      color: var(--slate-500);
+      font-size: 11px;
+    }
+    .tl-tick {
+      position: absolute;
+      transform: translateX(-50%);
+      top: 0;
+      white-space: nowrap;
+    }
+    .tl-tick-edge { font-weight: 700; color: var(--slate-700); }
+    .tl-tick-edge[style*="left:0"] { transform: translateX(0); }
+    .tl-tick-edge[style*="left:100%"] { transform: translateX(-100%); }
+
+    .tl-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 8px;
+      color: var(--slate-600);
+      font-size: 11px;
+    }
+    .tl-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .tl-swatch {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1) inset;
+    }
+
+    /* Tap-Hinweis nur auf kleinen Screens, weil dort ohnehin nicht alles lesbar ist. */
+    .tl-tap-hint { display: none; margin-left: auto; color: var(--slate-500); font-style: italic; }
+    .duty-timeline { cursor: pointer; user-select: none; }
+    .duty-timeline:hover .tl-bar { box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15); }
+    .duty-timeline:focus { outline: 2px solid var(--slate-500); outline-offset: 4px; border-radius: 8px; }
+    .duty-timeline:focus:not(:focus-visible) { outline: none; }
+
+    /* Mobile: kompaktere Achse + Segmente, Tap-Hinweis sichtbar. */
+    @media (max-width: 720px) {
+      .tl-bar { height: 28px; }
+      .tl-seg { font-size: 10px; }
+      .tl-axis { font-size: 10px; }
+      .tl-legend { font-size: 10px; gap: 8px; flex-wrap: wrap; }
+      .tl-tap-hint { display: inline; flex-basis: 100%; margin-left: 0; margin-top: 2px; font-size: 11px; }
+    }
+
+    /* Modal — Vollbild-Ansicht der Timeline für Mobile-Lesbarkeit. */
+    body.modal-open { overflow: hidden; }
+    .timeline-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      animation: tl-fade-in 0.15s ease;
+    }
+    @keyframes tl-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    .timeline-modal-content {
+      background: white;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 720px;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+      padding: 18px 20px 22px;
+      animation: tl-slide-up 0.2s ease;
+    }
+    @keyframes tl-slide-up { from { transform: translateY(12px); } to { transform: translateY(0); } }
+
+    .tl-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .tl-modal-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--slate-900);
+    }
+    .tl-modal-subtitle {
+      font-size: 13px;
+      color: var(--slate-600);
+      margin-top: 2px;
+    }
+    .tl-modal-close {
+      background: var(--slate-100);
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      color: var(--slate-700);
+      flex-shrink: 0;
+    }
+    .tl-modal-close:hover { background: var(--slate-200); }
+
+    .tl-modal-bar-wrap { margin: 8px 0 12px; }
+    .tl-bar-large { height: 48px; border-radius: 10px; }
+    .tl-bar-large .tl-seg { font-size: 13px; padding: 0 6px; }
+    .tl-axis-large { height: 22px; font-size: 12px; }
+
+    .tl-modal-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 10px 12px;
+      background: var(--slate-50);
+      border-radius: 10px;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+    .tl-modal-sum {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--slate-700);
+    }
+
+    .tl-modal-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border-top: 1px solid var(--slate-100);
+    }
+    .tl-modal-row {
+      display: grid;
+      grid-template-columns: 16px 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 4px;
+      border-bottom: 1px solid var(--slate-100);
+      font-size: 14px;
+    }
+    .tl-modal-row:last-child { border-bottom: none; }
+    .tl-modal-row .tl-swatch { width: 14px; height: 14px; }
+    .tl-modal-label { color: var(--slate-700); font-weight: 700; }
+    .tl-modal-time { color: var(--slate-600); font-variant-numeric: tabular-nums; font-size: 13px; }
+    .tl-modal-dur { color: var(--slate-900); font-weight: 700; font-variant-numeric: tabular-nums; min-width: 80px; text-align: right; }
+
+    @media (max-width: 720px) {
+      .timeline-modal { padding: 0; align-items: stretch; }
+      .timeline-modal-content {
+        max-width: none;
+        max-height: none;
+        height: 100%;
+        border-radius: 0;
+        padding: 14px 14px 22px;
+      }
+      .tl-bar-large { height: 40px; }
+      .tl-modal-row { grid-template-columns: 14px 1fr auto; gap: 8px; padding: 8px 2px; font-size: 13px; }
+      .tl-modal-time { grid-column: 2; grid-row: 2; font-size: 12px; }
+      .tl-modal-label { grid-row: 1; }
+      .tl-modal-dur { grid-row: 1 / span 2; }
+    }
+
+    /* Phase 5: read-only Settings-Zeile auf der Tageskarte. */
+    .duty-settings-readonly {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 10px 12px;
+      background: var(--slate-50);
+      border: 1px solid var(--slate-100);
+      border-radius: 12px;
+      font-size: 13px;
+      align-items: center;
+    }
+    .duty-setting {
+      color: var(--slate-700);
+      white-space: nowrap;
+    }
+    .duty-setting-key {
+      color: var(--slate-500);
+      font-weight: 700;
+      margin-right: 4px;
+    }
+    .duty-setting.tariff {
+      color: #92400e;
+      font-weight: 700;
+    }
+    .open-catalog-link {
+      margin-left: auto;
+      color: var(--slate-700);
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      border-bottom: 1px dotted var(--slate-400);
+    }
+    .open-catalog-link:hover { color: var(--slate-900); border-bottom-style: solid; }
+
+    /* Phase 5: Settings-Editor pro Katalog-Eintrag. */
+    .catalog-card { transition: box-shadow 0.3s ease, transform 0.3s ease; }
+    .catalog-card.flash {
+      box-shadow: 0 0 0 3px #fbbf24, 0 8px 24px rgba(251, 191, 36, 0.3);
+      transform: scale(1.02);
+    }
+    .catalog-settings {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--slate-100);
+    }
+    .catalog-setting {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .catalog-setting-label {
+      flex: 0 0 130px;
+      color: var(--slate-500);
+      font-weight: 700;
+    }
+    .catalog-setting select {
+      flex: 1;
+      padding: 6px 10px;
+      font-size: 13px;
+      border-radius: 10px;
+    }
+    .muted { color: var(--slate-500); font-size: 13px; }
+    .grid { display: grid; gap: 12px; }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .catalog-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+    label { display: block; }
+    .label { display: block; color: var(--slate-700); font-size: 14px; font-weight: 800; margin-bottom: 7px; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--slate-300);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font: inherit;
+      background: white;
+      outline: none;
+    }
+    textarea { min-height: 170px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+    input:focus, select:focus, textarea:focus { border-color: var(--slate-800); box-shadow: 0 0 0 3px rgba(15, 23, 42, .12); }
+    .hint { display: block; color: var(--slate-500); font-size: 12px; line-height: 1.4; margin-top: 5px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      border: 1px solid;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .ok { background: var(--green-bg); color: var(--green-text); border-color: var(--green-border); }
+    .warn { background: var(--amber-bg); color: var(--amber-text); border-color: var(--amber-border); }
+    .fail { background: var(--red-bg); color: var(--red-text); border-color: var(--red-border); }
+    .info { background: var(--slate-50); color: var(--slate-700); border-color: var(--slate-200); }
+    .message { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; border: 1px solid var(--slate-200); background: white; border-radius: 20px; padding: 16px; margin-top: 12px; }
+    .message-title { font-weight: 900; }
+    .message-detail { margin-top: 4px; color: var(--slate-600); font-size: 14px; line-height: 1.55; }
+    .table-wrap { overflow-x: auto; margin-top: 16px; }
+    table { width: 100%; min-width: 920px; border-collapse: separate; border-spacing: 0 8px; font-size: 14px; }
+    th { text-align: left; color: var(--slate-500); font-size: 13px; padding: 0 12px; }
+    td { background: white; border-top: 1px solid var(--slate-200); border-bottom: 1px solid var(--slate-200); padding: 12px; }
+    td:first-child { border-left: 1px solid var(--slate-200); border-radius: 16px 0 0 16px; font-weight: 800; }
+    td:last-child { border-right: 1px solid var(--slate-200); border-radius: 0 16px 16px 0; }
+    .hidden { display: none !important; }
+    .test-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; border: 1px solid var(--slate-200); border-radius: 16px; margin-top: 10px; }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: var(--slate-600); font-size: 14px; }
+    .checkbox-row input { width: auto; }
+    @media (max-width: 980px) {
+      .metrics, .grid-4, .grid-3, .catalog-grid { grid-template-columns: 1fr 1fr; }
+      .tabs { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .app { padding: 14px; }
+      .hero { padding: 22px; }
+      .metrics, .grid-4, .grid-3, .catalog-grid, .tabs { grid-template-columns: 1fr; }
+      .message, .duty-head { flex-direction: column; }
+      /* Phase 5: Logo auf dem Phone deutlich kleiner — sonst dominiert es. */
+      .hero-logo { width: 56px; }
+
+      /* Phase 5: Tagesheader auf Mobile aufgeräumt.
+         - Ferien/Feiertags-Badges bekommen eine eigene Zeile (flex-basis: 100%
+           + order: 1), damit lange Labels wie "Christi Himmelfahrt" oder
+           "Tag der Deutschen Einheit" nicht horizontal aus der Karte rauslaufen.
+         - Auf Feiertag/Ferien-EMPTY-Days die "— kein Dienst —"-Zeile
+           ausblenden — der Badge sagt schon, dass es kein Arbeitstag ist.
+           Damit ist der Tagesheader bei Feiertag/Ferien sauber zweizeilig
+           (Datum / Badge) statt dreizeilig (Datum / kein Dienst / Badge).
+         - Indents reduziert, damit der Tagesheader die volle Breite nutzt. */
+      .day-group > summary { padding: 10px 12px; font-size: 14px; gap: 4px 8px; }
+      .day-group .holiday-badge,
+      .day-group .ferien-badge {
+        flex-basis: 100%;
+        margin-left: 0;
+        order: 1;
+        white-space: normal;
+        line-height: 1.3;
+      }
+      .day-group.empty-day.holiday > summary .summary-duty,
+      .day-group.empty-day.ferien > summary .summary-duty {
+        display: none;
+      }
+      .week-group > details.day-group { margin-left: 8px; }
+      .day-group > summary { padding-left: 14px; }
+      .day-group .duty-card,
+      .day-group > .duty-card { margin: 6px 6px 12px 6px; }
+      .empty-day-card { padding: 10px 8px 12px 14px; }
+    }
+
+    /* Phase 5: Sync-Status-Badge in der Toolbar — leise, aber sichtbar.
+       Vier Zustände: idle (leer), saving (gelb), synced (grün), offline (orange). */
+    .sync-status {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .sync-status:empty { display: none; }
+    .sync-status.saving  { background: #fef3c7; color: #92400e; }
+    .sync-status.synced  { background: #d1fae5; color: #065f46; }
+    .sync-status.offline { background: #fed7aa; color: #9a3412; }
+    .sync-status.idle    { background: #e5e7eb; color: #374151; }
+
+    /* Phase 5: aktiver Lade-Knopf — gefüllt + Häkchen, damit man auf einen
+       Blick erkennt, welcher Datensatz gerade geladen ist. */
+    .btn-secondary.active-profile {
+      background: var(--slate-950);
+      color: white;
+      border-color: var(--slate-950);
+    }
+    .btn-secondary.active-profile::before {
+      content: "✓ ";
+      font-weight: 700;
+    }
+
+    /* Phase 5: Manueller Review-Status pro Dienstkarte (✓ geprüft / ✗ Fehler). */
+    .catalog-review-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin: 14px 0 10px;
+      padding: 10px 14px;
+      background: var(--slate-50);
+      border-radius: 10px;
+      font-size: 13px;
+    }
+    .crs-pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .crs-verified { background: #dcfce7; color: #166534; }
+    .crs-errors   { background: #fee2e2; color: #991b1b; }
+    .crs-open     { background: white; color: var(--slate-700); border: 1px solid var(--slate-200); }
+    .crs-total    { color: var(--slate-600); margin-left: 4px; }
+
+    .catalog-card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+    .catalog-card-titlewrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 0;
+    }
+    .catalog-card-titlewrap h2 {
+      margin: 0;
+    }
+    .catalog-card-review {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .review-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1.5px solid var(--slate-300);
+      background: white;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--slate-400);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s, background 0.1s, color 0.1s, border-color 0.1s;
+      padding: 0;
+    }
+    .review-btn:hover {
+      transform: scale(1.08);
+      border-color: var(--slate-500);
+    }
+    .review-ok.active {
+      background: #16a34a;
+      color: white;
+      border-color: #15803d;
+    }
+    .review-err.active {
+      background: #dc2626;
+      color: white;
+      border-color: #b91c1c;
+    }
+
+    /* Karten-Status: linke Kante + zarter Tönung des Hintergrunds. */
+    .catalog-card.cat-review-verified {
+      border-left: 4px solid #16a34a;
+      background: linear-gradient(to right, #f0fdf4, white 30%);
+    }
+    .catalog-card.cat-review-errors {
+      border-left: 4px solid #dc2626;
+      background: linear-gradient(to right, #fef2f2, white 30%);
+    }
+
+    /* Phase 5: Fehler-Notiz unter den Review-Buttons, wenn als ✗ markiert. */
+    .cat-review-note {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 8px 10px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-left: 3px solid #dc2626;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #7f1d1d;
+    }
+    .cat-review-note-icon {
+      flex-shrink: 0;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .cat-review-note-text {
+      flex: 1;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+    .cat-review-note-text em {
+      color: #b91c1c;
+      font-style: italic;
+      opacity: 0.7;
+    }
+    .cat-review-note-edit {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border: 1px solid #fecaca;
+      background: white;
+      color: #b91c1c;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      line-height: 1;
+    }
+    .cat-review-note-edit:hover {
+      background: #fee2e2;
+      border-color: #dc2626;
+    }
+
+    /* Phase 5: Karten mit problem-Feld (fehlende Seite, schemafremd, ...) bekommen
+       einen orangen Akzent — sticht raus, ohne mit grün/rot der Review-Markierung
+       zu kollidieren. */
+    .catalog-card.cat-has-problem {
+      border-left: 4px solid #f59e0b;
+    }
+    .catalog-card.cat-has-problem.cat-review-verified {
+      border-left: 4px solid #16a34a; /* Review-Status gewinnt: User hat trotzdem geprüft */
+    }
+    .catalog-card.cat-has-problem.cat-review-errors {
+      border-left: 4px solid #dc2626;
+    }
+    .badge.problem {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fcd34d;
+      font-weight: 700;
+    }
+    /* Begründung prominent oben im Detail-Popup. */
+    .cd-problem {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      background: #fef3c7;
+      border: 1px solid #fcd34d;
+      border-left: 4px solid #f59e0b;
+      border-radius: 6px;
+      color: #78350f;
+    }
+    .cd-problem-icon {
+      font-size: 20px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .cd-problem-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 13px;
+    }
+    .cd-problem-text strong {
+      font-size: 14px;
+      color: #78350f;
+    }
+
+    /* Phase 5: Detail-Popup für Dienstkarten im Dienstkatalog. */
+    .catalog-card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .cd-modal-content {
+      max-width: 760px;
+    }
+    .cd-variant-picker {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .cd-variant-btn {
+      padding: 6px 12px;
+      border: 1px solid var(--slate-200);
+      background: white;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--slate-700);
+    }
+    .cd-variant-btn.active {
+      background: var(--slate-900);
+      color: white;
+      border-color: var(--slate-900);
+    }
+    .cd-section { margin-top: 18px; }
+    .cd-section:first-of-type { margin-top: 8px; }
+    .cd-section-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--slate-900);
+      margin: 0 0 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      border-bottom: 1px solid var(--slate-100);
+      padding-bottom: 6px;
+    }
+    .cd-sum {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--slate-600);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cd-rahmen-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .cd-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 8px 10px;
+      background: var(--slate-50);
+      border-radius: 8px;
+    }
+    .cd-label {
+      font-size: 11px;
+      color: var(--slate-600);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .cd-value {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--slate-900);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cd-blocks {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 8px;
+    }
+    .cd-blocks li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: #ecfeff;
+      border: 1px solid #a5f3fc;
+      border-radius: 8px;
+    }
+    .cd-block-num {
+      font-size: 12px;
+      color: #155e75;
+    }
+    .cd-block-dur {
+      font-size: 15px;
+      font-weight: 800;
+      color: #164e63;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cd-pausen {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .cd-pause {
+      display: grid;
+      grid-template-columns: 110px auto 1fr;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--slate-50);
+      border-left: 4px solid var(--slate-300);
+    }
+    .cd-pause-pause     { background: #fef3c7; border-left-color: #d97706; }
+    .cd-pause-standzeit { background: #fde68a; border-left-color: #b45309; }
+    .cd-pause-time {
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      color: var(--slate-900);
+    }
+    .cd-pause-dur {
+      font-variant-numeric: tabular-nums;
+      color: var(--slate-700);
+    }
+    .cd-pause-typ {
+      justify-self: end;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 700;
+      color: var(--slate-700);
+    }
+
+    .cd-fahrten {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .cd-fahrt {
+      padding: 10px 12px;
+      background: var(--slate-50);
+      border-radius: 8px;
+      border-left: 4px solid #0891b2;
+    }
+    .cd-fahrt-head {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+    .cd-fahrt-linie {
+      font-weight: 800;
+      color: var(--slate-900);
+      font-size: 14px;
+    }
+    .cd-fahrt-route {
+      font-size: 12px;
+      padding: 2px 8px;
+      background: #e0f2fe;
+      color: #075985;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+    .cd-fahrt-time {
+      font-variant-numeric: tabular-nums;
+      color: var(--slate-700);
+      font-size: 13px;
+      margin-left: auto;
+    }
+    .cd-fahrt-stops {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 13px;
+      color: var(--slate-700);
+    }
+    .cd-fahrt-arrow {
+      color: var(--slate-400);
+      font-weight: 700;
+    }
+    .cd-fahrt-kommentar {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--slate-600);
+      font-style: italic;
+    }
+
+    .cd-hinweise {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .cd-hinweise li {
+      padding: 8px 12px;
+      background: #fef3c7;
+      border-left: 3px solid #d97706;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #78350f;
+    }
+
+    @media (max-width: 720px) {
+      .cd-rahmen-grid { grid-template-columns: repeat(2, 1fr); }
+      .cd-pause { grid-template-columns: 1fr auto; gap: 8px; }
+      .cd-pause-typ { grid-column: 1 / -1; justify-self: start; font-size: 10px; }
+      .cd-fahrt-time { margin-left: 0; flex-basis: 100%; }
+    }
+
+    /* ----------------------------------------------------------------
+       Phase 5: Bundesländer-Tabelle in Tab "Einstellungen".
+       Farbkonzept (dezent, nicht kitschig):
+         - Ferien    = kühles Slate-Blau (#2563eb), assoziiert mit Urlaub
+         - Feiertage = warmes Bordeaux-Rot (#b91c1c), assoziiert mit Festtag
+       Aktive Zeilen bekommen einen seitlichen Akzentbalken in der jeweiligen
+       Farbe + sehr leichte Hintergrund-Tönung (~5% Opacity). Wenn beide
+       Dimensionen aktiv sind, bekommt die Zeile beide Akzentbalken
+       (links Ferien-Blau, rechts Feiertage-Rot).
+       ---------------------------------------------------------------- */
+    .bl-table-wrap {
+      margin-top: 12px;
+      overflow-x: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      background: #fff;
+    }
+    .bl-settings {
+      width: 100%;
+      /* Override des globalen `table { min-width: 920px }` (line 872) — die
+         Bundeslaender-Tabelle braucht keine 920px, sonst sprengt sie auf
+         Mobile den Container. */
+      min-width: 0;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .bl-settings thead th {
+      text-align: left;
+      padding: 12px 14px;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #6b7280;
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+      position: sticky;
+      top: 0;
+    }
+    .bl-settings thead th.bl-col-ferien    { color: #1d4ed8; text-align: center; width: 110px; }
+    .bl-settings thead th.bl-col-feiertage { color: #b91c1c; text-align: center; width: 110px; }
+    .bl-settings tbody tr {
+      border-bottom: 1px solid #f3f4f6;
+      transition: background-color 0.15s ease;
+      box-shadow: inset 4px 0 0 transparent, inset -4px 0 0 transparent;
+    }
+    .bl-settings tbody tr:last-child { border-bottom: none; }
+    .bl-settings tbody tr:hover { background-color: #fafbfc; }
+    .bl-settings td {
+      padding: 11px 14px;
+      vertical-align: middle;
+    }
+    .bl-settings td.bl-col-name {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .bl-settings td.bl-col-ferien,
+    .bl-settings td.bl-col-feiertage { text-align: center; }
+    .bl-settings .bl-code {
+      display: inline-block;
+      min-width: 30px;
+      padding: 2px 7px;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+      font-size: 11px;
+      font-weight: 600;
+      color: #6b7280;
+      background: #f3f4f6;
+      border-radius: 5px;
+      text-align: center;
+      letter-spacing: 0.02em;
+    }
+    .bl-settings .bl-fullname {
+      color: #111827;
+      font-weight: 500;
+    }
+    /* Checkbox-Styling: nativer Browser-Check mit angepasster accent-color
+       — schlicht, plattformnah, mobile-freundlich. */
+    .bl-settings .bl-checkbox {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+      transition: background-color 0.12s ease;
+    }
+    .bl-settings .bl-checkbox:hover { background: rgba(0,0,0,0.04); }
+    .bl-settings .bl-checkbox input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      margin: 0;
+    }
+    .bl-settings td.bl-col-ferien    .bl-checkbox input[type="checkbox"] { accent-color: #2563eb; }
+    .bl-settings td.bl-col-feiertage .bl-checkbox input[type="checkbox"] { accent-color: #b91c1c; }
+
+    /* Aktive Zeilen — Akzentbalken + leichte Tönung. */
+    .bl-settings tbody tr.ferien-active {
+      background: linear-gradient(90deg, rgba(37,99,235,0.05), transparent 55%);
+      box-shadow: inset 4px 0 0 #2563eb, inset -4px 0 0 transparent;
+    }
+    .bl-settings tbody tr.feiertage-active {
+      background: linear-gradient(-90deg, rgba(185,28,28,0.05), transparent 55%);
+      box-shadow: inset 4px 0 0 transparent, inset -4px 0 0 #b91c1c;
+    }
+    .bl-settings tbody tr.ferien-active.feiertage-active {
+      background: linear-gradient(90deg, rgba(37,99,235,0.06), rgba(255,255,255,0) 50%, rgba(185,28,28,0.06));
+      box-shadow: inset 4px 0 0 #2563eb, inset -4px 0 0 #b91c1c;
+    }
+    .bl-settings tbody tr.ferien-active:hover    { background-color: rgba(37,99,235,0.09); }
+    .bl-settings tbody tr.feiertage-active:hover { background-color: rgba(185,28,28,0.09); }
+    .bl-settings tbody tr.ferien-active.feiertage-active:hover {
+      background: linear-gradient(90deg, rgba(37,99,235,0.10), rgba(0,0,0,0.02) 50%, rgba(185,28,28,0.10));
+    }
+
+    /* Legende unterhalb der Tabelle. */
+    .bl-legend {
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 13px;
+      color: #4b5563;
+    }
+    .bl-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .bl-chip-ferien    { background: rgba(37,99,235,0.10);  color: #1d4ed8; border: 1px solid rgba(37,99,235,0.25); }
+    .bl-chip-feiertage { background: rgba(185,28,28,0.10);  color: #b91c1c; border: 1px solid rgba(185,28,28,0.25); }
+    .bl-legend-text { flex: 1 1 240px; min-width: 220px; }
+
+    /* Phase 5: Bundeslaender-Tabelle auf Mobile (≤640px) — die Default-
+       Layouttabelle hat fixe Spaltenbreiten von 110px fuer Ferien/Feiertage
+       und Kopfzeilen "FEIERTAGE", was die Tabelle auf ~920px aufblaeht und
+       horizontal-scrollen erzwingt. Hier aggressiv schrumpfen, damit die
+       Tabelle in 320-375px Viewport passt:
+         - Wrapper: overflow-x: visible (kein Scrollbalken).
+         - Headers: kuerzeres Letter-Spacing, kleineres Font, weniger Padding.
+         - Ferien/Feiertage-Spalten: 56px (genug fuer Header + 18px Checkbox).
+         - Bundesland-Name: kleinere Schrift, ggf. Umbruch erlaubt. */
+    @media (max-width: 640px) {
+      .bl-table-wrap { overflow-x: visible; }
+      .bl-settings { font-size: 13px; }
+      .bl-settings thead th {
+        padding: 8px 4px;
+        font-size: 10px;
+        letter-spacing: 0.02em;
+      }
+      .bl-settings thead th.bl-col-name { padding-left: 8px; }
+      .bl-settings thead th.bl-col-ferien,
+      .bl-settings thead th.bl-col-feiertage {
+        width: 54px;
+        padding: 8px 2px;
+      }
+      .bl-settings td { padding: 8px 4px; }
+      .bl-settings td.bl-col-name { gap: 6px; padding-left: 8px; }
+      .bl-settings .bl-fullname { font-size: 12px; line-height: 1.25; }
+      .bl-settings .bl-code {
+        font-size: 10px;
+        padding: 1px 5px;
+        min-width: 22px;
+      }
+      .bl-settings .bl-checkbox { padding: 4px; }
+      .bl-settings tbody tr.ferien-active,
+      .bl-settings tbody tr.feiertage-active,
+      .bl-settings tbody tr.ferien-active.feiertage-active {
+        box-shadow: inset 3px 0 0 transparent, inset -3px 0 0 transparent;
+      }
+      .bl-settings tbody tr.ferien-active {
+        box-shadow: inset 3px 0 0 #2563eb, inset -3px 0 0 transparent;
+      }
+      .bl-settings tbody tr.feiertage-active {
+        box-shadow: inset 3px 0 0 transparent, inset -3px 0 0 #b91c1c;
+      }
+      .bl-settings tbody tr.ferien-active.feiertage-active {
+        box-shadow: inset 3px 0 0 #2563eb, inset -3px 0 0 #b91c1c;
+      }
+    }
+
+    /* === Phase 5: Jahresurlaub-Sektion in Einstellungen ============== */
+    /* Per-Profil verwaltete Urlaubszeiträume mit Stats, Jahresleiste,
+       Card-Liste und Inline-Add-Form. Akzentfarbe: emerald (semantisch
+       "frei/Erholung"), klar unterscheidbar von Ferien (blau) und
+       Feiertagen (rot). */
+    .vacation-section { margin-top: 16px; }
+    .vacation-header h2 { margin: 0 0 6px; }
+    .vacation-no-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--slate-50);
+      border: 1px dashed var(--slate-300);
+      border-radius: 14px;
+      color: var(--slate-600);
+      font-size: 14px;
+      line-height: 1.5;
+      margin-top: 14px;
+    }
+    .vacation-no-profile.hidden { display: none; }
+    .vacation-no-profile-icon { font-size: 24px; flex-shrink: 0; }
+    .vacation-content.hidden { display: none; }
+
+    /* Steuerleiste: Jahres-Switch + Urlaubsanspruch */
+    .vacation-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 14px;
+    }
+    .vacation-year-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      background: white;
+      border: 1px solid var(--slate-200);
+      border-radius: 14px;
+      padding: 4px;
+    }
+    .vacation-year-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      border: 0;
+      background: transparent;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--slate-600);
+      cursor: pointer;
+      padding: 0;
+    }
+    .vacation-year-btn:hover { background: var(--slate-100); color: var(--slate-950); }
+    .vacation-year-current {
+      font-weight: 900;
+      font-size: 16px;
+      letter-spacing: -0.01em;
+      padding: 0 12px;
+      min-width: 60px;
+      text-align: center;
+      color: var(--slate-950);
+    }
+    .vacation-entitlement {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--slate-600);
+      font-weight: 600;
+    }
+    .vacation-entitlement input {
+      width: 56px;
+      padding: 6px 8px;
+      font-weight: 800;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    /* Stats-Banner mit Progress-Bar */
+    .vacation-stats {
+      margin-top: 14px;
+      padding: 14px 16px;
+      background: linear-gradient(135deg, #d1fae5 0%, #ffffff 100%);
+      border: 1px solid #a7f3d0;
+      border-radius: 16px;
+    }
+    .vacation-stats-numbers {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 4px 8px;
+      font-size: 14px;
+    }
+    .vacation-stats-numbers strong {
+      font-size: 28px;
+      font-weight: 900;
+      color: #047857;
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+    .vacation-stats-divider { color: var(--slate-500); font-size: 18px; }
+    .vacation-stats-numbers > #vacationStatsTotal { font-weight: 700; color: var(--slate-700); font-size: 16px; }
+    .vacation-stats-label {
+      margin-left: 8px;
+      color: var(--slate-600);
+      font-weight: 600;
+    }
+    .vacation-stats-remaining {
+      margin-left: auto;
+      color: #065f46;
+      font-weight: 800;
+      font-size: 13px;
+      padding: 4px 10px;
+      background: rgba(255,255,255,.6);
+      border-radius: 999px;
+    }
+    .vacation-progress {
+      margin-top: 10px;
+      height: 8px;
+      background: rgba(255,255,255,.7);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .vacation-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #047857);
+      border-radius: 999px;
+      transition: width .3s ease;
+    }
+
+    /* Jahresleiste */
+    .vacation-yearstrip { margin-top: 16px; }
+    .vacation-yearstrip-svg {
+      display: block;
+      width: 100%;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--slate-100);
+    }
+    .vacation-yearstrip-labels {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      margin-top: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--slate-500);
+      text-align: center;
+      letter-spacing: 0.04em;
+    }
+
+    /* Urlaubs-Karten */
+    .vacation-list {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .vacation-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      background: white;
+      border: 1px solid var(--slate-200);
+      border-left: 4px solid #10b981;
+      border-radius: 14px;
+      transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .vacation-card:hover {
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12);
+      border-left-color: #047857;
+    }
+    .vacation-card-emoji {
+      font-size: 28px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .vacation-card-text {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .vacation-card-label {
+      font-weight: 800;
+      font-size: 15px;
+      color: var(--slate-950);
+      margin-bottom: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .vacation-card-range {
+      color: var(--slate-600);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .vacation-card-days {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      background: #d1fae5;
+      color: #065f46;
+      font-weight: 800;
+      font-size: 13px;
+      border-radius: 999px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .vacation-card-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .vacation-card-action {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--slate-600);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: background 0.12s, color 0.12s;
+    }
+    .vacation-card-action:hover { background: var(--slate-100); color: var(--slate-950); }
+    .vacation-card-action.delete:hover { background: #fee2e2; color: #991b1b; }
+
+    /* Empty state */
+    .vacation-empty {
+      padding: 32px 16px;
+      text-align: center;
+      background: var(--slate-50);
+      border: 1px dashed var(--slate-300);
+      border-radius: 14px;
+      margin-top: 16px;
+    }
+    .vacation-empty.hidden { display: none; }
+    .vacation-empty-icon { font-size: 36px; margin-bottom: 6px; }
+    .vacation-empty-title {
+      font-weight: 800;
+      color: var(--slate-700);
+      font-size: 15px;
+    }
+    .vacation-empty-text { color: var(--slate-500); font-size: 13px; margin-top: 4px; }
+
+    /* Add-Knopf */
+    .vacation-add-btn {
+      margin-top: 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #10b981;
+      color: white;
+      padding: 10px 18px;
+      border-radius: 14px;
+      font-weight: 800;
+      font-size: 14px;
+      border: 0;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(16,185,129,0.25);
+      transition: background 0.15s, transform 0.05s;
+    }
+    .vacation-add-btn:hover { background: #047857; }
+    .vacation-add-btn:active { transform: translateY(1px); }
+    .vacation-add-plus {
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    /* Inline-Form */
+    .vacation-form {
+      margin-top: 14px;
+      padding: 18px;
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      border-radius: 16px;
+    }
+    .vacation-form.hidden { display: none; }
+    .vacation-form h3 {
+      margin: 0 0 14px;
+      font-size: 16px;
+      color: var(--slate-950);
+    }
+    .vacation-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .vacation-form-field { display: block; }
+    .vacation-form-field-wide { grid-column: 1 / -1; }
+    .vacation-emoji-picker {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .vacation-emoji-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid var(--slate-200);
+      background: white;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.15s;
+      padding: 0;
+    }
+    .vacation-emoji-btn:hover { background: white; transform: scale(1.08); }
+    .vacation-emoji-btn.active {
+      border-color: #10b981;
+      background: #d1fae5;
+      box-shadow: 0 0 0 2px rgba(16,185,129,0.20);
+    }
+    .vacation-form-feedback {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      display: none;
+    }
+    .vacation-form-feedback.info {
+      display: block;
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .vacation-form-feedback.error {
+      display: block;
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .vacation-form-actions {
+      margin-top: 14px;
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    /* Kalender-Integration: Urlaubstag-Banner */
+    .day-group.vacation:not(.holiday):not(.ferien) > summary {
+      background: #ecfdf5;
+      border-left: 3px solid #10b981;
+    }
+    .day-group.vacation:not(.holiday):not(.ferien)[open] > summary { background: #d1fae5; }
+    .vacation-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+
+    /* Mobile-Anpassungen */
+    @media (max-width: 640px) {
+      .vacation-controls { gap: 10px; }
+      .vacation-stats-numbers { gap: 2px 6px; }
+      .vacation-stats-numbers strong { font-size: 24px; }
+      .vacation-stats-remaining { width: 100%; margin: 4px 0 0; text-align: center; }
+      .vacation-stats-label { margin-left: 6px; font-size: 13px; }
+      .vacation-form-grid { grid-template-columns: 1fr; }
+      .vacation-card { padding: 12px; gap: 10px; }
+      .vacation-card-emoji { font-size: 24px; }
+      .vacation-card-label { font-size: 14px; }
+      .vacation-card-range { font-size: 12px; }
+      .vacation-card-days { padding: 3px 8px; font-size: 12px; }
+      .vacation-card-action { width: 28px; height: 28px; }
+      .vacation-yearstrip-labels { font-size: 9px; }
+      /* Urlaub-Tag im Kalender: gleiches Verhalten wie Ferien-Tage —
+         Badge auf eigene Zeile, "kein Dienst"-Text ausblenden */
+      .day-group.empty-day.vacation > summary .summary-duty { display: none; }
+      .day-group .vacation-badge {
+        flex-basis: 100%;
+        margin-left: 0;
+        order: 1;
+        white-space: normal;
+        line-height: 1.3;
+      }
+    }
