@@ -1,0 +1,9 @@
+Entscheidungen und Hinweise
+
+1. Die Projektversion ist ohne Build-System aufgebaut. Du brauchst kein Node.js.
+2. index.html lädt src/styles.css und src/app.js.
+3. build/ enthält die Ein-Datei-Version für direktes Öffnen im Browser.
+4. Runke-Dienste: 46 Arbeitsdienste aus der Planungsübersicht 13.04.2026 bis 01.07.2026.
+5. Pausen und Lenkblöcke sind leer, weil sie in der Planungsübersicht nicht enthalten waren.
+6. Die App prüft Dienstzeit-Pausen, manuelle Pauseneingabe, Fahrtunterbrechungen, Ein-Sechstel-Regelung, Ruhezeit zwischen Diensten sowie Tages-, Wochen- und 14-Tage-Lenkzeit.
+7. Die App ist eine Vorprüfung und ersetzt keine rechtsverbindliche Dienstplanung.

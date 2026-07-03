@@ -1,0 +1,1016 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lenk- und Ruhezeiten-Prüfer für Busfahrer</title>
+  <style>
+    :root {
+      --slate-950: #020617;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-300: #cbd5e1;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --white: #ffffff;
+      --green-bg: #ecfdf5;
+      --green-text: #065f46;
+      --green-border: #a7f3d0;
+      --amber-bg: #fffbeb;
+      --amber-text: #92400e;
+      --amber-border: #fde68a;
+      --red-bg: #fef2f2;
+      --red-text: #991b1b;
+      --red-border: #fecaca;
+      --shadow: 0 10px 30px rgba(15, 23, 42, .08);
+      --radius: 24px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--slate-950);
+      background: linear-gradient(135deg, var(--slate-50), var(--white), var(--slate-100));
+    }
+    .app { max-width: 1280px; margin: 0 auto; padding: 24px; }
+    .hero {
+      background: var(--slate-950);
+      color: white;
+      border-radius: 32px;
+      padding: 32px;
+      box-shadow: var(--shadow);
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.15);
+      padding: 6px 12px;
+      color: var(--slate-200);
+      font-size: 14px;
+      background: rgba(255,255,255,.08);
+    }
+    h1 { margin: 14px 0 8px; font-size: clamp(32px, 5vw, 56px); line-height: 1; letter-spacing: -0.04em; }
+    h2 { margin: 0; font-size: 22px; }
+    p { line-height: 1.6; }
+    .hero p { max-width: 780px; color: var(--slate-300); margin: 0; }
+    .status-panel {
+      min-width: 220px;
+      text-align: center;
+      border-radius: 28px;
+      padding: 20px;
+      background: rgba(255,255,255,.10);
+    }
+    .status-panel small { color: var(--slate-300); }
+    .status-panel strong { display: block; font-size: 28px; margin: 4px 0; }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 24px 0; }
+    .card {
+      border: 1px solid var(--slate-200);
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+    .metric-title { color: var(--slate-500); font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .metric-value { font-size: 28px; font-weight: 800; margin-top: 8px; }
+    .metric-note { color: var(--slate-500); font-size: 12px; margin-top: 4px; }
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      background: var(--slate-100);
+      padding: 8px;
+      border-radius: 20px;
+      max-width: 920px;
+      margin-bottom: 18px;
+    }
+    .tab {
+      border: 0;
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: transparent;
+      color: var(--slate-600);
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .tab.active { background: white; color: var(--slate-950); box-shadow: 0 6px 18px rgba(15,23,42,.08); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    button {
+      border: 0;
+      border-radius: 16px;
+      padding: 10px 14px;
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-primary { background: var(--slate-950); color: white; }
+    .btn-secondary { background: white; color: var(--slate-950); border: 1px solid var(--slate-300); }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-small { padding: 7px 10px; border-radius: 12px; font-size: 13px; }
+    .duty-card { margin-bottom: 16px; }
+    .duty-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
+    .muted { color: var(--slate-500); font-size: 13px; }
+    .grid { display: grid; gap: 12px; }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .catalog-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+    label { display: block; }
+    .label { display: block; color: var(--slate-700); font-size: 14px; font-weight: 800; margin-bottom: 7px; }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--slate-300);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font: inherit;
+      background: white;
+      outline: none;
+    }
+    textarea { min-height: 170px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+    input:focus, select:focus, textarea:focus { border-color: var(--slate-800); box-shadow: 0 0 0 3px rgba(15, 23, 42, .12); }
+    .hint { display: block; color: var(--slate-500); font-size: 12px; line-height: 1.4; margin-top: 5px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      border: 1px solid;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .ok { background: var(--green-bg); color: var(--green-text); border-color: var(--green-border); }
+    .warn { background: var(--amber-bg); color: var(--amber-text); border-color: var(--amber-border); }
+    .fail { background: var(--red-bg); color: var(--red-text); border-color: var(--red-border); }
+    .info { background: var(--slate-50); color: var(--slate-700); border-color: var(--slate-200); }
+    .message { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; border: 1px solid var(--slate-200); background: white; border-radius: 20px; padding: 16px; margin-top: 12px; }
+    .message-title { font-weight: 900; }
+    .message-detail { margin-top: 4px; color: var(--slate-600); font-size: 14px; line-height: 1.55; }
+    .table-wrap { overflow-x: auto; margin-top: 16px; }
+    table { width: 100%; min-width: 920px; border-collapse: separate; border-spacing: 0 8px; font-size: 14px; }
+    th { text-align: left; color: var(--slate-500); font-size: 13px; padding: 0 12px; }
+    td { background: white; border-top: 1px solid var(--slate-200); border-bottom: 1px solid var(--slate-200); padding: 12px; }
+    td:first-child { border-left: 1px solid var(--slate-200); border-radius: 16px 0 0 16px; font-weight: 800; }
+    td:last-child { border-right: 1px solid var(--slate-200); border-radius: 0 16px 16px 0; }
+    .hidden { display: none !important; }
+    .notice { border: 1px solid var(--slate-200); background: var(--slate-50); border-radius: var(--radius); padding: 18px; color: var(--slate-600); font-size: 14px; line-height: 1.65; }
+    .test-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; border: 1px solid var(--slate-200); border-radius: 16px; margin-top: 10px; }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: var(--slate-600); font-size: 14px; }
+    .checkbox-row input { width: auto; }
+    @media (max-width: 980px) {
+      .metrics, .grid-4, .grid-3, .catalog-grid { grid-template-columns: 1fr 1fr; }
+      .tabs { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .app { padding: 14px; }
+      .hero { padding: 22px; }
+      .metrics, .grid-4, .grid-3, .catalog-grid, .tabs { grid-template-columns: 1fr; }
+      .message, .duty-head { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="hero">
+      <div>
+        <div class="pill">🚌 Linienverkehr · Dienstprüfung</div>
+        <h1>Lenk- und Ruhezeiten-Prüfer</h1>
+        <p>Gib Dienste mit Dienstnummer, Datum, Beginn, Ende, Lenkblöcken und Pausen ein. Die App prüft Tageslenkzeit, 4,5-Stunden-Grenze, Fahrtunterbrechungen, Ruhezeit zwischen Diensten, Wochenlenkzeit und 14-Tage-Grenze.</p>
+      </div>
+      <div class="status-panel" id="overallPanel">
+        <small>Gesamtstatus</small>
+        <strong id="overallStatus">OK</strong>
+        <small id="overallDetail">0 Verstöße · 0 Hinweise</small>
+      </div>
+    </header>
+
+    <section class="metrics">
+      <div class="card"><div class="metric-title">📋 Dienste</div><div class="metric-value" id="metricDuties">0</div><div class="metric-note">eingetragen</div></div>
+      <div class="card"><div class="metric-title">⏱ Lenkzeit gesamt</div><div class="metric-value" id="metricDriving">0 Std. 00 Min.</div><div class="metric-note">aus Lenkblöcken</div></div>
+      <div class="card"><div class="metric-title">🗓 Dienstzeit gesamt</div><div class="metric-value" id="metricShift">0 Std. 00 Min.</div><div class="metric-note">Beginn bis Ende</div></div>
+      <div class="card"><div class="metric-title">✓ Prüfstatus</div><div class="metric-value" id="metricStatus">OK</div><div class="metric-note">nach eingegebenen Daten</div></div>
+    </section>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="eingabe">Dienste eingeben</button>
+      <button class="tab" data-tab="auswertung">Auswertung</button>
+      <button class="tab" data-tab="katalog">Dienstkatalog</button>
+      <button class="tab" data-tab="daten">Speichern/Laden</button>
+      <button class="tab" data-tab="tests">Tests</button>
+    </nav>
+
+    <main>
+      <section id="tab-eingabe">
+        <div class="toolbar">
+          <button class="btn-primary" id="addDuty">+ Dienst hinzufügen</button>
+          <button class="btn-secondary" id="resetExample">↻ Beispiel zurücksetzen</button>
+          <button class="btn-secondary" id="clearDuties">Alle löschen</button>
+        </div>
+        <div id="dutiesContainer"></div>
+      </section>
+
+      <section id="tab-auswertung" class="hidden">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+            <div>
+              <h2>Prüfergebnis</h2>
+              <p class="muted">Die Prüfung basiert auf den eingetragenen Lenkblöcken und Pausen. Dienstbeginn und Dienstende allein reichen für eine vollständige rechtliche Prüfung nicht aus.</p>
+            </div>
+            <span id="resultBadge"></span>
+          </div>
+          <div id="messages"></div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <h2>Dienste im Überblick</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Datum</th><th>Dienst</th><th>Zeit</th><th>Dienstlänge</th><th>Lenkzeit</th><th>Pausen</th><th>Pausenregel</th><th>Dienstzeit-Pause</th><th>Fahrtunterbrechung</th>
+                </tr>
+              </thead>
+              <tbody id="overviewRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-katalog" class="hidden">
+        <div class="card">
+          <h2>Hinterlegter Dienstkatalog</h2>
+          <p class="muted">Bei Eingabe einer Dienstnummer werden Beginn und Ende automatisch übernommen. Freitag-Abweichungen werden anhand des Datums gesetzt. Eigene Dienste kannst du hier dauerhaft im Browser speichern.</p>
+
+          <div class="card" style="margin-top:16px; box-shadow:none;">
+            <h2 style="font-size:18px;">Eigene Dienstvorlage hinzufügen</h2>
+            <div class="grid grid-4" style="margin-top:12px;">
+              <label><span class="label">Dienstnummer</span><input id="templateNumber" inputmode="numeric" placeholder="z. B. 4001"></label>
+              <label><span class="label">Dienstanfang</span><input id="templateStart" type="time" value="06:00"></label>
+              <label><span class="label">Dienstende</span><input id="templateEnd" type="time" value="14:00"></label>
+              <label><span class="label">Tage</span><input id="templateDays" value="Mo-Fr" placeholder="z. B. Mo-Fr"></label>
+            </div>
+            <div class="grid grid-3" style="margin-top:12px;">
+              <label><span class="label">Freitag-Ende optional</span><input id="templateFridayEnd" type="time"></label>
+              <div></div>
+              <div style="display:flex; align-items:end;"><button class="btn-primary" id="addTemplate">Dienstvorlage speichern</button></div>
+            </div>
+          </div>
+
+          <div class="catalog-grid" id="catalogGrid"></div>
+        </div>
+      </section>
+
+      <section id="tab-daten" class="hidden">
+        <div class="card">
+          <h2>Daten speichern oder laden</h2>
+          <p class="muted">Du kannst deine eingetragenen Dienste als JSON sichern und später wieder einfügen.</p>
+          <div class="toolbar">
+            <button class="btn-primary" id="exportData">Daten in Feld schreiben</button>
+            <button class="btn-secondary" id="importData">Daten aus Feld laden</button>
+            <button class="btn-secondary" id="downloadJson">JSON-Datei herunterladen</button>
+          </div>
+          <textarea id="dataBox" placeholder="Hier erscheinen deine gespeicherten Dienste oder du fügst JSON-Daten ein."></textarea>
+        </div>
+      </section>
+
+      <section id="tab-tests" class="hidden">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+            <div>
+              <h2>Interne Tests</h2>
+              <p class="muted">Diese Tests prüfen Kernfälle der App-Logik direkt im Browser.</p>
+            </div>
+            <span id="testsBadge"></span>
+          </div>
+          <div id="testsRows"></div>
+        </div>
+      </section>
+    </main>
+
+    <section class="notice" style="margin-top:22px;">
+      Wichtig: Für eine echte Prüfung müssen die Lenkblöcke und Pausen richtig eingetragen werden. Beginn und Ende eines Dienstes allein reichen nicht, weil Dienstzeit, Arbeitszeit, Bereitschaft, Pause und Lenkzeit rechtlich unterschiedlich sind. Die Ein-Sechstel-Regelung gilt hier als Vorprüfung für Linienverkehr bis 50 km mit durchschnittlichem Haltestellenabstand bis 3 km. Die wöchentliche Ruhezeit wird hier nur als Hinweis über große Lücken sichtbar, aber nicht vollständig rechtssicher bewertet.
+    </section>
+  </div>
+
+<script>
+"use strict";
+
+const BASE_SERVICE_CATALOG = {
+  "3001": { start: "05:03", end: "12:12", days: "Mo-Fr" },
+  "3003": { start: "05:47", end: "14:10", days: "Mo-Fr" },
+  "3005": { start: "05:51", end: "15:49", days: "Mo-Fr" },
+  "3006": { start: "06:00", end: "16:20", fridayEnd: "14:21", days: "Mo-Fr" },
+  "3007": { start: "06:03", end: "14:19", days: "Mo-Fr" },
+  "3009": { start: "06:04", end: "16:25", fridayEnd: "15:30", days: "Mo-Fr" },
+  "3011": { start: "06:23", end: "17:00", fridayEnd: "14:34", days: "Mo-Fr" },
+  "3012": { start: "06:31", end: "16:50", days: "Mo-Fr" },
+  "3013": { start: "06:35", end: "17:06", days: "Mo-Fr" },
+  "3014": { start: "06:35", end: "15:39", days: "Mo-Fr" },
+  "3016": { start: "06:43", end: "18:06", days: "Mo-Fr" },
+  "3019": { start: "06:49", end: "17:28", fridayEnd: "15:50", days: "Mo-Fr" },
+  "3022": { start: "12:03", end: "19:21", days: "Mo-Fr" },
+  "3023": { start: "12:03", end: "20:21", days: "Mo-Fr" },
+  "3024": { start: "12:20", end: "21:05", days: "Mo-Fr" },
+  "3025": { start: "13:10", end: "21:50", days: "Mo-Fr" },
+  "3041": { start: "08:20", end: "19:41", days: "Mo-Fr" },
+  "3042": { start: "11:20", end: "21:05", days: "Mo-Fr" },
+  "3051": { start: "06:42", end: "15:21", days: "Sa" },
+  "3052": { start: "06:43", end: "14:41", days: "Sa" },
+  "3053": { start: "06:47", end: "14:39", days: "Sa" },
+  "3054": { start: "06:51", end: "19:21", days: "Sa" },
+  "3055": { start: "07:03", end: "17:04", days: "Sa" },
+  "3056": { start: "07:07", end: "16:04", days: "Sa" },
+  "3057": { start: "09:20", end: "18:21", days: "Sa" }
+};
+
+
+let customCatalog = {};
+
+function getCatalog() {
+  return { ...BASE_SERVICE_CATALOG, ...customCatalog };
+}
+
+function loadLocalState() {
+  try {
+    const raw = localStorage.getItem("lenkRuhezeitenAppState");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveLocalState() {
+  try {
+    localStorage.setItem("lenkRuhezeitenAppState", JSON.stringify({ duties, customCatalog }));
+  } catch {
+    /* Speichern ist optional. */
+  }
+}
+
+const dayNames = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+let duties = [];
+
+function pad(n) { return String(n).padStart(2, "0"); }
+
+function createId() {
+  return "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+}
+
+function localToday() {
+  const now = new Date();
+  return now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate());
+}
+
+function safeDate(date) {
+  return date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : localToday();
+}
+
+function toMinutes(value) {
+  if (value === null || value === undefined) return 0;
+  const text = String(value).trim().replace(",", ":");
+  if (!text) return 0;
+  if (text.includes(":")) {
+    const parts = text.split(":");
+    const hours = Number(parts[0] || 0);
+    const minutes = Number(parts[1] || 0);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return 0;
+    return Math.max(0, Math.round(hours * 60 + minutes));
+  }
+  const number = Number(text);
+  if (!Number.isFinite(number)) return 0;
+  return Math.max(0, Math.round(number * 60));
+}
+
+function timeToMinutes(time) {
+  if (!time) return 0;
+  const parts = String(time).split(":").map(Number);
+  if (!Number.isFinite(parts[0]) || !Number.isFinite(parts[1])) return 0;
+  return parts[0] * 60 + parts[1];
+}
+
+function minutesToText(mins) {
+  const safe = Math.max(0, Math.round(mins || 0));
+  const h = Math.floor(safe / 60);
+  const m = safe % 60;
+  return h + " Std. " + pad(m) + " Min.";
+}
+
+function parseList(value) {
+  return String(value || "")
+    .split(/[;,\s]+/)
+    .map(part => part.trim())
+    .filter(Boolean)
+    .map(part => part.includes(":") ? toMinutes(part) : Number(part))
+    .filter(num => Number.isFinite(num) && num >= 0);
+}
+
+function dayIndex(date) {
+  return new Date(safeDate(date) + "T12:00:00").getDay();
+}
+
+function isFriday(date) { return dayIndex(date) === 5; }
+function getDay(date) { return dayNames[dayIndex(date)] || ""; }
+
+function shiftMinutes(start, end) {
+  const s = timeToMinutes(start);
+  const e = timeToMinutes(end);
+  return e >= s ? e - s : e + 1440 - s;
+}
+
+function absoluteMinutes(date, time, carryNextDay) {
+  const d = new Date(safeDate(date) + "T00:00:00");
+  const base = Math.floor(d.getTime() / 60000);
+  return base + timeToMinutes(time) + (carryNextDay ? 1440 : 0);
+}
+
+function isoWeekKey(dateString) {
+  const date = new Date(safeDate(dateString) + "T12:00:00");
+  const day = date.getDay() || 7;
+  date.setDate(date.getDate() + 4 - day);
+  const yearStart = new Date(date.getFullYear(), 0, 1);
+  const week = Math.ceil(((date - yearStart) / 86400000 + 1) / 7);
+  return date.getFullYear() + "-KW" + pad(week);
+}
+
+function catalogTimes(number, date) {
+  const entry = getCatalog()[String(number || "")];
+  if (!entry) return null;
+  return {
+    start: entry.start,
+    end: isFriday(date) && entry.fridayEnd ? entry.fridayEnd : entry.end
+  };
+}
+
+function emptyDuty() {
+  return {
+    id: createId(),
+    date: localToday(),
+    number: "3006",
+    start: "06:00",
+    end: "16:20",
+    breaks: "30",
+    drivingBlocks: "4:00 4:00",
+    lineMode: "linie50",
+    stopDistance: "gt3",
+    pauseRule: "auto",
+    tariffEight: false
+  };
+}
+
+function exampleDuties() {
+  return [
+    { id: "demo-1", date: "2026-01-05", number: "3006", start: "06:00", end: "16:20", breaks: "30", drivingBlocks: "4:00 4:00", lineMode: "linie50", stopDistance: "gt3", pauseRule: "auto", tariffEight: false },
+    { id: "demo-2", date: "2026-01-06", number: "3009", start: "06:04", end: "16:25", breaks: "20 20", drivingBlocks: "4:10 3:45", lineMode: "linie50", stopDistance: "gt3", pauseRule: "auto", tariffEight: false },
+    { id: "demo-3", date: "2026-01-07", number: "3011", start: "06:23", end: "17:00", breaks: "15 15 15", drivingBlocks: "3:00 2:30 2:15", lineMode: "linie50", stopDistance: "gt3", pauseRule: "auto", tariffEight: false }
+  ];
+}
+
+function badge(type, text) {
+  const symbol = type === "ok" ? "✓" : type === "warn" ? "!" : type === "fail" ? "×" : "i";
+  const label = text || (type === "ok" ? "OK" : type === "warn" ? "Prüfen" : type === "fail" ? "Verstoß" : "Info");
+  return '<span class="badge ' + type + '"><span>' + symbol + '</span>' + escapeHtml(label) + '</span>';
+}
+
+function escapeHtml(text) {
+  return String(text ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function evaluateBreaks(duty) {
+  const blocks = parseList(duty.drivingBlocks);
+  const breaks = parseList(duty.breaks);
+  const driving = blocks.reduce((sum, b) => sum + b, 0);
+  const pauseRule = duty.pauseRule || "auto";
+
+  if (blocks.length === 0 || driving === 0) {
+    return { type: "warn", title: "Lenkblöcke fehlen", detail: "Trage die tatsächlichen Lenkblöcke ein, z. B. 2:15 2:10 1:40. Ohne Lenkblöcke ist die 4,5-Stunden-Prüfung nicht vollständig." };
+  }
+
+  if (blocks.some(b => b > 270)) {
+    return { type: "fail", title: "Ununterbrochene Lenkzeit", detail: "Mindestens ein Lenkblock ist länger als 4 Std. 30 Min." };
+  }
+
+  const useSixthRule = duty.lineMode === "linie50" && (
+    pauseRule === "sixth" || (pauseRule === "auto" && duty.stopDistance === "lte3")
+  );
+
+  if (useSixthRule) {
+    const relevant = duty.tariffEight ? 8 : 10;
+    const countable = breaks.filter(b => b >= relevant).reduce((sum, b) => sum + b, 0);
+    const ignored = breaks.filter(b => b > 0 && b < relevant).reduce((sum, b) => sum + b, 0);
+    const needed = Math.ceil(driving / 6);
+    const ok = countable >= needed;
+
+    return {
+      type: ok ? "ok" : "fail",
+      title: "Ein-Sechstel-Regelung Linienverkehr",
+      detail: ok
+        ? "Anrechenbare Unterbrechungen: " + countable + " Min.; benötigt mindestens ein Sechstel der vorgesehenen Lenkzeit, hier " + needed + " Min. Nicht angerechnete Kurzunterbrechungen: " + ignored + " Min."
+        : "Anrechenbare Unterbrechungen: " + countable + " Min.; benötigt mindestens ein Sechstel der vorgesehenen Lenkzeit, hier " + needed + " Min. Unterbrechungen unter " + relevant + " Min. wurden nicht gezählt."
+    };
+  }
+
+  if (driving <= 270) {
+    return { type: "ok", title: "Fahrtunterbrechung", detail: "Die eingetragene Tageslenkzeit liegt nicht über 4 Std. 30 Min.; die Lenkzeit-Pausenprüfung ist unauffällig." };
+  }
+
+  const mode = duty.lineMode === "linie50" ? "linie50" : "eu";
+  let accumulatedDriving = 0;
+  let pausePattern = [];
+
+  for (let i = 0; i < blocks.length; i += 1) {
+    accumulatedDriving += blocks[i];
+    if (accumulatedDriving > 270) {
+      return { type: "fail", title: "Pause zu spät", detail: "Nach " + minutesToText(accumulatedDriving) + " Lenkzeit ist noch keine ausreichende Fahrtunterbrechung eingetragen." };
+    }
+
+    const pause = breaks[i] || 0;
+    if (pause <= 0) continue;
+    pausePattern.push(pause);
+
+    if (mode === "eu") {
+      const hasSingle45 = pause >= 45;
+      const has15Then30 = pausePattern.some((p, index) => p >= 15 && pausePattern.slice(index + 1).some(next => next >= 30));
+      if (hasSingle45 || has15Then30) {
+        accumulatedDriving = 0;
+        pausePattern = [];
+      }
+    } else {
+      const has30 = pausePattern.some(p => p >= 30);
+      const has2x20 = pausePattern.filter(p => p >= 20).length >= 2;
+      const has3x15 = pausePattern.filter(p => p >= 15).length >= 3;
+      if (has30 || has2x20 || has3x15) {
+        accumulatedDriving = 0;
+        pausePattern = [];
+      }
+    }
+  }
+
+  return {
+    type: "ok",
+    title: "Fahrtunterbrechung",
+    detail: mode === "eu"
+      ? "45 Min. oder 15 + 30 Min. wurden passend erkannt."
+      : "Linienverkehr-Regel wurde passend erkannt: 30 Min., 2 × 20 Min. oder 3 × 15 Min."
+  };
+}
+
+function evaluateWorkBreaks(duty) {
+  const shift = shiftMinutes(duty.start, duty.end);
+  const breaks = parseList(duty.breaks);
+  const countableBreaks = breaks.filter(b => b >= 15).reduce((sum, b) => sum + b, 0);
+
+  if (shift <= 360) {
+    return {
+      type: "ok",
+      title: "Dienstzeit-Pause",
+      detail: "Dienstzeit bis 6 Std.; nach der vereinfachten Prüfung ist keine Mindestpause fällig."
+    };
+  }
+
+  const required = shift > 540 ? 45 : 30;
+  if (countableBreaks >= required) {
+    return {
+      type: "ok",
+      title: "Dienstzeit-Pause",
+      detail: "Anrechenbare Pausen: " + countableBreaks + " Min.; benötigt mindestens " + required + " Min."
+    };
+  }
+
+  return {
+    type: "fail",
+    title: "Mangelnde Pause nach Dienstzeit",
+    detail: "Dienstzeit: " + minutesToText(shift) + ". Anrechenbare Pausen ab 15 Min.: " + countableBreaks + " Min.; benötigt mindestens " + required + " Min."
+  };
+}
+
+function dutyMetrics(duty) {
+  const blocks = parseList(duty.drivingBlocks);
+  const breaks = parseList(duty.breaks);
+  const driving = blocks.reduce((sum, b) => sum + b, 0);
+  const shift = shiftMinutes(duty.start, duty.end);
+  const pauseTotal = breaks.reduce((sum, b) => sum + b, 0);
+  const endCarry = timeToMinutes(duty.end) < timeToMinutes(duty.start);
+  return {
+    ...duty,
+    weekday: getDay(duty.date),
+    shift,
+    pauseTotal,
+    driving,
+    workWithoutBreak: Math.max(0, shift - pauseTotal),
+    startAbs: absoluteMinutes(duty.date, duty.start, false),
+    endAbs: absoluteMinutes(duty.date, duty.end, endCarry),
+    weekKey: isoWeekKey(duty.date),
+    breakResult: evaluateBreaks(duty),
+    workBreakResult: evaluateWorkBreaks(duty)
+  };
+}
+
+function evaluatePlan(dutiesInput) {
+  const rows = dutiesInput.map(dutyMetrics).sort((a, b) => a.startAbs - b.startAbs);
+  const messages = [];
+  const daily = new Map();
+  const weekly = new Map();
+
+  rows.forEach(row => {
+    daily.set(row.date, (daily.get(row.date) || 0) + row.driving);
+    weekly.set(row.weekKey, (weekly.get(row.weekKey) || 0) + row.driving);
+
+    if (!getCatalog()[row.number]) {
+      messages.push({ type: "warn", title: row.date + ": Dienstnummer " + row.number, detail: "Diese Dienstnummer ist nicht im Katalog hinterlegt. Beginn und Ende wurden manuell verwendet." });
+    }
+    if (row.breakResult.type !== "ok") {
+      messages.push({ type: row.breakResult.type, title: row.date + " Dienst " + row.number + ": " + row.breakResult.title, detail: row.breakResult.detail });
+    }
+    if (row.workBreakResult.type !== "ok") {
+      messages.push({ type: row.workBreakResult.type, title: row.date + " Dienst " + row.number + ": " + row.workBreakResult.title, detail: row.workBreakResult.detail });
+    }
+  });
+
+  for (const [date, mins] of daily.entries()) {
+    if (mins > 600) messages.push({ type: "fail", title: date + ": Tageslenkzeit", detail: minutesToText(mins) + " überschreiten 10 Std." });
+    else if (mins > 540) messages.push({ type: "warn", title: date + ": Tageslenkzeit verlängert", detail: minutesToText(mins) + ". Das ist nur als 10-Std.-Verlängerung zulässig." });
+  }
+
+  for (const [week, mins] of weekly.entries()) {
+    const datesInWeek = [...new Set(rows.filter(r => r.weekKey === week).map(r => r.date))];
+    const extendedDays = datesInWeek.filter(date => rows.filter(r => r.date === date).reduce((sum, r) => sum + r.driving, 0) > 540);
+    if (extendedDays.length > 2) messages.push({ type: "fail", title: week + ": 10-Std.-Verlängerungen", detail: extendedDays.length + " Tage über 9 Std.; erlaubt sind höchstens 2 pro Woche." });
+    if (mins > 3360) messages.push({ type: "fail", title: week + ": Wochenlenkzeit", detail: minutesToText(mins) + " überschreiten 56 Std." });
+  }
+
+  rows.forEach((row, index) => {
+    const next = rows[index + 1];
+    if (!next) return;
+    const rest = next.startAbs - row.endAbs;
+    if (rest < 0) messages.push({ type: "fail", title: "Überschneidung nach Dienst " + row.number, detail: "Der nächste Dienst beginnt, bevor dieser Dienst endet." });
+    else if (rest < 540) messages.push({ type: "fail", title: "Ruhezeit " + row.date + " → " + next.date, detail: minutesToText(rest) + " sind unter 9 Std." });
+    else if (rest < 660) messages.push({ type: "warn", title: "Reduzierte Ruhezeit " + row.date + " → " + next.date, detail: minutesToText(rest) + ". Das zählt als reduzierte tägliche Ruhezeit." });
+  });
+
+  rows.forEach(row => {
+    const windowStart = row.startAbs;
+    const windowEnd = windowStart + 14 * 1440;
+    const sum = rows.filter(x => x.startAbs >= windowStart && x.startAbs < windowEnd).reduce((s, x) => s + x.driving, 0);
+    if (sum > 5400) {
+      messages.push({ type: "fail", title: "14-Tage-Lenkzeit ab " + row.date, detail: minutesToText(sum) + " überschreiten 90 Std." });
+    }
+  });
+
+  const uniqueMessages = messages.filter((m, index, all) => index === all.findIndex(x => x.title === m.title && x.detail === m.detail));
+  return { rows, messages: uniqueMessages, daily, weekly };
+}
+
+function runSelfTests() {
+  const base = {
+    id: "test",
+    date: "2026-01-05",
+    number: "3006",
+    start: "06:00",
+    end: "16:20",
+    breaks: "45",
+    drivingBlocks: "4:00 4:00",
+    lineMode: "linie50",
+    stopDistance: "gt3",
+    tariffEight: false
+  };
+
+  return [
+    { name: "EU-Pause 15 + 30 ist gültig", pass: evaluateBreaks({ ...base, lineMode: "eu", drivingBlocks: "2:15 2:15", breaks: "15 30" }).type === "ok" },
+    { name: "Lenkblock über 4:30 ist Verstoß", pass: evaluateBreaks({ ...base, drivingBlocks: "4:31", breaks: "45" }).type === "fail" },
+    { name: "Linie >3 km mit 2 × 20 Min. ist gültig", pass: evaluateBreaks({ ...base, lineMode: "linie50", stopDistance: "gt3", drivingBlocks: "4:10 3:45", breaks: "20 20" }).type === "ok" },
+    { name: "Freitag-Endzeit aus Katalog wird erkannt", pass: catalogTimes("3006", "2026-01-09")?.end === "14:21" },
+    { name: "Ruhezeit unter 9 Std. wird als Verstoß gemeldet", pass: evaluatePlan([
+      { ...base, id: "t1", date: "2026-01-05", start: "12:00", end: "22:00", drivingBlocks: "4:00 4:00", breaks: "45" },
+      { ...base, id: "t2", date: "2026-01-06", start: "05:30", end: "13:00", drivingBlocks: "3:00 3:00", breaks: "45" }
+    ]).messages.some(m => m.title.includes("Ruhezeit") && m.type === "fail") },
+    { name: "Tageslenkzeit über 10 Std. ist Verstoß", pass: evaluatePlan([{ ...base, drivingBlocks: "5:00 5:01", breaks: "45" }]).messages.some(m => m.title.includes("Tageslenkzeit") && m.type === "fail") },
+    { name: "Zeit über Mitternacht wird berechnet", pass: shiftMinutes("22:00", "06:00") === 480 },
+    { name: "Dienst über 6 Std. ohne Pause wird gemeldet", pass: evaluateWorkBreaks({ ...base, start: "06:00", end: "13:00", breaks: "" }).type === "fail" },
+    { name: "Dienst über 9 Std. mit 45 Min. Pause ist gültig", pass: evaluateWorkBreaks({ ...base, start: "06:00", end: "16:00", breaks: "15 30" }).type === "ok" },
+    { name: "Ein-Sechstel-Regelung: 6 Std. Lenkzeit mit 60 Min. Unterbrechung ist gültig", pass: evaluateBreaks({ ...base, pauseRule: "sixth", stopDistance: "lte3", drivingBlocks: "3:00 3:00", breaks: "30 30" }).type === "ok" },
+    { name: "Ein-Sechstel-Regelung: 6 Std. Lenkzeit mit 50 Min. Unterbrechung ist Verstoß", pass: evaluateBreaks({ ...base, pauseRule: "sixth", stopDistance: "lte3", drivingBlocks: "3:00 3:00", breaks: "25 25" }).type === "fail" },
+    { name: "Ein-Sechstel-Regelung: 8-Minuten-Unterbrechung zählt nur mit Tarifregel", pass: evaluateBreaks({ ...base, pauseRule: "sixth", stopDistance: "lte3", tariffEight: false, drivingBlocks: "1:00", breaks: "8 8 8 8 8 8 8 8" }).type === "fail" && evaluateBreaks({ ...base, pauseRule: "sixth", stopDistance: "lte3", tariffEight: true, drivingBlocks: "1:00", breaks: "8 8" }).type === "ok" }
+  ];
+}
+
+function renderDutyCard(duty) {
+  const catalog = getCatalog()[duty.number];
+  return `
+    <article class="card duty-card" data-duty="${escapeHtml(duty.id)}">
+      <div class="duty-head">
+        <div>
+          <div class="muted">${escapeHtml(getDay(duty.date))} · ${escapeHtml(duty.date)}</div>
+          <h2>Dienst ${escapeHtml(duty.number || "ohne Nummer")}</h2>
+          ${catalog ? `<div class="muted">Katalog: ${escapeHtml(catalog.days)}${catalog.fridayEnd ? " · Freitag abweichend" : ""}</div>` : `<div class="muted" style="color:#92400e;">Nicht im Dienstkatalog</div>`}
+        </div>
+        <button class="btn-danger btn-small delete-duty" data-id="${escapeHtml(duty.id)}">Löschen</button>
+      </div>
+
+      <div class="grid grid-4">
+        <label><span class="label">Datum</span><input type="date" data-field="date" value="${escapeHtml(duty.date)}"></label>
+        <label><span class="label">Dienstnummer</span><input data-field="number" value="${escapeHtml(duty.number)}" inputmode="numeric"></label>
+        <label><span class="label">Beginn</span><input type="time" data-field="start" value="${escapeHtml(duty.start)}"></label>
+        <label><span class="label">Ende</span><input type="time" data-field="end" value="${escapeHtml(duty.end)}"></label>
+      </div>
+
+      <div class="grid grid-4" style="margin-top:12px;">
+        <label><span class="label">Lenkblöcke</span><input data-field="drivingBlocks" value="${escapeHtml(duty.drivingBlocks)}"><span class="hint">Beispiel: 2:15 2:10 1:40</span></label>
+        <label><span class="label">Pausen in Minuten</span><input data-field="breaks" value="${escapeHtml(duty.breaks)}"><span class="hint">Beispiel: 15 30</span></label>
+        <label><span class="label">Verkehrsart</span>
+          <select data-field="lineMode">
+            <option value="linie50" ${duty.lineMode === "linie50" ? "selected" : ""}>Linienverkehr bis 50 km</option>
+            <option value="eu" ${duty.lineMode === "eu" ? "selected" : ""}>Busverkehr über 50 km / EU-Regel</option>
+          </select>
+        </label>
+        <label><span class="label">Haltestellenabstand</span>
+          <select data-field="stopDistance" ${duty.lineMode !== "linie50" ? "disabled" : ""}>
+            <option value="gt3" ${duty.stopDistance === "gt3" ? "selected" : ""}>mehr als 3 km</option>
+            <option value="lte3" ${duty.stopDistance === "lte3" ? "selected" : ""}>höchstens 3 km</option>
+          </select>
+        </label>
+      </div>
+
+      ${duty.lineMode === "linie50" ? `
+      <div class="grid grid-3" style="margin-top:12px;">
+        <label><span class="label">Fahrtunterbrechungsregel</span>
+          <select data-field="pauseRule">
+            <option value="auto" ${(duty.pauseRule || "auto") === "auto" ? "selected" : ""}>Automatisch nach Haltestellenabstand</option>
+            <option value="block" ${duty.pauseRule === "block" ? "selected" : ""}>Blockregel: 30 / 2×20 / 3×15</option>
+            <option value="sixth" ${duty.pauseRule === "sixth" ? "selected" : ""}>Ein-Sechstel-Regelung</option>
+          </select>
+          <span class="hint">Ein-Sechstel: anrechenbare Unterbrechungen müssen zusammen mindestens 1/6 der Lenkzeit betragen.</span>
+        </label>
+      </div>` : ""}
+
+      ${duty.lineMode === "linie50" && ((duty.pauseRule || "auto") === "sixth" || ((duty.pauseRule || "auto") === "auto" && duty.stopDistance === "lte3")) ? `
+      <label class="checkbox-row">
+        <input type="checkbox" data-field="tariffEight" ${duty.tariffEight ? "checked" : ""}>
+        Tarifregel vorhanden: Unterbrechungen ab 8 Min. zählen
+      </label>` : ""}
+    </article>
+  `;
+}
+
+function renderDuties() {
+  const container = document.getElementById("dutiesContainer");
+  if (duties.length === 0) {
+    container.innerHTML = '<div class="card muted">Noch kein Dienst eingetragen.</div>';
+    return;
+  }
+  container.innerHTML = duties.map(renderDutyCard).join("");
+
+  container.querySelectorAll(".delete-duty").forEach(btn => {
+    btn.addEventListener("click", () => {
+      duties = duties.filter(d => d.id !== btn.dataset.id);
+      renderAll();
+    });
+  });
+
+  container.querySelectorAll("[data-duty]").forEach(card => {
+    const id = card.dataset.duty;
+    card.querySelectorAll("[data-field]").forEach(input => {
+      input.addEventListener("change", () => {
+        const field = input.dataset.field;
+        duties = duties.map(d => {
+          if (d.id !== id) return d;
+          const next = { ...d };
+          if (field === "tariffEight") next[field] = input.checked;
+          else if (field === "number") next[field] = input.value.replace(/\D/g, "").slice(0, 4);
+          else next[field] = input.value;
+
+          if (field === "pauseRule" && input.value === "sixth") {
+            next.lineMode = "linie50";
+            next.stopDistance = "lte3";
+          }
+          if (field === "pauseRule" && input.value === "block") {
+            next.lineMode = "linie50";
+            next.stopDistance = "gt3";
+          }
+          if (field === "lineMode" && input.value !== "linie50") {
+            next.pauseRule = "auto";
+          }
+
+          if (field === "number" || field === "date") {
+            const times = catalogTimes(field === "number" ? next.number : d.number, field === "date" ? next.date : d.date);
+            if (times) {
+              next.start = times.start;
+              next.end = times.end;
+            }
+          }
+          return next;
+        });
+        renderAll();
+      });
+
+      input.addEventListener("input", () => {
+        if (input.dataset.field === "number") input.value = input.value.replace(/\D/g, "").slice(0, 4);
+      });
+    });
+  });
+}
+
+function renderSummary(plan) {
+  const failCount = plan.messages.filter(m => m.type === "fail").length;
+  const warnCount = plan.messages.filter(m => m.type === "warn").length;
+  const totalDriving = plan.rows.reduce((sum, row) => sum + row.driving, 0);
+  const totalShift = plan.rows.reduce((sum, row) => sum + row.shift, 0);
+  const statusText = failCount ? "Nicht passend" : warnCount ? "Mit Einschränkung" : "Passend";
+  const metricStatus = failCount ? "Fehler" : warnCount ? "Prüfen" : "OK";
+
+  document.getElementById("metricDuties").textContent = String(duties.length);
+  document.getElementById("metricDriving").textContent = minutesToText(totalDriving);
+  document.getElementById("metricShift").textContent = minutesToText(totalShift);
+  document.getElementById("metricStatus").textContent = metricStatus;
+  document.getElementById("overallStatus").textContent = statusText;
+  document.getElementById("overallDetail").textContent = failCount + " Verstöße · " + warnCount + " Hinweise";
+  document.getElementById("resultBadge").innerHTML = badge(failCount ? "fail" : warnCount ? "warn" : "ok", statusText);
+}
+
+function renderMessages(plan) {
+  const messages = document.getElementById("messages");
+  if (plan.messages.length === 0) {
+    messages.innerHTML = '<div class="message"><div><div class="message-title">Keine Verstöße erkannt</div><div class="message-detail">Aus den eingegebenen Daten wurden keine Verstöße erkannt.</div></div>' + badge("ok", "Passend") + '</div>';
+    return;
+  }
+  messages.innerHTML = plan.messages.map(msg => `
+    <div class="message">
+      <div>
+        <div class="message-title">${escapeHtml(msg.title)}</div>
+        <div class="message-detail">${escapeHtml(msg.detail)}</div>
+      </div>
+      ${badge(msg.type)}
+    </div>
+  `).join("");
+}
+
+function renderOverview(plan) {
+  const rows = document.getElementById("overviewRows");
+  rows.innerHTML = plan.rows.map(row => `
+    <tr>
+      <td>${escapeHtml(row.weekday)} ${escapeHtml(row.date)}</td>
+      <td>${escapeHtml(row.number)}</td>
+      <td>${escapeHtml(row.start)}–${escapeHtml(row.end)}</td>
+      <td>${minutesToText(row.shift)}</td>
+      <td>${minutesToText(row.driving)}</td>
+      <td>${escapeHtml(row.breaks || "—")}</td>
+      <td>${escapeHtml(row.lineMode === "linie50" ? ((row.pauseRule || "auto") === "sixth" || ((row.pauseRule || "auto") === "auto" && row.stopDistance === "lte3") ? "1/6" : "Block") : "EU")}</td>
+      <td>${badge(row.workBreakResult.type, row.workBreakResult.type === "ok" ? "OK" : row.workBreakResult.type === "warn" ? "Prüfen" : "Verstoß")}</td>
+      <td>${badge(row.breakResult.type, row.breakResult.type === "ok" ? "OK" : row.breakResult.type === "warn" ? "Prüfen" : "Verstoß")}</td>
+    </tr>
+  `).join("");
+}
+
+function renderCatalog() {
+  const grid = document.getElementById("catalogGrid");
+  const catalog = getCatalog();
+  grid.innerHTML = Object.entries(catalog).map(([number, entry]) => {
+    const isCustom = Object.prototype.hasOwnProperty.call(customCatalog, number);
+    return `
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <h2>${escapeHtml(number)}</h2>
+        <span class="badge ${isCustom ? "warn" : "info"}">${isCustom ? "Eigen" : escapeHtml(entry.days)}</span>
+      </div>
+      <div class="muted" style="margin-top:8px;">${escapeHtml(entry.start)}–${escapeHtml(entry.end)}</div>
+      ${entry.fridayEnd ? `<div class="muted" style="margin-top:4px; color:#92400e;">Freitag: ${escapeHtml(entry.start)}–${escapeHtml(entry.fridayEnd)}</div>` : ""}
+      ${isCustom ? `<button class="btn-secondary btn-small delete-template" data-number="${escapeHtml(number)}" style="margin-top:10px;">Vorlage löschen</button>` : ""}
+    </div>
+  `;
+  }).join("");
+
+  grid.querySelectorAll(".delete-template").forEach(btn => {
+    btn.addEventListener("click", () => {
+      delete customCatalog[btn.dataset.number];
+      saveLocalState();
+      renderAll();
+    });
+  });
+}
+
+function renderTests() {
+  const tests = runSelfTests();
+  const failed = tests.filter(t => !t.pass).length;
+  document.getElementById("testsBadge").innerHTML = badge(failed ? "fail" : "ok", failed ? failed + " fehlgeschlagen" : "Alle bestanden");
+  document.getElementById("testsRows").innerHTML = tests.map(test => `
+    <div class="test-row">
+      <strong>${escapeHtml(test.name)}</strong>
+      ${badge(test.pass ? "ok" : "fail", test.pass ? "Bestanden" : "Fehlgeschlagen")}
+    </div>
+  `).join("");
+}
+
+function renderAll() {
+  const plan = evaluatePlan(duties);
+  renderDuties();
+  renderSummary(plan);
+  renderMessages(plan);
+  renderOverview(plan);
+  renderCatalog();
+  renderTests();
+  saveLocalState();
+}
+
+function setupTabs() {
+  document.querySelectorAll(".tab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const tab = btn.dataset.tab;
+      ["eingabe", "auswertung", "katalog", "daten", "tests"].forEach(name => {
+        document.getElementById("tab-" + name).classList.toggle("hidden", name !== tab);
+      });
+    });
+  });
+}
+
+function setupActions() {
+  document.getElementById("addDuty").addEventListener("click", () => {
+    duties.push(emptyDuty());
+    renderAll();
+  });
+
+  document.getElementById("resetExample").addEventListener("click", () => {
+    duties = exampleDuties();
+    renderAll();
+  });
+
+  document.getElementById("clearDuties").addEventListener("click", () => {
+    duties = [];
+    renderAll();
+  });
+
+  document.getElementById("addTemplate").addEventListener("click", () => {
+    const number = document.getElementById("templateNumber").value.replace(/\D/g, "").slice(0, 4);
+    const start = document.getElementById("templateStart").value;
+    const end = document.getElementById("templateEnd").value;
+    const days = document.getElementById("templateDays").value || "eigener Dienst";
+    const fridayEnd = document.getElementById("templateFridayEnd").value;
+
+    if (!number || !start || !end) {
+      alert("Bitte Dienstnummer, Dienstanfang und Dienstende eintragen.");
+      return;
+    }
+
+    customCatalog[number] = fridayEnd ? { start, end, fridayEnd, days } : { start, end, days };
+    saveLocalState();
+    renderAll();
+    alert("Dienstvorlage " + number + " gespeichert.");
+  });
+
+  document.getElementById("exportData").addEventListener("click", () => {
+    document.getElementById("dataBox").value = JSON.stringify({ duties, customCatalog }, null, 2);
+  });
+
+  document.getElementById("importData").addEventListener("click", () => {
+    try {
+      const parsed = JSON.parse(document.getElementById("dataBox").value);
+      const importedDuties = Array.isArray(parsed) ? parsed : parsed.duties;
+      if (!Array.isArray(importedDuties)) throw new Error("JSON muss eine Liste von Diensten oder ein App-Export sein.");
+      customCatalog = parsed.customCatalog && typeof parsed.customCatalog === "object" ? parsed.customCatalog : customCatalog;
+      duties = importedDuties.map(d => ({ ...emptyDuty(), ...d, id: d.id || createId() }));
+      renderAll();
+      alert("Daten geladen.");
+    } catch (err) {
+      alert("Daten konnten nicht geladen werden: " + err.message);
+    }
+  });
+
+  document.getElementById("downloadJson").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify({ duties, customCatalog }, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lenk_ruhezeiten_dienste.json";
+    link.click();
+    URL.revokeObjectURL(url);
+  });
+}
+
+const loadedState = loadLocalState();
+if (loadedState && typeof loadedState === "object") {
+  customCatalog = loadedState.customCatalog && typeof loadedState.customCatalog === "object" ? loadedState.customCatalog : {};
+  duties = Array.isArray(loadedState.duties) ? loadedState.duties : exampleDuties();
+} else {
+  duties = exampleDuties();
+}
+setupTabs();
+setupActions();
+renderAll();
+</script>
+</body>
+</html>
