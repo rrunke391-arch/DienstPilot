@@ -4,13 +4,15 @@
   const PRINT_BUTTON_ID = 'printDutyPlan';
   const DUTIES_CONTAINER_ID = 'dutiesContainer';
   const PROFILE_TITLE_ID = 'profileTitle';
+  const MONTHS_TO_SHOW = ['2026-04','2026-05','2026-06','2026-07'];
+  const TEMPLATE_VERSION = 'kollegenplan-2026-v3';
 
   const KOLLEGEN = [
-    ['yasar', 'Yasar'], ['bumhoffer', 'Bumhoffer'], ['entrup', 'Entrup'], ['schweppe', 'Schweppe'],
-    ['janzen', 'Janzen'], ['alomar', 'Alomar'], ['al-sayek', 'Al Sayek'], ['szczepanik', 'Szczepanik'],
-    ['seidensticker', 'Seidensticker'], ['kocdemir', 'Kocdemir'], ['wuellner', 'Wüllner'], ['wittwer', 'Wittwer'],
-    ['biermann', 'Biermann'], ['gerding', 'Gerding'], ['runke', 'Runke'], ['lommel', 'Lommel'],
-    ['malko', 'Malko'], ['murad', 'Murad'], ['kurta', 'Kurta'], ['wiemann', 'Wiemann']
+    ['yasar','Yasar'], ['bumhoffer','Bumhoffer'], ['entrup','Entrup'], ['schweppe','Schweppe'],
+    ['janzen','Janzen'], ['alomar','Alomar'], ['al-sayek','Al Sayek'], ['szczepanik','Szczepanik'],
+    ['seidensticker','Seidensticker'], ['kocdemir','Kocdemir'], ['wuellner','Wüllner'], ['wittwer','Wittwer'],
+    ['biermann','Biermann'], ['gerding','Gerding'], ['runke','Runke'], ['lommel','Lommel'],
+    ['malko','Malko'], ['murad','Murad'], ['kurta','Kurta'], ['wiemann','Wiemann']
   ];
 
   const PLAN_ROWS = [
@@ -29,24 +31,15 @@
   ];
 
   const COLUMN_PATTERNS = [
-    {0:'3023',1:'3023',2:'3023',3:'3023',4:'3023'},
-    {0:'3005',1:'3005',2:'3005',3:'3005'},
-    {0:'3003',1:'3003',2:'3003',3:'3003',4:'3003'},
-    {1:'3016',2:'3016',3:'3016',4:'3016'},
-    {1:'3014',2:'3014',3:'3006',4:'3005'},
-    {0:'3006',1:'3006',2:'3006',4:'3006'},
-    {0:'3007',1:'3007',2:'3007',3:'3009',4:'3009'},
-    {0:'3019',2:'3019',3:'3019',4:'3019'},
-    {0:'3025',1:'3025',2:'3025',3:'3025',4:'3025'},
-    {0:'3011',1:'3011',3:'3014',4:'3014'},
-    {0:'3013',1:'3013',2:'3001',3:'3001',4:'3001'},
-    {0:'3012',1:'3012',3:'3012',4:'3012'},
-    {0:'3024',1:'3024',2:'3024',3:'3024',4:'3024'},
-    {0:'3001',1:'3001',2:'3013',3:'3013',4:'3013'},
-    {0:'3014',2:'3011',3:'3011',4:'3011'},
-    {0:'3016',1:'3019',2:'3012',4:'3095'},
-    {0:'3022',1:'3022',2:'3022',3:'3022',4:'3022'},
-    {0:'3009',1:'3009',2:'3009',3:'3007',4:'3007'}
+    {0:'3023',1:'3023',2:'3023',3:'3023',4:'3023'}, {0:'3005',1:'3005',2:'3005',3:'3005'},
+    {0:'3003',1:'3003',2:'3003',3:'3003',4:'3003'}, {1:'3016',2:'3016',3:'3016',4:'3016'},
+    {1:'3014',2:'3014',3:'3006',4:'3005'}, {0:'3006',1:'3006',2:'3006',4:'3006'},
+    {0:'3007',1:'3007',2:'3007',3:'3009',4:'3009'}, {0:'3019',2:'3019',3:'3019',4:'3019'},
+    {0:'3025',1:'3025',2:'3025',3:'3025',4:'3025'}, {0:'3011',1:'3011',3:'3014',4:'3014'},
+    {0:'3013',1:'3013',2:'3001',3:'3001',4:'3001'}, {0:'3012',1:'3012',3:'3012',4:'3012'},
+    {0:'3024',1:'3024',2:'3024',3:'3024',4:'3024'}, {0:'3001',1:'3001',2:'3013',3:'3013',4:'3013'},
+    {0:'3014',2:'3011',3:'3011',4:'3011'}, {0:'3016',1:'3019',2:'3012',4:'3095'},
+    {0:'3022',1:'3022',2:'3022',3:'3022',4:'3022'}, {0:'3009',1:'3009',2:'3009',3:'3007',4:'3007'}
   ];
 
   const TIMES = {
@@ -55,41 +48,43 @@
     '3013':['06:35','17:05'], '3014':['06:35','15:39'], '3016':['06:43','18:06'], '3019':['06:49','17:28'],
     '3022':['12:03','19:21'], '3023':['12:03','20:21'], '3024':['12:20','21:05'], '3025':['13:10','21:50'], '3095':['20:20','04:05']
   };
-
   const FRIDAY_TIMES = {'3005':['05:51','15:49'], '3006':['06:00','14:21'], '3007':['06:03','14:19'], '3009':['06:04','15:30'], '3011':['06:23','14:34'], '3019':['06:49','15:50']};
-  const MONTHS_TO_SHOW = ['2026-04','2026-05','2026-06','2026-07'];
 
   ready(() => {
-    cleanupOldGlobalVacation();
+    repairDomTypos();
+    neutralizeOldVacationWish();
     installExtraStyles();
-    removeOldUrlaubswunschButton();
     ensurePrintButton();
     ensureKollegenAuswahl();
     updateKollegenTitelOnly();
 
     document.addEventListener('click', (event) => {
-      const loadBtn = event.target.closest?.('#loadKollege');
-      if (loadBtn) {
+      if (event.target.closest?.('#loadKollege')) {
         event.preventDefault();
         event.stopPropagation();
-        loadSelectedKollege();
+        loadSelectedKollege(false);
         return;
       }
-      const printBtn = event.target.closest?.('#' + PRINT_BUTTON_ID);
-      if (printBtn) {
+      if (event.target.closest?.('#reloadKollegeTemplate')) {
+        event.preventDefault();
+        event.stopPropagation();
+        loadSelectedKollege(true);
+        return;
+      }
+      if (event.target.closest?.('#' + PRINT_BUTTON_ID)) {
         event.preventDefault();
         printDutyPlan();
       }
     }, true);
 
     document.addEventListener('change', (event) => {
-      if (event.target && event.target.id === 'kollegeSelect') loadSelectedKollege();
+      if (event.target && event.target.id === 'kollegeSelect') loadSelectedKollege(false);
     }, true);
 
     const observer = new MutationObserver(() => {
       window.clearTimeout(observer._timer);
       observer._timer = window.setTimeout(() => {
-        removeOldUrlaubswunschButton();
+        neutralizeOldVacationWish();
         ensurePrintButton();
         ensureKollegenAuswahl();
         updateKollegenTitelOnly();
@@ -98,22 +93,28 @@
     observer.observe(document.body, { childList: true, subtree: true });
   });
 
-  function ready(callback) { document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', callback, {once:true}) : callback(); }
+  function ready(callback) { document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', callback, { once:true }) : callback(); }
 
-  function cleanupOldGlobalVacation() {
+  function repairDomTypos() {
+    const loginError = document.getElementById('loginError');
+    if (loginError && loginError.tagName !== 'DIV') {
+      const fixed = document.createElement('div');
+      fixed.id = 'loginError';
+      fixed.className = 'login-error';
+      loginError.replaceWith(fixed);
+    }
+  }
+
+  function neutralizeOldVacationWish() {
     const keys = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
       if (k && k.startsWith('dienstpilot_urlaubswunsch_')) keys.push(k);
     }
     keys.forEach(k => localStorage.removeItem(k));
-  }
-
-  function removeOldUrlaubswunschButton() {
-    const old = document.getElementById('openUrlaubswunsch');
-    if (old) old.remove();
-    const modal = document.getElementById('urlaubswunschBackdrop');
-    if (modal) modal.remove();
+    document.getElementById('openUrlaubswunsch')?.remove();
+    document.getElementById('urlaubswunschBackdrop')?.remove();
+    try { window.openUrlaubswunschCalendar = undefined; } catch {}
   }
 
   function installExtraStyles() {
@@ -125,62 +126,73 @@
   }
 
   function ensureKollegenAuswahl() {
-    const existing = document.getElementById('kollegeSelect');
-    if (existing) return;
+    let panel = document.getElementById('kollegenPanel');
     const runkeBtn = document.getElementById('loadRunke');
     const syncStatus = document.getElementById('syncStatus');
     const toolbarGroup = runkeBtn?.closest('.toolbar-group') || syncStatus?.closest('.toolbar-group');
     if (!toolbarGroup) return;
 
-    const panel = document.createElement('div');
-    panel.className = 'kollegen-panel';
-    panel.id = 'kollegenPanel';
-
-    const label = document.createElement('span');
-    label.textContent = '👤 Kollege';
-    panel.appendChild(label);
-
-    const select = document.createElement('select');
-    select.id = 'kollegeSelect';
-    select.setAttribute('aria-label', 'Kollege auswählen');
-    for (const [id, name] of KOLLEGEN) {
-      const option = document.createElement('option');
-      option.value = id;
-      option.textContent = name;
-      select.appendChild(option);
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.className = 'kollegen-panel';
+      panel.id = 'kollegenPanel';
+      toolbarGroup.insertBefore(panel, runkeBtn || syncStatus || toolbarGroup.firstChild);
     }
+
+    if (!document.getElementById('kollegeSelect')) {
+      panel.innerHTML = '';
+      const label = document.createElement('span');
+      label.textContent = '👤 Kollege';
+      panel.appendChild(label);
+      const select = document.createElement('select');
+      select.id = 'kollegeSelect';
+      select.setAttribute('aria-label', 'Kollege auswählen');
+      for (const [id, name] of KOLLEGEN) {
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = name;
+        select.appendChild(option);
+      }
+      panel.appendChild(select);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'loadKollege';
+      btn.className = 'btn-secondary';
+      btn.textContent = 'Kollege laden';
+      panel.appendChild(btn);
+      const reset = document.createElement('button');
+      reset.type = 'button';
+      reset.id = 'reloadKollegeTemplate';
+      reset.className = 'btn-secondary';
+      reset.textContent = 'Vorlage neu laden';
+      panel.appendChild(reset);
+      const note = document.createElement('span');
+      note.className = 'kollegen-hinweis';
+      note.textContent = 'Dienste aus Fotoplan';
+      panel.appendChild(note);
+    }
+
     const active = activeProfileFromLocal() || localStorage.getItem('dienstpilot_aktiver_kollege') || 'runke';
-    if ([...select.options].some(o => o.value === active)) select.value = active;
-    panel.appendChild(select);
-
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.id = 'loadKollege';
-    btn.className = 'btn-secondary';
-    btn.textContent = 'Kollege laden';
-    panel.appendChild(btn);
-
-    const note = document.createElement('span');
-    note.className = 'kollegen-hinweis';
-    note.textContent = 'automatisch aus dem Fotoplan';
-    panel.appendChild(note);
-
-    toolbarGroup.insertBefore(panel, runkeBtn || syncStatus || toolbarGroup.firstChild);
+    const select = document.getElementById('kollegeSelect');
+    if (select && [...select.options].some(o => o.value === active)) select.value = active;
   }
 
-  function loadSelectedKollege() {
+  function loadSelectedKollege(forceTemplate) {
     const select = document.getElementById('kollegeSelect');
     const profile = select?.value || 'runke';
-    const duties = buildPlanForProfile(profile);
+    const stored = loadNamedPlan(profile);
+    const templateKey = 'dienstpilot_kollege_template_' + profile;
+    const useTemplate = forceTemplate || !stored || localStorage.getItem(templateKey) !== TEMPLATE_VERSION;
+    const duties = useTemplate ? buildPlanForProfile(profile) : (Array.isArray(stored.duties) ? stored.duties : buildPlanForProfile(profile));
+    const vacations = Array.isArray(stored?.vacations) ? stored.vacations : [];
+    const vacationEntitlement = Number.isFinite(stored?.vacationEntitlement) ? stored.vacationEntitlement : 30;
+    const hideSundays = typeof stored?.hideSundays === 'boolean' ? stored.hideSundays : false;
 
-    const state = {
-      duties,
-      customCatalog: getExistingCustomCatalog(),
-      appSettings: { activeProfile: profile, shownMonths: MONTHS_TO_SHOW, hideSundays: false }
-    };
-    const namedPlan = { duties, vacations: [], vacationEntitlement: 30, bundeslaender: null, hideSundays: false, savedAt: new Date().toISOString() };
+    const state = { duties, customCatalog: getExistingCustomCatalog(), appSettings: { activeProfile: profile, shownMonths: MONTHS_TO_SHOW, hideSundays } };
+    const namedPlan = { duties, vacations, vacationEntitlement, bundeslaender: stored?.bundeslaender || null, hideSundays, savedAt: new Date().toISOString(), templateVersion: TEMPLATE_VERSION };
 
     localStorage.setItem('dienstpilot_aktiver_kollege', profile);
+    localStorage.setItem(templateKey, TEMPLATE_VERSION);
     localStorage.setItem('lenkRuhezeitenRunke20260413', JSON.stringify(state));
     localStorage.setItem('lrz-plan-' + profile, JSON.stringify(namedPlan));
     setKollegenTitel(profile);
@@ -223,6 +235,7 @@
   function formatIso(date) { return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0'); }
   function getExistingCustomCatalog() { try { const s = JSON.parse(localStorage.getItem('lenkRuhezeitenRunke20260413') || '{}'); return s.customCatalog && typeof s.customCatalog === 'object' ? s.customCatalog : {}; } catch { return {}; } }
   function activeProfileFromLocal() { try { const s = JSON.parse(localStorage.getItem('lenkRuhezeitenRunke20260413') || '{}'); return s.appSettings && s.appSettings.activeProfile; } catch { return null; } }
+  function loadNamedPlan(profile) { try { return JSON.parse(localStorage.getItem('lrz-plan-' + profile) || 'null'); } catch { return null; } }
   function kollegeName(profile) { const f = KOLLEGEN.find(([id]) => id === profile); return f ? f[1] : profile; }
   function setKollegenTitel(profile) { const t = document.getElementById(PROFILE_TITLE_ID); const n = kollegeName(profile); if (t) { t.textContent = 'Dienstplan ' + n; t.classList.remove('empty'); } document.title = 'Dienstplan ' + n + ' · DienstPilot'; }
   function updateKollegenTitelOnly() { const active = activeProfileFromLocal(); if (active) setKollegenTitel(active); }
@@ -253,7 +266,6 @@
     printWindow.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${escapeHtml(profileTitle)} drucken</title><style>body{margin:24px;font-family:Arial,Helvetica,sans-serif;color:#111827;background:#fff;line-height:1.35}h1{margin:0 0 4px;font-size:24px}.print-meta{margin:0 0 24px;color:#6b7280;font-size:14px}button,input,select,textarea,.toolbar,.btn-primary,.btn-secondary,.tab,.tabs,.hidden{display:none!important}.card,.duty-card,.day-card,.duty,.day,article,section>div{break-inside:avoid;page-break-inside:avoid}.card,.duty-card,.day-card{border:1px solid #d1d5db;border-radius:10px;padding:12px;margin-bottom:12px;background:#fff}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #d1d5db;padding:6px 8px;text-align:left;vertical-align:top;font-size:13px}th{background:#f3f4f6;font-weight:700}.muted,small{color:#6b7280}img{max-width:100%}@page{size:A4 portrait;margin:12mm}@media print{body{margin:0}}</style></head><body><h1>DienstPilot · Dienstplan</h1><div class="print-meta">${escapeHtml(profileTitle)} · gedruckt am ${escapeHtml(today)}</div><main>${printableContent}</main><script>window.addEventListener('load',()=>{window.focus();window.print();});window.addEventListener('afterprint',()=>{window.close();});<\/script></body></html>`);
     printWindow.document.close();
   }
-
   function preparePrintableContent(container) { const clone = container.cloneNode(true); clone.querySelectorAll('button,input,select,textarea,script').forEach(el => { const r = document.createElement('span'); const v = getControlText(el); if (v) r.textContent = v; el.replaceWith(r); }); clone.querySelectorAll('[contenteditable="true"]').forEach(el => el.removeAttribute('contenteditable')); return clone.innerHTML; }
   function getControlText(element) { if (element.matches('input[type="checkbox"],input[type="radio"]')) return element.checked ? '✓' : ''; if (element.matches('input,textarea,select')) return element.value || element.getAttribute('value') || ''; return element.textContent?.trim() || ''; }
   function escapeHtml(value) { return String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;'); }
