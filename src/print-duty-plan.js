@@ -8,6 +8,7 @@
   const PROFILE_TITLE_ID = 'profileTitle';
   const MONTHS_TO_SHOW = ['2026-04','2026-05','2026-06','2026-07'];
   const TEMPLATE_VERSION = 'kollegenplan-2026-v3';
+  const VACATION_STABLE_PREFIX = 'dienstpilot-vacations-';
 
   const KOLLEGEN = [
     ['yasar','Yasar'], ['bumhoffer','Bumhoffer'], ['entrup','Entrup'], ['schweppe','Schweppe'],
@@ -75,19 +76,13 @@
 
     document.addEventListener('change', (event) => { if (event.target && event.target.id === 'kollegeSelect') loadSelectedKollege(false); }, true);
     window.addEventListener('focus', enhanceMonthOverview);
-    window.addEventListener('storage', (event) => { if (event.key && event.key.startsWith('lrz-plan-')) enhanceMonthOverview(); });
+    window.addEventListener('storage', (event) => { if (event.key && (event.key.startsWith('lrz-plan-') || event.key.startsWith(VACATION_STABLE_PREFIX))) enhanceMonthOverview(); });
     window.addEventListener('dienstpilot-vacations-updated', enhanceMonthOverview);
 
     const observer = new MutationObserver(() => {
       window.clearTimeout(observer._timer);
       observer._timer = window.setTimeout(() => {
-        neutralizeOldVacationWish();
-        ensurePrintButton();
-        ensureJahresurlaubButton();
-        ensureKollegenAuswahl();
-        ensureVacationSaveButton();
-        updateKollegenTitelOnly();
-        enhanceMonthOverview();
+        neutralizeOldVacationWish(); ensurePrintButton(); ensureJahresurlaubButton(); ensureKollegenAuswahl(); ensureVacationSaveButton(); updateKollegenTitelOnly(); enhanceMonthOverview();
       }, 120);
     });
     observer.observe(document.body, { childList: true, subtree: true });
@@ -98,10 +93,7 @@
   function repairDomTypos() {
     const loginError = document.getElementById('loginError');
     if (loginError && loginError.tagName !== 'DIV') {
-      const fixed = document.createElement('div');
-      fixed.id = 'loginError';
-      fixed.className = 'login-error';
-      loginError.replaceWith(fixed);
+      const fixed = document.createElement('div'); fixed.id = 'loginError'; fixed.className = 'login-error'; loginError.replaceWith(fixed);
     }
   }
 
@@ -136,11 +128,7 @@
     const clearBtn = document.getElementById('clearDuties');
     const toolbarGroup = printBtn?.closest('.toolbar-group') || clearBtn?.closest('.toolbar-group');
     if (!toolbarGroup) return;
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'btn-secondary';
-    btn.id = VACATION_BUTTON_ID;
-    btn.textContent = '🌴 Jahresurlaub';
+    const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn-secondary'; btn.id = VACATION_BUTTON_ID; btn.textContent = '🌴 Jahresurlaub';
     if (printBtn) toolbarGroup.insertBefore(btn, printBtn); else toolbarGroup.appendChild(btn);
   }
 
@@ -149,11 +137,11 @@
     if (!profile) { alert('Bitte zuerst einen Kollegen laden.'); return; }
     const popup = window.open('', 'DienstPilotJahresurlaub', 'width=820,height=760,scrollbars=yes,resizable=yes');
     if (!popup) { alert('Das Jahresurlaub-Fenster konnte nicht geöffnet werden. Bitte Pop-ups erlauben.'); return; }
-    const named = loadNamedPlan(profile) || {};
-    let vacations = Array.isArray(named.vacations) ? named.vacations.slice() : [];
+    const stored = readStableVacationPlan(profile) || loadNamedPlan(profile) || {};
+    let vacations = Array.isArray(stored.vacations) ? stored.vacations.slice() : [];
     const colleague = kollegeName(profile);
     popup.document.open();
-    popup.document.write('<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Jahresurlaub</title><style>body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f8fafc;color:#0f172a}.wrap{max-width:760px;margin:0 auto;padding:20px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 10px 30px rgba(15,23,42,.08)}h1{margin:0 0 4px;font-size:24px}.muted{color:#64748b;font-weight:700}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:flex;flex-direction:column;font-weight:800;font-size:13px;gap:5px}input{padding:10px;border:1px solid #cbd5e1;border-radius:12px;font-size:15px}button{border:0;border-radius:12px;padding:10px 14px;font-weight:900;cursor:pointer}.primary{background:#2563eb;color:white}.secondary{background:#e2e8f0;color:#0f172a}.danger{background:#fee2e2;color:#991b1b}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #e2e8f0;border-radius:14px;padding:10px;margin:8px 0;background:#fff}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.status{font-weight:900;color:#166534;margin-left:8px}@media(max-width:640px){.grid{grid-template-columns:1fr}}</style></head><body><div class="wrap"><div class="card"><h1>🌴 Jahresurlaub</h1><div class="muted">' + escapeHtml(colleague) + ' · Urlaub wird getrennt pro Kollege gespeichert.</div></div><div class="card"><div class="grid"><label>Bezeichnung<input id="vacLabel" value="Urlaub"></label><label>Anspruch Tage/Jahr<input id="vacEntitlement" type="number" min="0" max="99" value="' + escapeHtml(named.vacationEntitlement || 30) + '"></label><label>Von<input id="vacStart" type="date"></label><label>Bis<input id="vacEnd" type="date"></label></div><div class="actions"><button class="primary" id="addVac">Urlaub hinzufügen</button><button class="primary" id="saveVac">💾 Jahresurlaub speichern</button><button class="secondary" id="closeVac">Fenster schließen</button><span class="status" id="status"></span></div></div><div class="card"><strong>Gespeicherte Urlaube</strong><div id="vacList"></div></div></div></body></html>');
+    popup.document.write('<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Jahresurlaub</title><style>body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f8fafc;color:#0f172a}.wrap{max-width:760px;margin:0 auto;padding:20px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 10px 30px rgba(15,23,42,.08)}h1{margin:0 0 4px;font-size:24px}.muted{color:#64748b;font-weight:700}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:flex;flex-direction:column;font-weight:800;font-size:13px;gap:5px}input{padding:10px;border:1px solid #cbd5e1;border-radius:12px;font-size:15px}button{border:0;border-radius:12px;padding:10px 14px;font-weight:900;cursor:pointer}.primary{background:#2563eb;color:white}.secondary{background:#e2e8f0;color:#0f172a}.danger{background:#fee2e2;color:#991b1b}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #e2e8f0;border-radius:14px;padding:10px;margin:8px 0;background:#fff}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.status{font-weight:900;color:#166534;margin-left:8px}@media(max-width:640px){.grid{grid-template-columns:1fr}}</style></head><body><div class="wrap"><div class="card"><h1>🌴 Jahresurlaub</h1><div class="muted">' + escapeHtml(colleague) + ' · Urlaub wird getrennt pro Kollege gespeichert.</div></div><div class="card"><div class="grid"><label>Bezeichnung<input id="vacLabel" value="Urlaub"></label><label>Anspruch Tage/Jahr<input id="vacEntitlement" type="number" min="0" max="99" value="' + escapeHtml(stored.vacationEntitlement || 30) + '"></label><label>Von<input id="vacStart" type="date"></label><label>Bis<input id="vacEnd" type="date"></label></div><div class="actions"><button class="primary" id="addVac">Urlaub hinzufügen</button><button class="primary" id="saveVac">💾 Jahresurlaub speichern</button><button class="secondary" id="closeVac">Fenster schließen</button><span class="status" id="status"></span></div></div><div class="card"><strong>Gespeicherte Urlaube</strong><div id="vacList"></div></div></div></body></html>');
     popup.document.close();
     const $ = id => popup.document.getElementById(id);
     const render = () => {
@@ -162,14 +150,12 @@
       list.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => { vacations.splice(Number(btn.dataset.del), 1); render(); }));
     };
     const save = () => {
-      const current = loadNamedPlan(profile) || {};
-      const state = loadMainState() || {};
-      const next = { ...current, duties: Array.isArray(state.duties) ? state.duties : (Array.isArray(current.duties) ? current.duties : []), vacations, vacationEntitlement: Number($('vacEntitlement').value) || 30, savedAt: new Date().toISOString(), templateVersion: current.templateVersion || TEMPLATE_VERSION };
-      localStorage.setItem('lrz-plan-' + profile, JSON.stringify(next));
-      localStorage.setItem('dienstpilot_vacation_refresh', String(Date.now()));
-      $('status').textContent = 'Gespeichert. Der Urlaub erscheint jetzt im Monat.';
+      const entitlement = Number($('vacEntitlement').value) || 30;
+      persistVacationsForProfile(profile, vacations, entitlement);
+      $('status').textContent = 'Gespeichert. Der Kalender wird aktualisiert.';
       enhanceMonthOverview();
       window.dispatchEvent(new Event('dienstpilot-vacations-updated'));
+      setTimeout(() => { try { location.reload(); } catch {} }, 350);
     };
     $('addVac').addEventListener('click', () => {
       const start = $('vacStart').value;
@@ -181,23 +167,54 @@
     });
     $('saveVac').addEventListener('click', save);
     $('closeVac').addEventListener('click', () => popup.close());
-    render();
-    popup.focus();
+    render(); popup.focus();
   }
+
+  function persistVacationsForProfile(profile, vacations, entitlement) {
+    const clean = Array.isArray(vacations) ? vacations.filter(v => v && v.start && v.end) : [];
+    const vacationBody = { vacations: clean, vacationEntitlement: entitlement, savedAt: new Date().toISOString() };
+    localStorage.setItem(VACATION_STABLE_PREFIX + profile, JSON.stringify(vacationBody));
+    const current = loadNamedPlan(profile) || {};
+    const state = loadMainState() || {};
+    const shown = new Set([...(state.appSettings?.shownMonths || []), ...MONTHS_TO_SHOW]);
+    for (const m of monthsCoveredByVacations(clean)) shown.add(m);
+    const nextState = { ...state, appSettings: { ...(state.appSettings || {}), activeProfile: profile, shownMonths: [...shown].sort() } };
+    if (Array.isArray(state.duties)) nextState.duties = state.duties;
+    if (state.customCatalog) nextState.customCatalog = state.customCatalog;
+    localStorage.setItem('lenkRuhezeitenRunke20260413', JSON.stringify(nextState));
+    const nextNamed = { ...current, duties: Array.isArray(state.duties) ? state.duties : (Array.isArray(current.duties) ? current.duties : []), vacations: clean, vacationEntitlement: entitlement, hideSundays: !!(nextState.appSettings && nextState.appSettings.hideSundays), savedAt: new Date().toISOString(), templateVersion: current.templateVersion || TEMPLATE_VERSION };
+    localStorage.setItem('lrz-plan-' + profile, JSON.stringify(nextNamed));
+    localStorage.setItem('dienstpilot_vacation_refresh', String(Date.now()));
+  }
+
+  function monthsCoveredByVacations(vacations) {
+    const months = new Set();
+    for (const v of vacations || []) {
+      let cur = String(v.start || '').slice(0, 10);
+      const end = String(v.end || v.start || '').slice(0, 10);
+      let guard = 0;
+      while (/^\d{4}-\d{2}-\d{2}$/.test(cur) && cur <= end && guard++ < 370) {
+        months.add(cur.slice(0, 7));
+        cur = addDaysIso(cur, 1);
+      }
+    }
+    return [...months];
+  }
+
+  function addDaysIso(iso, n) {
+    const d = new Date(iso + 'T12:00:00');
+    d.setDate(d.getDate() + n);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function readStableVacationPlan(profile) { try { const raw = localStorage.getItem(VACATION_STABLE_PREFIX + profile); return raw ? JSON.parse(raw) : null; } catch { return null; } }
 
   function ensureVacationSaveButton() {
     const section = document.querySelector('.vacation-section');
     if (!section || document.getElementById(VACATION_SAVE_ID)) return;
-    const row = document.createElement('div');
-    row.className = 'jahresurlaub-save-row';
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'btn-primary';
-    btn.id = VACATION_SAVE_ID;
-    btn.textContent = '💾 Jahresurlaub speichern';
-    const status = document.createElement('span');
-    status.id = 'jahresurlaubSaveStatus';
-    status.className = 'jahresurlaub-save-status';
+    const row = document.createElement('div'); row.className = 'jahresurlaub-save-row';
+    const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn-primary'; btn.id = VACATION_SAVE_ID; btn.textContent = '💾 Jahresurlaub speichern';
+    const status = document.createElement('span'); status.id = 'jahresurlaubSaveStatus'; status.className = 'jahresurlaub-save-status';
     row.appendChild(btn); row.appendChild(status);
     const addBtn = document.getElementById('vacationAddBtn');
     if (addBtn) addBtn.insertAdjacentElement('afterend', row); else section.appendChild(row);
@@ -211,14 +228,10 @@
       const status = document.getElementById('jahresurlaubSaveStatus');
       const profile = activeProfileFromLocal() || localStorage.getItem('dienstpilot_aktiver_kollege');
       if (!profile) { if (status) { status.textContent = 'Bitte zuerst einen Kollegen laden.'; status.classList.add('error'); } return; }
-      const state = loadMainState() || {};
       const named = loadNamedPlan(profile) || {};
       const entitlementInput = document.getElementById('vacationEntitlement');
-      const entitlement = entitlementInput && entitlementInput.value !== '' ? Number(entitlementInput.value) : named.vacationEntitlement;
-      const nextNamed = { ...named, duties: Array.isArray(state.duties) ? state.duties : (Array.isArray(named.duties) ? named.duties : []), vacations: Array.isArray(named.vacations) ? named.vacations : [], vacationEntitlement: Number.isFinite(entitlement) ? entitlement : 30, hideSundays: !!(state.appSettings && state.appSettings.hideSundays), savedAt: new Date().toISOString(), templateVersion: named.templateVersion || TEMPLATE_VERSION };
-      localStorage.setItem('lrz-plan-' + profile, JSON.stringify(nextNamed));
-      localStorage.setItem('dienstpilot_vacation_refresh', String(Date.now()));
-      if (state.appSettings) { state.appSettings.activeProfile = profile; localStorage.setItem('lenkRuhezeitenRunke20260413', JSON.stringify(state)); }
+      const entitlement = entitlementInput && entitlementInput.value !== '' ? Number(entitlementInput.value) : (named.vacationEntitlement || 30);
+      persistVacationsForProfile(profile, Array.isArray(named.vacations) ? named.vacations : [], Number.isFinite(entitlement) ? entitlement : 30);
       if (status) { status.textContent = 'Jahresurlaub gespeichert.'; status.classList.remove('error'); }
       enhanceMonthOverview();
     }, 180);
@@ -227,6 +240,8 @@
   function getStoredVacationsForActiveProfile() {
     const profile = activeProfileFromLocal() || localStorage.getItem('dienstpilot_aktiver_kollege');
     if (!profile) return [];
+    const stable = readStableVacationPlan(profile);
+    if (stable && Array.isArray(stable.vacations)) return stable.vacations;
     const named = loadNamedPlan(profile);
     return Array.isArray(named?.vacations) ? named.vacations : [];
   }
@@ -242,9 +257,7 @@
       const summary = day.querySelector(':scope > summary');
       if (!summary) return;
       if (!summary.querySelector('.vacation-badge')) {
-        const badge = document.createElement('span');
-        badge.className = 'vacation-badge dp-vacation-from-storage';
-        badge.textContent = (v.emoji || '🌴') + ' ' + (v.label || 'Urlaub');
+        const badge = document.createElement('span'); badge.className = 'vacation-badge dp-vacation-from-storage'; badge.textContent = (v.emoji || '🌴') + ' ' + (v.label || 'Urlaub');
         const duty = summary.querySelector('.summary-duty');
         if (duty) summary.insertBefore(badge, duty); else summary.appendChild(badge);
       }
@@ -261,10 +274,7 @@
     ensureMonthJumpNav(container, months);
     months.forEach(month => {
       enhanceOneMonth(month);
-      month.querySelectorAll('details.day-group').forEach(day => {
-        if (!day.dataset.compactReady) { day.removeAttribute('open'); day.dataset.compactReady = '1'; }
-        markDayClass(day);
-      });
+      month.querySelectorAll('details.day-group').forEach(day => { if (!day.dataset.compactReady) { day.removeAttribute('open'); day.dataset.compactReady = '1'; } markDayClass(day); });
     });
   }
 
@@ -310,12 +320,7 @@
     day.classList.toggle('compact-warning', !day.classList.contains('compact-problem') && !!day.querySelector('.warn,.summary-status.warn,.badge.warn'));
   }
 
-  function openAndScrollToMonth(monthKey) {
-    const month = document.querySelector(`details.month-group[data-month="${CSS.escape(monthKey)}"]`);
-    if (!month) return;
-    month.open = true;
-    month.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+  function openAndScrollToMonth(monthKey) { const month = document.querySelector(`details.month-group[data-month="${CSS.escape(monthKey)}"]`); if (!month) return; month.open = true; month.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 
   function ensureKollegenAuswahl() {
     let panel = document.getElementById('kollegenPanel');
@@ -335,8 +340,7 @@
       const note = document.createElement('span'); note.className = 'kollegen-hinweis'; note.textContent = 'Dienste aus Fotoplan'; panel.appendChild(note);
     }
     const active = activeProfileFromLocal() || localStorage.getItem('dienstpilot_aktiver_kollege') || 'runke';
-    const select = document.getElementById('kollegeSelect');
-    if (select && [...select.options].some(o => o.value === active)) select.value = active;
+    const select = document.getElementById('kollegeSelect'); if (select && [...select.options].some(o => o.value === active)) select.value = active;
   }
 
   function loadSelectedKollege(forceTemplate) {
@@ -346,17 +350,19 @@
     const templateKey = 'dienstpilot_kollege_template_' + profile;
     const useTemplate = forceTemplate || !stored || localStorage.getItem(templateKey) !== TEMPLATE_VERSION;
     const duties = useTemplate ? buildPlanForProfile(profile) : (Array.isArray(stored.duties) ? stored.duties : buildPlanForProfile(profile));
-    const vacations = Array.isArray(stored?.vacations) ? stored.vacations : [];
-    const vacationEntitlement = Number.isFinite(stored?.vacationEntitlement) ? stored.vacationEntitlement : 30;
+    const stable = readStableVacationPlan(profile);
+    const vacations = Array.isArray(stable?.vacations) ? stable.vacations : (Array.isArray(stored?.vacations) ? stored.vacations : []);
+    const vacationEntitlement = Number.isFinite(stable?.vacationEntitlement) ? stable.vacationEntitlement : (Number.isFinite(stored?.vacationEntitlement) ? stored.vacationEntitlement : 30);
     const hideSundays = typeof stored?.hideSundays === 'boolean' ? stored.hideSundays : false;
-    const state = { duties, customCatalog: getExistingCustomCatalog(), appSettings: { activeProfile: profile, shownMonths: MONTHS_TO_SHOW, hideSundays } };
+    const shownMonths = [...new Set([...MONTHS_TO_SHOW, ...monthsCoveredByVacations(vacations)])].sort();
+    const state = { duties, customCatalog: getExistingCustomCatalog(), appSettings: { activeProfile: profile, shownMonths, hideSundays } };
     const namedPlan = { duties, vacations, vacationEntitlement, bundeslaender: stored?.bundeslaender || null, hideSundays, savedAt: new Date().toISOString(), templateVersion: TEMPLATE_VERSION };
     localStorage.setItem('dienstpilot_aktiver_kollege', profile);
     localStorage.setItem(templateKey, TEMPLATE_VERSION);
     localStorage.setItem('lenkRuhezeitenRunke20260413', JSON.stringify(state));
     localStorage.setItem('lrz-plan-' + profile, JSON.stringify(namedPlan));
-    setKollegenTitel(profile);
-    location.reload();
+    if (vacations.length) localStorage.setItem(VACATION_STABLE_PREFIX + profile, JSON.stringify({ vacations, vacationEntitlement, savedAt: new Date().toISOString() }));
+    setKollegenTitel(profile); location.reload();
   }
 
   function buildPlanForProfile(profile) {
@@ -367,27 +373,15 @@
       const d = parseIso(start); const last = parseIso(end);
       while (d <= last) {
         const iso = formatIso(d); const weekday = d.getDay() === 0 ? 6 : d.getDay() - 1;
-        for (let col = 0; col < names.length; col++) {
-          if (norm(names[col]) !== target) continue;
-          const number = COLUMN_PATTERNS[col]?.[weekday];
-          if (number) out.push(makeDuty(profile, iso, number, out.length + 1));
-        }
+        for (let col = 0; col < names.length; col++) { if (norm(names[col]) !== target) continue; const number = COLUMN_PATTERNS[col]?.[weekday]; if (number) out.push(makeDuty(profile, iso, number, out.length + 1)); }
         d.setDate(d.getDate() + 1);
       }
     }
     return out;
   }
 
-  function makeDuty(profile, date, number, index) {
-    const jsDay = new Date(date + 'T12:00:00').getDay();
-    const time = (jsDay === 5 && FRIDAY_TIMES[number]) ? FRIDAY_TIMES[number] : TIMES[number];
-    return { id:`${profile}-${String(index).padStart(3,'0')}-${date}-${number}`, date, number, start:time ? time[0] : '', end:time ? time[1] : '', breaks:'', drivingBlocks:'', lineMode:'linie50', stopDistance:'lte3', pauseRule:'auto', tariffEight:false };
-  }
-
-  function profileToPlanName(profile) {
-    const map = { yasar:'yasar', bumhoffer:'bumhoffer', entrup:'entrup', schweppe:'schweppe', janzen:'janzen', alomar:'alomar', 'al-sayek':'alsayek', szczepanik:'szczepanik', seidensticker:'seidensticker', kocdemir:'kocdemir', wuellner:'wullner', wittwer:'wittwer', gerding:'gerding', runke:'runke', lommel:'lhommel', malko:'malko', murad:'murad', kurta:'kurta', wiemann:'wiemann' };
-    return map[profile] || profile;
-  }
+  function makeDuty(profile, date, number, index) { const jsDay = new Date(date + 'T12:00:00').getDay(); const time = (jsDay === 5 && FRIDAY_TIMES[number]) ? FRIDAY_TIMES[number] : TIMES[number]; return { id:`${profile}-${String(index).padStart(3,'0')}-${date}-${number}`, date, number, start:time ? time[0] : '', end:time ? time[1] : '', breaks:'', drivingBlocks:'', lineMode:'linie50', stopDistance:'lte3', pauseRule:'auto', tariffEight:false }; }
+  function profileToPlanName(profile) { const map = { yasar:'yasar', bumhoffer:'bumhoffer', entrup:'entrup', schweppe:'schweppe', janzen:'janzen', alomar:'alomar', 'al-sayek':'alsayek', szczepanik:'szczepanik', seidensticker:'seidensticker', kocdemir:'kocdemir', wuellner:'wullner', wittwer:'wittwer', gerding:'gerding', runke:'runke', lommel:'lhommel', malko:'malko', murad:'murad', kurta:'kurta', wiemann:'wiemann' }; return map[profile] || profile; }
   function norm(value) { return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, ''); }
   function parseIso(iso) { const [y,m,d] = iso.split('-').map(Number); return new Date(y, m - 1, d, 12); }
   function formatIso(date) { return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0'); }
@@ -398,30 +392,8 @@
   function kollegeName(profile) { const f = KOLLEGEN.find(([id]) => id === profile); return f ? f[1] : profile; }
   function setKollegenTitel(profile) { const t = document.getElementById(PROFILE_TITLE_ID); const n = kollegeName(profile); if (t) { t.textContent = 'Dienstplan ' + n; t.classList.remove('empty'); } document.title = 'Dienstplan ' + n + ' · DienstPilot'; }
   function updateKollegenTitelOnly() { const active = activeProfileFromLocal(); if (active) setKollegenTitel(active); }
-
-  function ensurePrintButton() {
-    if (document.getElementById(PRINT_BUTTON_ID)) return;
-    const clearBtn = document.getElementById('clearDuties');
-    const toggleSundays = document.getElementById('toggleSundays')?.closest('label');
-    const toolbarGroup = clearBtn?.closest('.toolbar-group') || toggleSundays?.closest('.toolbar-group');
-    if (!toolbarGroup) return;
-    const printBtn = document.createElement('button');
-    printBtn.type = 'button'; printBtn.className = 'btn-secondary'; printBtn.id = PRINT_BUTTON_ID; printBtn.textContent = '🖨 Dienstplan drucken';
-    if (toggleSundays) toolbarGroup.insertBefore(printBtn, toggleSundays); else if (clearBtn) clearBtn.insertAdjacentElement('afterend', printBtn); else toolbarGroup.appendChild(printBtn);
-  }
-
-  function printDutyPlan() {
-    const dutiesContainer = document.getElementById(DUTIES_CONTAINER_ID);
-    const profileTitle = document.getElementById(PROFILE_TITLE_ID)?.textContent?.trim() || 'Dienstplan';
-    if (!dutiesContainer || !dutiesContainer.innerHTML.trim()) { alert('Kein Dienstplan zum Drucken vorhanden.'); return; }
-    const printWindow = window.open('', '_blank', 'width=1000,height=800');
-    if (!printWindow) { alert('Druckfenster konnte nicht geöffnet werden. Bitte Pop-ups erlauben.'); return; }
-    const today = new Date().toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
-    const printableContent = preparePrintableContent(dutiesContainer);
-    printWindow.document.open();
-    printWindow.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${escapeHtml(profileTitle)} drucken</title><style>body{margin:24px;font-family:Arial,Helvetica,sans-serif;color:#111827;background:#fff;line-height:1.35}h1{margin:0 0 4px;font-size:24px}.print-meta{margin:0 0 24px;color:#6b7280;font-size:14px}button,input,select,textarea,.toolbar,.btn-primary,.btn-secondary,.tab,.tabs,.hidden{display:none!important}.card,.duty-card,.day-card,.duty,.day,article,section>div{break-inside:avoid;page-break-inside:avoid}.card,.duty-card,.day-card{border:1px solid #d1d5db;border-radius:10px;padding:12px;margin-bottom:12px;background:#fff}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #d1d5db;padding:6px 8px;text-align:left;vertical-align:top;font-size:13px}th{background:#f3f4f6;font-weight:700}.muted,small{color:#6b7280}img{max-width:100%}@page{size:A4 portrait;margin:12mm}@media print{body{margin:0}}</style></head><body><h1>DienstPilot · Dienstplan</h1><div class="print-meta">${escapeHtml(profileTitle)} · gedruckt am ${escapeHtml(today)}</div><main>${printableContent}</main><script>window.addEventListener('load',()=>{window.focus();window.print();});window.addEventListener('afterprint',()=>{window.close();});<\/script></body></html>`);
-    printWindow.document.close();
-  }
+  function ensurePrintButton() { if (document.getElementById(PRINT_BUTTON_ID)) return; const clearBtn = document.getElementById('clearDuties'); const toggleSundays = document.getElementById('toggleSundays')?.closest('label'); const toolbarGroup = clearBtn?.closest('.toolbar-group') || toggleSundays?.closest('.toolbar-group'); if (!toolbarGroup) return; const printBtn = document.createElement('button'); printBtn.type = 'button'; printBtn.className = 'btn-secondary'; printBtn.id = PRINT_BUTTON_ID; printBtn.textContent = '🖨 Dienstplan drucken'; if (toggleSundays) toolbarGroup.insertBefore(printBtn, toggleSundays); else if (clearBtn) clearBtn.insertAdjacentElement('afterend', printBtn); else toolbarGroup.appendChild(printBtn); }
+  function printDutyPlan() { const dutiesContainer = document.getElementById(DUTIES_CONTAINER_ID); const profileTitle = document.getElementById(PROFILE_TITLE_ID)?.textContent?.trim() || 'Dienstplan'; if (!dutiesContainer || !dutiesContainer.innerHTML.trim()) { alert('Kein Dienstplan zum Drucken vorhanden.'); return; } const printWindow = window.open('', '_blank', 'width=1000,height=800'); if (!printWindow) { alert('Druckfenster konnte nicht geöffnet werden. Bitte Pop-ups erlauben.'); return; } const today = new Date().toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' }); const printableContent = preparePrintableContent(dutiesContainer); printWindow.document.open(); printWindow.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${escapeHtml(profileTitle)} drucken</title><style>body{margin:24px;font-family:Arial,Helvetica,sans-serif;color:#111827;background:#fff;line-height:1.35}h1{margin:0 0 4px;font-size:24px}.print-meta{margin:0 0 24px;color:#6b7280;font-size:14px}button,input,select,textarea,.toolbar,.btn-primary,.btn-secondary,.tab,.tabs,.hidden{display:none!important}.card,.duty-card,.day-card,.duty,.day,article,section>div{break-inside:avoid;page-break-inside:avoid}.card,.duty-card,.day-card{border:1px solid #d1d5db;border-radius:10px;padding:12px;margin-bottom:12px;background:#fff}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #d1d5db;padding:6px 8px;text-align:left;vertical-align:top;font-size:13px}th{background:#f3f4f6;font-weight:700}.muted,small{color:#6b7280}img{max-width:100%}@page{size:A4 portrait;margin:12mm}@media print{body{margin:0}}</style></head><body><h1>DienstPilot · Dienstplan</h1><div class="print-meta">${escapeHtml(profileTitle)} · gedruckt am ${escapeHtml(today)}</div><main>${printableContent}</main><script>window.addEventListener('load',()=>{window.focus();window.print();});window.addEventListener('afterprint',()=>{window.close();});<\/script></body></html>`); printWindow.document.close(); }
   function preparePrintableContent(container) { const clone = container.cloneNode(true); clone.querySelectorAll('button,input,select,textarea,script').forEach(el => { const r = document.createElement('span'); const v = getControlText(el); if (v) r.textContent = v; el.replaceWith(r); }); clone.querySelectorAll('[contenteditable="true"]').forEach(el => el.removeAttribute('contenteditable')); return clone.innerHTML; }
   function getControlText(element) { if (element.matches('input[type="checkbox"],input[type="radio"]')) return element.checked ? '✓' : ''; if (element.matches('input,textarea,select')) return element.value || element.getAttribute('value') || ''; return element.textContent?.trim() || ''; }
   function escapeHtml(value) { return String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;'); }
