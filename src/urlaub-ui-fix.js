@@ -57,9 +57,9 @@
         display: none !important;
       }
       #openJahresurlaubFix {
-        min-height: 44px !important;
-        padding: 10px 16px !important;
-        font-size: 14px !important;
+        min-height: 48px !important;
+        padding: 12px 18px !important;
+        font-size: 15px !important;
         font-weight: 900 !important;
         border-radius: 14px !important;
         white-space: nowrap !important;
@@ -102,17 +102,20 @@
         white-space: nowrap;
       }
       @media (max-width: 720px) {
-        #openJahresurlaubFix {
+        #openJahresurlaubFix,
+        button#openJahresurlaubFix.btn-secondary {
           width: 100% !important;
-          min-height: 56px !important;
-          padding: 15px 18px !important;
-          font-size: 17px !important;
+          min-width: 100% !important;
+          min-height: 64px !important;
+          padding: 18px 20px !important;
+          font-size: 19px !important;
           line-height: 1.2 !important;
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
           box-sizing: border-box !important;
-          margin: 6px 0 !important;
+          margin: 8px 0 !important;
+          flex: 1 0 100% !important;
         }
         .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
       }
@@ -210,8 +213,8 @@
     }
 
     win.document.open();
-    win.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>DienstPilot · Jahresurlaub</title><style>
-      body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f8fafc;color:#0f172a}.wrap{max-width:760px;margin:0 auto;padding:20px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 10px 30px rgba(15,23,42,.08)}h1{margin:0 0 4px;font-size:24px}.muted{color:#64748b;font-weight:700}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:flex;flex-direction:column;font-weight:800;font-size:13px;gap:5px}input{padding:10px;border:1px solid #cbd5e1;border-radius:12px;font-size:15px}button{border:0;border-radius:12px;padding:10px 14px;font-weight:900;cursor:pointer}.primary{background:#2563eb;color:white}.secondary{background:#e2e8f0;color:#0f172a}.danger{background:#fee2e2;color:#991b1b}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #e2e8f0;border-radius:14px;padding:10px;margin:8px 0;background:#fff}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.status{font-weight:900;color:#166534;margin-left:8px}.error{color:#991b1b}@media(max-width:640px){.grid{grid-template-columns:1fr}}
+    win.document.write(`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>DienstPilot · Jahresurlaub</title><style>
+      *{box-sizing:border-box}html,body{width:100%;min-height:100%;margin:0}body{font-family:Arial,Helvetica,sans-serif;background:#f8fafc;color:#0f172a}.wrap{width:100%;max-width:760px;margin:0 auto;padding:20px}.card{width:100%;background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 10px 30px rgba(15,23,42,.08)}h1{margin:0 0 4px;font-size:24px}.muted{color:#64748b;font-weight:700}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:flex;flex-direction:column;font-weight:800;font-size:13px;gap:5px}input{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:12px;font-size:16px}button{border:0;border-radius:12px;padding:12px 14px;font-weight:900;cursor:pointer;font-size:15px}.primary{background:#2563eb;color:white}.secondary{background:#e2e8f0;color:#0f172a}.danger{background:#fee2e2;color:#991b1b}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #e2e8f0;border-radius:14px;padding:10px;margin:8px 0;background:#fff}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.status{font-weight:900;color:#166534;margin-left:8px}.error{color:#991b1b}@media(max-width:640px){.wrap{max-width:none;padding:12px}.card{border-radius:16px;padding:14px;margin:10px 0}.grid{grid-template-columns:1fr}h1{font-size:24px}.actions{display:grid;grid-template-columns:1fr;gap:10px}.actions button{width:100%;min-height:54px;font-size:16px}.row{align-items:flex-start}.danger{min-width:92px}}
     </style></head><body><div class="wrap"><div class="card"><h1>🌴 Jahresurlaub</h1><div class="muted">${escapeHtml(profileLabel(profile))} · Urlaub wird getrennt pro Kollege gespeichert.</div></div><div class="card"><div class="grid"><label>Bezeichnung<input id="vacLabel" value="Urlaub"></label><label>Anspruch Tage/Jahr<input id="vacEntitlement" type="number" min="0" max="99" value="${escapeHtml(stored.vacationEntitlement || 30)}"></label><label>Von<input id="vacStart" type="date"></label><label>Bis<input id="vacEnd" type="date"></label></div><div class="actions"><button class="primary" id="addVac">Urlaub hinzufügen</button><button class="primary" id="saveVac">💾 Jahresurlaub speichern</button><button class="secondary" id="closeVac">Fenster schließen</button><span class="status" id="status"></span></div></div><div class="card"><strong>Gespeicherte Urlaube</strong><div id="vacList"></div></div></div></body></html>`);
     win.document.close();
 
