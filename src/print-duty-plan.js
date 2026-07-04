@@ -2,6 +2,8 @@
   'use strict';
 
   const PRINT_BUTTON_ID = 'printDutyPlan';
+  const VACATION_BUTTON_ID = 'openJahresurlaub';
+  const VACATION_SAVE_ID = 'saveJahresurlaub';
   const DUTIES_CONTAINER_ID = 'dutiesContainer';
   const PROFILE_TITLE_ID = 'profileTitle';
   const MONTHS_TO_SHOW = ['2026-04','2026-05','2026-06','2026-07'];
@@ -55,13 +57,17 @@
     neutralizeOldVacationWish();
     installExtraStyles();
     ensurePrintButton();
+    ensureJahresurlaubButton();
     ensureKollegenAuswahl();
+    ensureVacationSaveButton();
     updateKollegenTitelOnly();
     enhanceMonthOverview();
 
     document.addEventListener('click', (event) => {
       if (event.target.closest?.('#loadKollege')) { event.preventDefault(); event.stopPropagation(); loadSelectedKollege(false); return; }
       if (event.target.closest?.('#reloadKollegeTemplate')) { event.preventDefault(); event.stopPropagation(); loadSelectedKollege(true); return; }
+      if (event.target.closest?.('#' + VACATION_BUTTON_ID)) { event.preventDefault(); openJahresurlaub(); return; }
+      if (event.target.closest?.('#' + VACATION_SAVE_ID)) { event.preventDefault(); saveJahresurlaubNow(); return; }
       const jump = event.target.closest?.('[data-month-jump]');
       if (jump) { event.preventDefault(); openAndScrollToMonth(jump.dataset.monthJump); return; }
       if (event.target.closest?.('#' + PRINT_BUTTON_ID)) { event.preventDefault(); printDutyPlan(); }
@@ -76,7 +82,9 @@
       observer._timer = window.setTimeout(() => {
         neutralizeOldVacationWish();
         ensurePrintButton();
+        ensureJahresurlaubButton();
         ensureKollegenAuswahl();
+        ensureVacationSaveButton();
         updateKollegenTitelOnly();
         enhanceMonthOverview();
       }, 120);
@@ -118,9 +126,88 @@
       .month-group{border-radius:22px;overflow:hidden}.month-group>summary{display:flex!important;align-items:center;gap:10px;flex-wrap:wrap}.month-group>summary .month-overview-pills{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}.month-pill{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:900;border:1px solid #e2e8f0;background:#f8fafc;color:#334155}.month-pill.work{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}.month-pill.vacation{background:#ecfdf5;border-color:#bbf7d0;color:#166534}.month-pill.free{background:#f8fafc;border-color:#cbd5e1;color:#475569}.month-pill.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}.month-pill.fail{background:#fef2f2;border-color:#fecaca;color:#991b1b}
       .week-group{margin:8px 0!important;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;background:#fff}.week-group>summary{padding:10px 12px!important;background:#f8fafc;font-size:14px!important;gap:8px!important}
       .day-group{margin:6px 0!important;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;background:#fff}.day-group>summary{display:grid!important;grid-template-columns:minmax(42px,55px) minmax(86px,110px) minmax(130px,1fr) auto;align-items:center;gap:8px;padding:9px 12px!important;font-size:14px!important}.day-group>summary .summary-dow{font-weight:900;color:#475569}.day-group>summary .summary-date{font-weight:800}.day-group>summary .summary-duty{font-weight:900}.day-group.compact-vacation>summary{box-shadow:inset 4px 0 0 #16a34a;background:#f0fdf4}.day-group.compact-free>summary{box-shadow:inset 4px 0 0 #94a3b8;background:#f8fafc}.day-group.compact-problem>summary{box-shadow:inset 4px 0 0 #dc2626;background:#fef2f2}.day-group.compact-warning>summary{box-shadow:inset 4px 0 0 #f59e0b;background:#fffbeb}.day-group[open]>summary{border-bottom:1px solid #e2e8f0}
+      .jahresurlaub-save-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}.jahresurlaub-save-status{font-size:13px;font-weight:800;color:#166534}.jahresurlaub-save-status.error{color:#991b1b}
       @media(max-width:720px){.day-group>summary{grid-template-columns:46px 1fr;}.day-group>summary .summary-duty,.day-group>summary .summary-status,.day-group>summary .badge{grid-column:1/-1}.month-group>summary .month-overview-pills{width:100%;margin-left:0}}
     `;
     document.head.appendChild(style);
+  }
+
+  function ensureJahresurlaubButton() {
+    if (document.getElementById(VACATION_BUTTON_ID)) return;
+    const printBtn = document.getElementById(PRINT_BUTTON_ID);
+    const clearBtn = document.getElementById('clearDuties');
+    const toolbarGroup = printBtn?.closest('.toolbar-group') || clearBtn?.closest('.toolbar-group');
+    if (!toolbarGroup) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-secondary';
+    btn.id = VACATION_BUTTON_ID;
+    btn.textContent = '🌴 Jahresurlaub';
+    if (printBtn) toolbarGroup.insertBefore(btn, printBtn); else toolbarGroup.appendChild(btn);
+  }
+
+  function openJahresurlaub() {
+    const settingsTab = document.querySelector('.tab[data-tab="einstellungen"]');
+    if (settingsTab) settingsTab.click();
+    ensureVacationSaveButton();
+    setTimeout(() => {
+      const section = document.querySelector('.vacation-section') || document.getElementById('vacationContent');
+      if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  }
+
+  function ensureVacationSaveButton() {
+    const section = document.querySelector('.vacation-section');
+    if (!section || document.getElementById(VACATION_SAVE_ID)) return;
+    const row = document.createElement('div');
+    row.className = 'jahresurlaub-save-row';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-primary';
+    btn.id = VACATION_SAVE_ID;
+    btn.textContent = '💾 Jahresurlaub speichern';
+    const status = document.createElement('span');
+    status.id = 'jahresurlaubSaveStatus';
+    status.className = 'jahresurlaub-save-status';
+    row.appendChild(btn);
+    row.appendChild(status);
+    const addBtn = document.getElementById('vacationAddBtn');
+    if (addBtn) addBtn.insertAdjacentElement('afterend', row); else section.appendChild(row);
+  }
+
+  function saveJahresurlaubNow() {
+    const form = document.getElementById('vacationForm');
+    const formSave = document.getElementById('vacationFormSave');
+    if (form && !form.classList.contains('hidden') && formSave) {
+      formSave.click();
+    }
+    setTimeout(() => {
+      const status = document.getElementById('jahresurlaubSaveStatus');
+      const profile = activeProfileFromLocal() || localStorage.getItem('dienstpilot_aktiver_kollege');
+      if (!profile) {
+        if (status) { status.textContent = 'Bitte zuerst einen Kollegen laden.'; status.classList.add('error'); }
+        return;
+      }
+      const state = loadMainState() || {};
+      const named = loadNamedPlan(profile) || {};
+      const entitlementInput = document.getElementById('vacationEntitlement');
+      const entitlement = entitlementInput && entitlementInput.value !== '' ? Number(entitlementInput.value) : named.vacationEntitlement;
+      const nextNamed = {
+        ...named,
+        duties: Array.isArray(state.duties) ? state.duties : (Array.isArray(named.duties) ? named.duties : []),
+        vacations: Array.isArray(named.vacations) ? named.vacations : [],
+        vacationEntitlement: Number.isFinite(entitlement) ? entitlement : 30,
+        hideSundays: !!(state.appSettings && state.appSettings.hideSundays),
+        savedAt: new Date().toISOString(),
+        templateVersion: named.templateVersion || TEMPLATE_VERSION
+      };
+      localStorage.setItem('lrz-plan-' + profile, JSON.stringify(nextNamed));
+      if (state.appSettings) {
+        state.appSettings.activeProfile = profile;
+        localStorage.setItem('lenkRuhezeitenRunke20260413', JSON.stringify(state));
+      }
+      if (status) { status.textContent = 'Jahresurlaub gespeichert.'; status.classList.remove('error'); }
+    }, 180);
   }
 
   function enhanceMonthOverview() {
@@ -132,10 +219,7 @@
     months.forEach(month => {
       enhanceOneMonth(month);
       month.querySelectorAll('details.day-group').forEach(day => {
-        if (!day.dataset.compactReady) {
-          day.removeAttribute('open');
-          day.dataset.compactReady = '1';
-        }
+        if (!day.dataset.compactReady) { day.removeAttribute('open'); day.dataset.compactReady = '1'; }
         markDayClass(day);
       });
     });
@@ -143,11 +227,7 @@
 
   function ensureMonthJumpNav(container, months) {
     let nav = container.querySelector(':scope > .month-jump-nav');
-    if (!nav) {
-      nav = document.createElement('div');
-      nav.className = 'month-jump-nav';
-      container.insertBefore(nav, container.firstChild);
-    }
+    if (!nav) { nav = document.createElement('div'); nav.className = 'month-jump-nav'; container.insertBefore(nav, container.firstChild); }
     const monthNames = months.map(m => m.dataset.month).join('|');
     if (nav.dataset.months === monthNames) return;
     nav.dataset.months = monthNames;
@@ -170,10 +250,8 @@
       const hasFail = !!day.querySelector('.fail,.summary-status.fail,.badge.fail');
       const hasWarn = !!day.querySelector('.warn,.summary-status.warn,.badge.warn');
       if (isVacation) vacation += 1;
-      if (isFree) free += 1;
-      else work += 1;
-      if (hasFail) fail += 1;
-      else if (hasWarn) warn += 1;
+      if (isFree) free += 1; else work += 1;
+      if (hasFail) fail += 1; else if (hasWarn) warn += 1;
     });
     const pills = document.createElement('span');
     pills.className = 'month-overview-pills';
@@ -277,6 +355,7 @@
   function parseIso(iso) { const [y,m,d] = iso.split('-').map(Number); return new Date(y, m - 1, d, 12); }
   function formatIso(date) { return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0'); }
   function getExistingCustomCatalog() { try { const s = JSON.parse(localStorage.getItem('lenkRuhezeitenRunke20260413') || '{}'); return s.customCatalog && typeof s.customCatalog === 'object' ? s.customCatalog : {}; } catch { return {}; } }
+  function loadMainState() { try { return JSON.parse(localStorage.getItem('lenkRuhezeitenRunke20260413') || 'null'); } catch { return null; } }
   function activeProfileFromLocal() { try { const s = JSON.parse(localStorage.getItem('lenkRuhezeitenRunke20260413') || '{}'); return s.appSettings && s.appSettings.activeProfile; } catch { return null; } }
   function loadNamedPlan(profile) { try { return JSON.parse(localStorage.getItem('lrz-plan-' + profile) || 'null'); } catch { return null; } }
   function kollegeName(profile) { const f = KOLLEGEN.find(([id]) => id === profile); return f ? f[1] : profile; }
