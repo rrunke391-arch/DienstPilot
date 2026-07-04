@@ -56,6 +56,14 @@
       #tab-einstellungen .vacation-section {
         display: none !important;
       }
+      #openJahresurlaubFix {
+        min-height: 44px !important;
+        padding: 10px 16px !important;
+        font-size: 14px !important;
+        font-weight: 900 !important;
+        border-radius: 14px !important;
+        white-space: nowrap !important;
+      }
       #catalogReviewStats .crs-errors,
       #catalogReviewStats .crs-open,
       .catalog-card .badge.problem,
@@ -94,6 +102,18 @@
         white-space: nowrap;
       }
       @media (max-width: 720px) {
+        #openJahresurlaubFix {
+          width: 100% !important;
+          min-height: 56px !important;
+          padding: 15px 18px !important;
+          font-size: 17px !important;
+          line-height: 1.2 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          box-sizing: border-box !important;
+          margin: 6px 0 !important;
+        }
         .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
       }
     `;
