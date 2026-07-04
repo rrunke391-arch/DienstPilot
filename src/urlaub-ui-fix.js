@@ -6,32 +6,46 @@
   const BUTTON_ID = 'openJahresurlaubFix';
   const OLD_BUTTON_ID = 'openJahresurlaub';
   const CONTAINER_ID = 'dutiesContainer';
+  const BASE_MONTHS = ['2026-04', '2026-05', '2026-06', '2026-07'];
+
+  const KOLLEGEN = [
+    ['yasar','Yasar'], ['bumhoffer','Bumhoffer'], ['entrup','Entrup'], ['schweppe','Schweppe'],
+    ['janzen','Janzen'], ['alomar','Alomar'], ['al-sayek','Al Sayek'], ['szczepanik','Szczepanik'],
+    ['seidensticker','Seidensticker'], ['kocdemir','Kocdemir'], ['wuellner','Wüllner'], ['wittwer','Wittwer'],
+    ['biermann','Biermann'], ['gerding','Gerding'], ['runke','Runke'], ['lommel','Lommel'],
+    ['malko','Malko'], ['murad','Murad'], ['kurta','Kurta'], ['wiemann','Wiemann']
+  ];
+
+  ready(() => {
+    installStyles();
+    removeLenkUndRuhezeiten();
+    replaceOldVacationButton();
+    normalizeVacationBadges();
+
+    document.addEventListener('click', handleClick, true);
+    window.addEventListener('focus', normalizeVacationBadges);
+    window.addEventListener('storage', normalizeVacationBadges);
+
+    new MutationObserver(() => {
+      clearTimeout(window.__dienstpilotVacationFixTimer);
+      window.__dienstpilotVacationFixTimer = setTimeout(() => {
+        removeLenkUndRuhezeiten();
+        replaceOldVacationButton();
+        normalizeVacationBadges();
+      }, 120);
+    }).observe(document.body, { childList: true, subtree: true });
+  });
 
   function ready(fn) {
     document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', fn, { once: true }) : fn();
   }
-
-  ready(() => {
-    installStyles();
-    replaceOldVacationButton();
-    normalizeVacationBadges();
-    document.addEventListener('click', handleClick, true);
-    window.addEventListener('focus', normalizeVacationBadges);
-    window.addEventListener('storage', normalizeVacationBadges);
-    new MutationObserver(() => {
-      clearTimeout(window.__dienstpilotVacationFixTimer);
-      window.__dienstpilotVacationFixTimer = setTimeout(() => {
-        replaceOldVacationButton();
-        normalizeVacationBadges();
-      }, 150);
-    }).observe(document.body, { childList: true, subtree: true });
-  });
 
   function installStyles() {
     if (document.getElementById('dienstpilotVacationFixStyles')) return;
     const style = document.createElement('style');
     style.id = 'dienstpilotVacationFixStyles';
     style.textContent = `
+      .tab[data-tab="tests"], #tab-tests { display: none !important; }
       details.day-group.vacation-fixed > summary {
         background: #dcfce7 !important;
         box-shadow: inset 6px 0 0 #16a34a !important;
@@ -60,6 +74,10 @@
     document.head.appendChild(style);
   }
 
+  function removeLenkUndRuhezeiten() {
+    document.querySelectorAll('.tab[data-tab="tests"], #tab-tests').forEach((el) => el.remove());
+  }
+
   function handleClick(event) {
     const button = event.target.closest?.('#' + BUTTON_ID);
     if (!button) return;
@@ -69,23 +87,24 @@
   }
 
   function replaceOldVacationButton() {
-    const oldButton = document.getElementById(OLD_BUTTON_ID);
-    const existing = document.getElementById(BUTTON_ID);
-    if (existing) {
-      if (oldButton) oldButton.remove();
-      return;
-    }
+    document.querySelectorAll('#' + OLD_BUTTON_ID).forEach((button) => button.remove());
+
+    const existingButtons = [...document.querySelectorAll('#' + BUTTON_ID)];
+    existingButtons.slice(1).forEach((button) => button.remove());
+    if (existingButtons[0]) return;
+
     const printButton = document.getElementById('printDutyPlan');
     const clearButton = document.getElementById('clearDuties');
     const group = printButton?.closest('.toolbar-group') || clearButton?.closest('.toolbar-group');
     if (!group) return;
-    if (oldButton) oldButton.remove();
+
     const button = document.createElement('button');
     button.type = 'button';
     button.id = BUTTON_ID;
     button.className = 'btn-secondary';
     button.textContent = '🌴 Jahresurlaub';
-    if (printButton) group.insertBefore(button, printButton); else group.appendChild(button);
+    if (printButton) group.insertBefore(button, printButton);
+    else group.appendChild(button);
   }
 
   function activeProfile() {
@@ -103,13 +122,13 @@
   }
 
   function persistVacationProfile(profile, vacations, entitlement) {
-    const clean = (Array.isArray(vacations) ? vacations : []).filter(v => v && v.start && v.end && v.end >= v.start);
+    const clean = (Array.isArray(vacations) ? vacations : []).filter((v) => v && v.start && v.end && v.end >= v.start);
     localStorage.setItem(VAC_PREFIX + profile, JSON.stringify({ vacations: clean, vacationEntitlement: entitlement, savedAt: new Date().toISOString() }));
 
     const main = readJson(STORE_MAIN) || {};
     const appSettings = { ...(main.appSettings || {}), activeProfile: profile };
-    const shownMonths = new Set([...(appSettings.shownMonths || []), '2026-04', '2026-05', '2026-06', '2026-07']);
-    clean.forEach(v => monthsCovered(v.start, v.end).forEach(m => shownMonths.add(m)));
+    const shownMonths = new Set([...(appSettings.shownMonths || []), ...BASE_MONTHS]);
+    clean.forEach((v) => monthsCovered(v.start, v.end).forEach((m) => shownMonths.add(m)));
     appSettings.shownMonths = [...shownMonths].sort();
     localStorage.setItem(STORE_MAIN, JSON.stringify({ ...main, appSettings }));
 
@@ -121,6 +140,7 @@
     const profile = activeProfile();
     const stored = readVacationProfile(profile);
     let vacations = Array.isArray(stored.vacations) ? stored.vacations.slice() : [];
+
     const win = window.open('', 'DienstPilotJahresurlaub', 'width=820,height=760,scrollbars=yes,resizable=yes');
     if (!win) {
       alert('Das Jahresurlaub-Fenster konnte nicht geöffnet werden. Bitte Pop-ups erlauben.');
@@ -133,12 +153,12 @@
     </style></head><body><div class="wrap"><div class="card"><h1>🌴 Jahresurlaub</h1><div class="muted">${escapeHtml(profileLabel(profile))} · Urlaub wird getrennt pro Kollege gespeichert.</div></div><div class="card"><div class="grid"><label>Bezeichnung<input id="vacLabel" value="Urlaub"></label><label>Anspruch Tage/Jahr<input id="vacEntitlement" type="number" min="0" max="99" value="${escapeHtml(stored.vacationEntitlement || 30)}"></label><label>Von<input id="vacStart" type="date"></label><label>Bis<input id="vacEnd" type="date"></label></div><div class="actions"><button class="primary" id="addVac">Urlaub hinzufügen</button><button class="primary" id="saveVac">💾 Jahresurlaub speichern</button><button class="secondary" id="closeVac">Fenster schließen</button><span class="status" id="status"></span></div></div><div class="card"><strong>Gespeicherte Urlaube</strong><div id="vacList"></div></div></div></body></html>`);
     win.document.close();
 
-    const $ = id => win.document.getElementById(id);
+    const $ = (id) => win.document.getElementById(id);
     const setStatus = (text, error = false) => { $('status').textContent = text; $('status').className = error ? 'status error' : 'status'; };
     const render = () => {
       const list = $('vacList');
-      list.innerHTML = vacations.length ? vacations.map((v, i) => `<div class="row"><div><strong>${escapeHtml(v.label || 'Urlaub')}</strong><br><span class="muted">${escapeHtml(v.start)} bis ${escapeHtml(v.end)}</span></div><button class="danger" data-del="${i}">Löschen</button></div>`).join('') : '<p class="muted">Noch kein Urlaub eingetragen.</p>';
-      list.querySelectorAll('[data-del]').forEach(button => button.addEventListener('click', () => { vacations.splice(Number(button.dataset.del), 1); render(); }));
+      list.innerHTML = vacations.length ? vacations.map((v, i) => `<div class="row"><div><strong>${escapeHtml(v.label || 'Urlaub')}</strong><br><span class="muted">${formatDateDE(v.start)} bis ${formatDateDE(v.end)}</span></div><button class="danger" data-del="${i}">Löschen</button></div>`).join('') : '<p class="muted">Noch kein Urlaub eingetragen.</p>';
+      list.querySelectorAll('[data-del]').forEach((button) => button.addEventListener('click', () => { vacations.splice(Number(button.dataset.del), 1); render(); }));
     };
     const addFromFields = () => {
       const start = $('vacStart').value;
@@ -178,13 +198,13 @@
     const profile = activeProfile();
     const vacations = readVacationProfile(profile).vacations;
 
-    container.querySelectorAll('.dp-vacation-fixed-badge, .dp-vacation-badge').forEach(el => el.remove());
-    container.querySelectorAll('details.day-group').forEach(day => day.classList.remove('vacation-fixed'));
+    container.querySelectorAll('details.day-group > summary .vacation-badge, .dp-vacation-fixed-badge, .dp-vacation-badge').forEach((el) => el.remove());
+    container.querySelectorAll('details.day-group').forEach((day) => day.classList.remove('vacation-fixed'));
 
     if (!vacations.length) return;
-    container.querySelectorAll('details.day-group[data-day]').forEach(day => {
+    container.querySelectorAll('details.day-group[data-day]').forEach((day) => {
       const iso = day.dataset.day;
-      const vacation = vacations.find(v => v && v.start && v.end && iso >= v.start && iso <= v.end);
+      const vacation = vacations.find((v) => v && v.start && v.end && iso >= v.start && iso <= v.end);
       if (!vacation) return;
       const summary = day.querySelector(':scope > summary');
       if (!summary) return;
@@ -213,14 +233,18 @@
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
+  function formatDateDE(iso) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso))) return String(iso || '');
+    const [y, m, d] = iso.split('-');
+    return `${d}.${m}.${y}`;
+  }
+
   function readJson(key) {
     try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch { return null; }
   }
 
   function profileLabel(profile) {
-    const found = [
-      ['yasar','Yasar'], ['bumhoffer','Bumhoffer'], ['entrup','Entrup'], ['schweppe','Schweppe'], ['janzen','Janzen'], ['alomar','Alomar'], ['al-sayek','Al Sayek'], ['szczepanik','Szczepanik'], ['seidensticker','Seidensticker'], ['kocdemir','Kocdemir'], ['wuellner','Wüllner'], ['wittwer','Wittwer'], ['biermann','Biermann'], ['gerding','Gerding'], ['runke','Runke'], ['lommel','Lommel'], ['malko','Malko'], ['murad','Murad'], ['kurta','Kurta'], ['wiemann','Wiemann']
-    ].find(([id]) => id === profile);
+    const found = KOLLEGEN.find(([id]) => id === profile);
     return found ? found[1] : profile;
   }
 
