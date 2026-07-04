@@ -9,22 +9,17 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="DienstPilot" />
   <title>DienstPilot · Lenk- und Ruhezeiten-Prüfer</title>
-  <link rel="icon" type="image/png" href="favicon.png?v=dienstpilot-1" />
-  <link rel="apple-touch-icon" href="icon-192.png?v=dienstpilot-1" />
-  <link rel="manifest" href="manifest.webmanifest?v=dienstpilot-1" />
-  <link rel="stylesheet" href="src/styles.css?v=dienstpilot-1" />
-  <link rel="stylesheet" href="src/stats.css?v=dienstpilot-1" />
+  <link rel="icon" type="image/png" href="favicon.png?v=dienstpilot-5" />
+  <link rel="apple-touch-icon" href="icon-192.png?v=dienstpilot-5" />
+  <link rel="manifest" href="manifest.webmanifest?v=dienstpilot-5" />
+  <link rel="stylesheet" href="src/styles.css?v=dienstpilot-5" />
+  <link rel="stylesheet" href="src/stats.css?v=dienstpilot-5" />
   <script>
-    // Service Worker registrieren (nur wenn http/https; nicht bei file://).
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=dienstpilot-1')
+        navigator.serviceWorker.register('sw.js?v=dienstpilot-5')
           .catch((err) => console.warn('SW-Registrierung fehlgeschlagen:', err));
       });
-      // Phase 5: wenn eine neue SW-Version aktiviert wurde, einmal automatisch
-      // neu laden — damit der Tab die frische app.js benutzt statt der alten
-      // gecachten. Verhindert das Daten-Verlust-Pattern, wo OLD app.js mit NEW
-      // SW noch einmal das localStorage mit Server-Stand ueberschreiben koennte.
       let swReloaded = false;
       navigator.serviceWorker.addEventListener('message', (e) => {
         if (e.data && e.data.type === 'sw-activated' && !swReloaded) {
@@ -35,332 +30,187 @@
     }
   </script>
 </head>
-<<body class="auth-locked">
+<body class="auth-locked">
 <div id="loginScreen" class="login-screen">
   <div class="login-box">
-    <img src="favicon.png?v=dienstpilot-1" alt="DienstPilot Logo" class="login-logo">
+    <img src="favicon.png?v=dienstpilot-5" alt="DienstPilot Logo" class="login-logo">
     <h1>DienstPilot</h1>
     <p>Bitte Passwort eingeben, um die App zu öffnen.</p>
-
     <input id="appPassword" type="password" placeholder="Passwort eingeben" autocomplete="current-password">
-
     <button id="loginButton" type="button">App öffnen</button>
-
-    <<div id="loginError" class="login-error"></div>
+    <div id="loginError" class="login-error"></div>
   </div>
 </div>
+
 <div class="app">
   <header class="hero">
-    <img class="hero-logo" src="favicon.png?v=dienstpilot-1" alt="DienstPilot — Schild mit Bus und Straße" />
-  
-      <div class="hero-text">
-        <h1 class="brand">DienstPilot</h1>
-        <div class="brand-subtitle empty" id="profileTitle">Kein Dienstplan geladen</div>
-        <div class="brand-tagline">Intelligent unterwegs, richtig geplant.</div>
+    <img class="hero-logo" src="favicon.png?v=dienstpilot-5" alt="DienstPilot — Schild mit Bus und Straße" />
+    <div class="hero-text">
+      <h1 class="brand">DienstPilot</h1>
+      <div class="brand-subtitle empty" id="profileTitle">Kein Dienstplan geladen</div>
+      <div class="brand-tagline">Intelligent unterwegs, richtig geplant.</div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="eingabe">Übersicht</button>
+    <button class="tab" data-tab="katalog">Dienstkatalog</button>
+    <button class="tab" data-tab="statistik">Statistik</button>
+    <button class="tab" data-tab="einstellungen">Einstellungen</button>
+    <button class="tab" data-tab="auswertung">Auswertung</button>
+    <button class="tab" data-tab="tests">Lenk- und Ruhezeiten</button>
+  </nav>
+
+  <main>
+    <section id="tab-eingabe">
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <label class="toolbar-pick" title="Monat hinzufügen">
+            <span>📅 Monat hinzufügen</span>
+            <input type="month" id="monthPicker" aria-label="Monat hinzufügen">
+          </label>
+        </div>
+        <div class="toolbar-group">
+          <button class="btn-secondary" id="loadRunke">↻ Runke laden</button>
+          <button class="btn-secondary" id="loadLady" hidden aria-hidden="true" tabindex="-1">↻ Lady laden</button>
+          <span id="syncStatus" class="sync-status" aria-live="polite"></span>
+        </div>
+        <div class="toolbar-group">
+          <button class="btn-secondary" id="clearDuties">🗑 Alle löschen</button>
+          <button class="btn-secondary" id="printDutyPlan">🖨 Dienstplan drucken</button>
+          <label class="toolbar-toggle"><input type="checkbox" id="toggleSundays"> Sonntage ausblenden</label>
+        </div>
       </div>
-    </header>
+      <div id="dutiesContainer"></div>
+    </section>
 
-    <nav class="tabs">
-      <button class="tab active" data-tab="eingabe">Übersicht</button>
-      <button class="tab" data-tab="katalog">Dienstkatalog</button>
-      <button class="tab" data-tab="statistik">Statistik</button>
-      <button class="tab" data-tab="einstellungen">Einstellungen</button>
-      <button class="tab" data-tab="auswertung">Auswertung</button>
-      <button class="tab" data-tab="tests">Lenk- und Ruhezeiten</button>
-    </nav>
-
-    <main>
-      <section id="tab-eingabe">
-        <div class="toolbar">
+    <section id="tab-katalog" class="hidden">
+      <div class="card">
+        <h2>Hinterlegter Dienstkatalog</h2>
+        <p class="muted">Bei Eingabe einer Dienstnummer werden Beginn und Ende automatisch übernommen. Freitag-Abweichungen werden anhand des Datums gesetzt. Eigene Dienste kannst du hier dauerhaft im Browser speichern.</p>
+        <div class="toolbar" style="margin-top:16px;">
           <div class="toolbar-group">
-            <label class="toolbar-pick" title="Monat hinzufügen">
-              <span>📅 Monat hinzufügen</span>
-              <input type="month" id="monthPicker" aria-label="Monat hinzufügen">
-            </label>
-          </div>
-          <div class="toolbar-group">
-            <button class="btn-secondary" id="loadRunke">↻ Runke laden</button>
-           <button class="btn-secondary" id="loadLady" hidden aria-hidden="true" tabindex="-1">↻ Lady laden</button>
-            <span id="syncStatus" class="sync-status" aria-live="polite"></span>
-          </div>
-          <div class="toolbar-group">
-            <button class="btn-secondary" id="clearDuties">🗑 Alle löschen</button>
-            <button class="btn-secondary" id="printDutyPlan">🖨 Dienstplan drucken</button>
-            <label class="toolbar-toggle"><input type="checkbox" id="toggleSundays"> Sonntage ausblenden</label>
+            <button class="btn-primary" id="uploadDienstkarteCatalog">📷 Dienstkarte hochladen</button>
+            <input type="file" id="dienstkarteFilesCatalog" accept="image/jpeg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp,.heic" multiple style="display:none">
           </div>
         </div>
-        <div id="dutiesContainer"></div>
-      </section>
+        <div id="uploadStatusCatalog" class="upload-status hidden" role="status" aria-live="polite"></div>
+        <div id="catalogReviewStats" class="catalog-review-stats hidden"></div>
+        <div class="catalog-grid" id="catalogGrid"></div>
+      </div>
+    </section>
 
-      <section id="tab-katalog" class="hidden">
-        <div class="card">
-          <h2>Hinterlegter Dienstkatalog</h2>
-          <p class="muted">Bei Eingabe einer Dienstnummer werden Beginn und Ende automatisch übernommen. Freitag-Abweichungen werden anhand des Datums gesetzt. Eigene Dienste kannst du hier dauerhaft im Browser speichern.</p>
-
-          <div class="toolbar" style="margin-top:16px;">
-            <div class="toolbar-group">
-              <button class="btn-primary" id="uploadDienstkarteCatalog">📷 Dienstkarte hochladen</button>
-              <input type="file" id="dienstkarteFilesCatalog" accept="image/jpeg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp,.heic" multiple style="display:none">
-            </div>
+    <section id="tab-auswertung" class="hidden">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+          <div>
+            <h2>Prüfergebnis</h2>
+            <p class="muted">Die Prüfung basiert auf den eingetragenen Lenkblöcken und Pausen. Dienstbeginn und Dienstende allein reichen für eine vollständige rechtliche Prüfung nicht aus.</p>
           </div>
-          <div id="uploadStatusCatalog" class="upload-status hidden" role="status" aria-live="polite"></div>
-
-          <div id="catalogReviewStats" class="catalog-review-stats hidden"></div>
-          <div class="catalog-grid" id="catalogGrid"></div>
+          <span id="resultBadge"></span>
         </div>
-      </section>
-
-      <section id="tab-auswertung" class="hidden">
-        <div class="card">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
-            <div>
-              <h2>Prüfergebnis</h2>
-              <p class="muted">Die Prüfung basiert auf den eingetragenen Lenkblöcken und Pausen. Dienstbeginn und Dienstende allein reichen für eine vollständige rechtliche Prüfung nicht aus.</p>
-            </div>
-            <span id="resultBadge"></span>
-          </div>
-          <div id="messages"></div>
+        <div id="messages"></div>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <h2>Dienste im Überblick</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Datum</th><th>Dienst</th><th>Zeit</th><th>Dienstlänge</th><th>Lenkzeit</th><th>Pausen</th><th>Pausenregel</th><th>Dienstzeit-Pause</th><th>Fahrtunterbrechung</th>
+              </tr>
+            </thead>
+            <tbody id="overviewRows"></tbody>
+          </table>
         </div>
+      </div>
+    </section>
 
-        <div class="card" style="margin-top:16px;">
-          <h2>Dienste im Überblick</h2>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Datum</th><th>Dienst</th><th>Zeit</th><th>Dienstlänge</th><th>Lenkzeit</th><th>Pausen</th><th>Pausenregel</th><th>Dienstzeit-Pause</th><th>Fahrtunterbrechung</th>
-                </tr>
-              </thead>
-              <tbody id="overviewRows"></tbody>
-            </table>
-          </div>
+    <section id="tab-statistik" class="hidden">
+      <div class="stats-header card">
+        <div class="stats-header-text">
+          <div class="stats-eyebrow" id="statsEyebrow">Persönliche Kennzahlen</div>
+          <h2 id="statsProfileName">Statistik</h2>
+          <div class="muted" id="statsProfileRange">Kein Plan geladen</div>
         </div>
-      </section>
-
-      <section id="tab-statistik" class="hidden">
-        <div class="stats-header card">
-          <div class="stats-header-text">
-            <div class="stats-eyebrow" id="statsEyebrow">Persönliche Kennzahlen</div>
-            <h2 id="statsProfileName">Statistik</h2>
-            <div class="muted" id="statsProfileRange">Kein Plan geladen</div>
-          </div>
-          <div class="stats-status" id="overallPanel">
-            <small>Gesamtstatus</small>
-            <strong id="overallStatus">OK</strong>
-            <small id="overallDetail">0 Verstöße · 0 Hinweise</small>
-          </div>
+        <div class="stats-status" id="overallPanel">
+          <small>Gesamtstatus</small>
+          <strong id="overallStatus">OK</strong>
+          <small id="overallDetail">0 Verstöße · 0 Hinweise</small>
         </div>
-
-        <div id="statsEmpty" class="stats-empty hidden">
-          <div class="stats-empty-icon">📊</div>
-          <div class="stats-empty-title">Noch keine Daten</div>
-          <div class="stats-empty-text">Lade einen Dienstplan oder trage Dienste ein, dann erscheinen hier deine persönlichen Kennzahlen mit Diagrammen.</div>
+      </div>
+      <div id="statsEmpty" class="stats-empty hidden">
+        <div class="stats-empty-icon">📊</div>
+        <div class="stats-empty-title">Noch keine Daten</div>
+        <div class="stats-empty-text">Lade einen Dienstplan oder trage Dienste ein, dann erscheinen hier deine persönlichen Kennzahlen mit Diagrammen.</div>
+      </div>
+      <div id="statsContent">
+        <div class="stats-kpi-row">
+          <div class="kpi-card kpi-card-driving"><div class="kpi-icon">⏱</div><div class="kpi-label">Lenkzeit gesamt</div><div class="kpi-value" id="kpiDriving">0 h</div><div class="kpi-ring" id="kpiDrivingRing"></div><div class="kpi-foot" id="kpiDrivingFoot">—</div></div>
+          <div class="kpi-card kpi-card-shift"><div class="kpi-icon">🗓</div><div class="kpi-label">Dienstzeit gesamt</div><div class="kpi-value" id="kpiShift">0 h</div><div class="kpi-foot" id="kpiShiftFoot">—</div></div>
+          <div class="kpi-card kpi-card-duties"><div class="kpi-icon">📋</div><div class="kpi-label">Arbeitstage</div><div class="kpi-value" id="kpiDuties">0</div><div class="kpi-foot" id="kpiDutiesFoot">—</div></div>
+          <div class="kpi-card kpi-card-avg"><div class="kpi-icon">📏</div><div class="kpi-label">Ø Dienstlänge</div><div class="kpi-value" id="kpiAvg">0 h</div><div class="kpi-foot" id="kpiAvgFoot">—</div></div>
         </div>
+        <div class="stats-grid">
+          <div class="card stat-card"><h3 class="stat-title">Arbeitstage vs. freie Tage</h3><div id="statDonutWorkFree" class="stat-body"></div></div>
+          <div class="card stat-card"><h3 class="stat-title">Pausen-Anteil</h3><div id="statPauseGauge" class="stat-body"></div></div>
+          <div class="card stat-card"><h3 class="stat-title">Frühester &amp; spätester Dienst</h3><div id="statClocks" class="stat-body"></div></div>
+          <div class="card stat-card"><h3 class="stat-title">Wann startest du?</h3><div id="statShiftType" class="stat-body"></div></div>
+          <div class="card stat-card"><h3 class="stat-title">Längste Arbeitssträhne</h3><div id="statStreak" class="stat-body"></div></div>
+          <div class="card stat-card"><h3 class="stat-title">Verteilung nach Wochentag</h3><div id="statWeekdays" class="stat-body"></div></div>
+        </div>
+        <div class="card stat-card-wide"><h3 class="stat-title">Lenkzeit pro Kalenderwoche</h3><div id="statWeeklyDriving" class="stat-body"></div></div>
+        <div class="card stat-card-wide"><h3 class="stat-title">Top 5 häufigste Dienste</h3><div id="statTopDuties" class="stat-body"></div></div>
+      </div>
+    </section>
 
-        <div id="statsContent">
-          <div class="stats-kpi-row">
-            <div class="kpi-card kpi-card-driving">
-              <div class="kpi-icon">⏱</div>
-              <div class="kpi-label">Lenkzeit gesamt</div>
-              <div class="kpi-value" id="kpiDriving">0 h</div>
-              <div class="kpi-ring" id="kpiDrivingRing"></div>
-              <div class="kpi-foot" id="kpiDrivingFoot">—</div>
-            </div>
-            <div class="kpi-card kpi-card-shift">
-              <div class="kpi-icon">🗓</div>
-              <div class="kpi-label">Dienstzeit gesamt</div>
-              <div class="kpi-value" id="kpiShift">0 h</div>
-              <div class="kpi-foot" id="kpiShiftFoot">—</div>
-            </div>
-            <div class="kpi-card kpi-card-duties">
-              <div class="kpi-icon">📋</div>
-              <div class="kpi-label">Arbeitstage</div>
-              <div class="kpi-value" id="kpiDuties">0</div>
-              <div class="kpi-foot" id="kpiDutiesFoot">—</div>
-            </div>
-            <div class="kpi-card kpi-card-avg">
-              <div class="kpi-icon">📏</div>
-              <div class="kpi-label">Ø Dienstlänge</div>
-              <div class="kpi-value" id="kpiAvg">0 h</div>
-              <div class="kpi-foot" id="kpiAvgFoot">—</div>
-            </div>
+    <section id="tab-einstellungen" class="hidden">
+      <div class="card">
+        <h2>Bundesländer</h2>
+        <p class="muted">Wähle die Bundesländer, deren Ferien und/oder Feiertage in der Übersicht angezeigt werden sollen.</p>
+        <div class="bl-table-wrap">
+          <table class="bl-settings"><thead><tr><th class="bl-col-name">Bundesland</th><th class="bl-col-ferien">Ferien</th><th class="bl-col-feiertage">Feiertage</th></tr></thead><tbody id="blSettingsBody"></tbody></table>
+        </div>
+        <div class="bl-legend"><span class="bl-chip bl-chip-ferien">Ferien</span><span class="bl-chip bl-chip-feiertage">Feiertage</span><span class="bl-legend-text">Wenn ein Tag in nur einem deiner Bundesländer Ferien/Feiertag ist, erscheint das Kürzel in Klammern dahinter.</span></div>
+      </div>
+
+      <div class="card vacation-section">
+        <div class="vacation-header">
+          <h2>🌴 Jahresurlaub</h2>
+          <p class="muted">Trage Urlaubszeiträume ein. Urlaub wird getrennt pro geladenem Kollegen gespeichert.</p>
+        </div>
+        <div class="vacation-no-profile hidden" id="vacationNoProfile"><span class="vacation-no-profile-icon">📋</span><span>Lade zuerst einen Kollegen auf der Übersicht.</span></div>
+        <div class="vacation-content" id="vacationContent">
+          <div class="vacation-controls">
+            <div class="vacation-year-switch"><button type="button" class="vacation-year-btn" id="vacationYearPrev" aria-label="Vorheriges Jahr">‹</button><span class="vacation-year-current" id="vacationYearLabel">2026</span><button type="button" class="vacation-year-btn" id="vacationYearNext" aria-label="Nächstes Jahr">›</button></div>
+            <label class="vacation-entitlement"><span class="vacation-entitlement-label">Anspruch</span><input type="number" min="0" max="99" step="1" id="vacationEntitlement" value="30"><span class="vacation-entitlement-unit">Tage / Jahr</span></label>
           </div>
-
-          <div class="stats-grid">
-            <div class="card stat-card">
-              <h3 class="stat-title">Arbeitstage vs. freie Tage</h3>
-              <div id="statDonutWorkFree" class="stat-body"></div>
+          <div class="vacation-stats"><div class="vacation-stats-numbers"><strong id="vacationStatsTaken">0</strong><span class="vacation-stats-divider">/</span><span id="vacationStatsTotal">30</span><span class="vacation-stats-label">Urlaubstage geplant</span><span class="vacation-stats-remaining" id="vacationStatsRemaining">noch 30 übrig</span></div><div class="vacation-progress"><div class="vacation-progress-fill" id="vacationProgressFill" style="width: 0%;"></div></div></div>
+          <div class="vacation-yearstrip"><svg class="vacation-yearstrip-svg" id="vacationYearstrip" preserveAspectRatio="none" viewBox="0 0 365 32" aria-hidden="true"></svg><div class="vacation-yearstrip-labels" id="vacationYearstripLabels"></div></div>
+          <div class="vacation-list" id="vacationList"></div>
+          <div class="vacation-empty hidden" id="vacationEmpty"><div class="vacation-empty-icon">🌴</div><div class="vacation-empty-title">Noch kein Urlaub für <span id="vacationEmptyYear">dieses Jahr</span></div><div class="vacation-empty-text">Lege deinen ersten Urlaub mit dem Knopf unten an.</div></div>
+          <button type="button" class="vacation-add-btn" id="vacationAddBtn"><span class="vacation-add-plus">+</span><span>Urlaub hinzufügen</span></button>
+          <div class="vacation-form hidden" id="vacationForm">
+            <h3 id="vacationFormTitle">Neuer Urlaub</h3>
+            <div class="vacation-form-grid">
+              <label class="vacation-form-field vacation-form-field-wide"><span class="label">Bezeichnung</span><input type="text" id="vacationFormLabel" placeholder="z. B. Sommerurlaub" maxlength="40"></label>
+              <div class="vacation-form-field"><span class="label">Symbol</span><div class="vacation-emoji-picker" id="vacationEmojiPicker"><button type="button" class="vacation-emoji-btn" data-emoji="🌴">🌴</button><button type="button" class="vacation-emoji-btn" data-emoji="🎄">🎄</button><button type="button" class="vacation-emoji-btn" data-emoji="⛷">⛷</button><button type="button" class="vacation-emoji-btn" data-emoji="🏖">🏖</button><button type="button" class="vacation-emoji-btn" data-emoji="🏠">🏠</button><button type="button" class="vacation-emoji-btn" data-emoji="🛫">🛫</button></div></div>
+              <label class="vacation-form-field"><span class="label">Von</span><input type="date" id="vacationFormStart"></label>
+              <label class="vacation-form-field"><span class="label">Bis</span><input type="date" id="vacationFormEnd"></label>
             </div>
-
-            <div class="card stat-card">
-              <h3 class="stat-title">Pausen-Anteil</h3>
-              <div id="statPauseGauge" class="stat-body"></div>
-            </div>
-
-            <div class="card stat-card">
-              <h3 class="stat-title">Frühester &amp; spätester Dienst</h3>
-              <div id="statClocks" class="stat-body"></div>
-            </div>
-
-            <div class="card stat-card">
-              <h3 class="stat-title">Wann startest du?</h3>
-              <div id="statShiftType" class="stat-body"></div>
-            </div>
-
-            <div class="card stat-card">
-              <h3 class="stat-title">Längste Arbeitssträhne</h3>
-              <div id="statStreak" class="stat-body"></div>
-            </div>
-
-            <div class="card stat-card">
-              <h3 class="stat-title">Verteilung nach Wochentag</h3>
-              <div id="statWeekdays" class="stat-body"></div>
-            </div>
-          </div>
-
-          <div class="card stat-card-wide">
-            <h3 class="stat-title">Lenkzeit pro Kalenderwoche</h3>
-            <div id="statWeeklyDriving" class="stat-body"></div>
-          </div>
-
-          <div class="card stat-card-wide">
-            <h3 class="stat-title">Top 5 häufigste Dienste</h3>
-            <div id="statTopDuties" class="stat-body"></div>
+            <div class="vacation-form-feedback" id="vacationFormFeedback"></div>
+            <div class="vacation-form-actions"><button type="button" class="btn-secondary" id="vacationFormCancel">Abbrechen</button><button type="button" class="btn-primary" id="vacationFormSave">Speichern</button></div>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <section id="tab-einstellungen" class="hidden">
-        <div class="card">
-          <h2>Bundesländer</h2>
-          <p class="muted">Wähle die Bundesländer, deren Ferien und/oder Feiertage in der Übersicht angezeigt werden sollen. Praktisch wenn du in einem Bundesland wohnst und in einem anderen arbeitest — dann beide markieren.</p>
-          <div class="bl-table-wrap">
-            <table class="bl-settings">
-              <thead>
-                <tr>
-                  <th class="bl-col-name">Bundesland</th>
-                  <th class="bl-col-ferien">Ferien</th>
-                  <th class="bl-col-feiertage">Feiertage</th>
-                </tr>
-              </thead>
-              <tbody id="blSettingsBody"></tbody>
-            </table>
-          </div>
-          <div class="bl-legend">
-            <span class="bl-chip bl-chip-ferien">Ferien</span>
-            <span class="bl-chip bl-chip-feiertage">Feiertage</span>
-            <span class="bl-legend-text">Wenn ein Tag in nur einem deiner Bundesländer Ferien/Feiertag ist, erscheint das Kürzel in Klammern dahinter (z. B. „Fronleichnam (BY)").</span>
-          </div>
-        </div>
-
-        <div class="card vacation-section">
-          <div class="vacation-header">
-            <h2>🌴 Jahresurlaub</h2>
-            <p class="muted">Trage deine Urlaubszeiträume ein. Auf der Übersicht erscheinen die Tage als grüner Banner — Urlaub pro Profil getrennt (Runke / Lady).</p>
-          </div>
-
-          <div class="vacation-no-profile hidden" id="vacationNoProfile">
-            <span class="vacation-no-profile-icon">📋</span>
-            <span>Lade zuerst einen Plan (<strong>Runke</strong> oder <strong>Lady</strong>) auf der Übersicht, danach kannst du hier Urlaube anlegen.</span>
-          </div>
-
-          <div class="vacation-content" id="vacationContent">
-            <div class="vacation-controls">
-              <div class="vacation-year-switch">
-                <button type="button" class="vacation-year-btn" id="vacationYearPrev" aria-label="Vorheriges Jahr">‹</button>
-                <span class="vacation-year-current" id="vacationYearLabel">2026</span>
-                <button type="button" class="vacation-year-btn" id="vacationYearNext" aria-label="Nächstes Jahr">›</button>
-              </div>
-              <label class="vacation-entitlement">
-                <span class="vacation-entitlement-label">Anspruch</span>
-                <input type="number" min="0" max="99" step="1" id="vacationEntitlement" value="30">
-                <span class="vacation-entitlement-unit">Tage / Jahr</span>
-              </label>
-            </div>
-
-            <div class="vacation-stats">
-              <div class="vacation-stats-numbers">
-                <strong id="vacationStatsTaken">0</strong>
-                <span class="vacation-stats-divider">/</span>
-                <span id="vacationStatsTotal">30</span>
-                <span class="vacation-stats-label">Urlaubstage geplant</span>
-                <span class="vacation-stats-remaining" id="vacationStatsRemaining">noch 30 übrig</span>
-              </div>
-              <div class="vacation-progress">
-                <div class="vacation-progress-fill" id="vacationProgressFill" style="width: 0%;"></div>
-              </div>
-            </div>
-
-            <div class="vacation-yearstrip">
-              <svg class="vacation-yearstrip-svg" id="vacationYearstrip" preserveAspectRatio="none" viewBox="0 0 365 32" aria-hidden="true"></svg>
-              <div class="vacation-yearstrip-labels" id="vacationYearstripLabels"></div>
-            </div>
-
-            <div class="vacation-list" id="vacationList"></div>
-
-            <div class="vacation-empty hidden" id="vacationEmpty">
-              <div class="vacation-empty-icon">🌴</div>
-              <div class="vacation-empty-title">Noch kein Urlaub für <span id="vacationEmptyYear">dieses Jahr</span></div>
-              <div class="vacation-empty-text">Lege deinen ersten Urlaub mit dem Knopf unten an.</div>
-            </div>
-
-            <button type="button" class="vacation-add-btn" id="vacationAddBtn">
-              <span class="vacation-add-plus">+</span>
-              <span>Urlaub hinzufügen</span>
-            </button>
-
-            <div class="vacation-form hidden" id="vacationForm">
-              <h3 id="vacationFormTitle">Neuer Urlaub</h3>
-              <div class="vacation-form-grid">
-                <label class="vacation-form-field vacation-form-field-wide">
-                  <span class="label">Bezeichnung</span>
-                  <input type="text" id="vacationFormLabel" placeholder="z. B. Sommerurlaub" maxlength="40">
-                </label>
-                <div class="vacation-form-field">
-                  <span class="label">Symbol</span>
-                  <div class="vacation-emoji-picker" id="vacationEmojiPicker">
-                    <button type="button" class="vacation-emoji-btn" data-emoji="🌴">🌴</button>
-                    <button type="button" class="vacation-emoji-btn" data-emoji="🎄">🎄</button>
-                    <button type="button" class="vacation-emoji-btn" data-emoji="⛷">⛷</button>
-                    <button type="button" class="vacation-emoji-btn" data-emoji="🏖">🏖</button>
-                    <button type="button" class="vacation-emoji-btn" data-emoji="🏠">🏠</button>
-                    <button type="button" class="vacation-emoji-btn" data-emoji="🛫">🛫</button>
-                  </div>
-                </div>
-                <label class="vacation-form-field">
-                  <span class="label">Von</span>
-                  <input type="date" id="vacationFormStart">
-                </label>
-                <label class="vacation-form-field">
-                  <span class="label">Bis</span>
-                  <input type="date" id="vacationFormEnd">
-                </label>
-              </div>
-              <div class="vacation-form-feedback" id="vacationFormFeedback"></div>
-              <div class="vacation-form-actions">
-                <button type="button" class="btn-secondary" id="vacationFormCancel">Abbrechen</button>
-                <button type="button" class="btn-primary" id="vacationFormSave">Speichern</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="tab-tests" class="hidden">
-        <div class="card">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
-            <div>
-              <h2>Lenk- und Ruhezeiten</h2>
-            </div>
-            <span id="testsBadge"></span>
-          </div>
-          <div id="testsRows"></div>
-        </div>
-      </section>
-    </main>
+    <section id="tab-tests" class="hidden"><div class="card"><div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;"><div><h2>Lenk- und Ruhezeiten</h2></div><span id="testsBadge"></span></div><div id="testsRows"></div></div></section>
+  </main>
 </div>
-<script src="src/auth.js?v=dienstpilot-1"></script>
-<script src="src/app.js?v=dienstpilot-1"></script>
-<script src="src/print-duty-plan.js?v=dienstpilot-1"></script>
+<script src="src/auth.js?v=dienstpilot-5"></script>
+<script src="src/app.js?v=dienstpilot-5"></script>
+<script src="src/print-duty-plan.js?v=dienstpilot-5"></script>
+<script src="src/urlaub-ui-fix.js?v=dienstpilot-5"></script>
 </body>
 </html>
