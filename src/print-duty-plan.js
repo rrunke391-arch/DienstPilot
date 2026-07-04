@@ -73,9 +73,10 @@
       if (event.target.closest?.('#' + PRINT_BUTTON_ID)) { event.preventDefault(); printDutyPlan(); }
     }, true);
 
-    document.addEventListener('change', (event) => {
-      if (event.target && event.target.id === 'kollegeSelect') loadSelectedKollege(false);
-    }, true);
+    document.addEventListener('change', (event) => { if (event.target && event.target.id === 'kollegeSelect') loadSelectedKollege(false); }, true);
+    window.addEventListener('focus', enhanceMonthOverview);
+    window.addEventListener('storage', (event) => { if (event.key && event.key.startsWith('lrz-plan-')) enhanceMonthOverview(); });
+    window.addEventListener('dienstpilot-vacations-updated', enhanceMonthOverview);
 
     const observer = new MutationObserver(() => {
       window.clearTimeout(observer._timer);
@@ -106,10 +107,7 @@
 
   function neutralizeOldVacationWish() {
     const keys = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith('dienstpilot_urlaubswunsch_')) keys.push(k);
-    }
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('dienstpilot_urlaubswunsch_')) keys.push(k); }
     keys.forEach(k => localStorage.removeItem(k));
     document.getElementById('openUrlaubswunsch')?.remove();
     document.getElementById('urlaubswunschBackdrop')?.remove();
@@ -125,7 +123,7 @@
       .month-jump-nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0 16px;padding:10px;border:1px solid #e2e8f0;background:#f8fafc;border-radius:16px}.month-jump-nav-title{font-weight:900;color:#475569;margin-right:4px}.month-jump-nav button{padding:8px 12px;border-radius:999px;background:#fff;border:1px solid #cbd5e1;color:#0f172a;font-weight:900}
       .month-group{border-radius:22px;overflow:hidden}.month-group>summary{display:flex!important;align-items:center;gap:10px;flex-wrap:wrap}.month-group>summary .month-overview-pills{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}.month-pill{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:900;border:1px solid #e2e8f0;background:#f8fafc;color:#334155}.month-pill.work{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}.month-pill.vacation{background:#ecfdf5;border-color:#bbf7d0;color:#166534}.month-pill.free{background:#f8fafc;border-color:#cbd5e1;color:#475569}.month-pill.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}.month-pill.fail{background:#fef2f2;border-color:#fecaca;color:#991b1b}
       .week-group{margin:8px 0!important;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;background:#fff}.week-group>summary{padding:10px 12px!important;background:#f8fafc;font-size:14px!important;gap:8px!important}
-      .day-group{margin:6px 0!important;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;background:#fff}.day-group>summary{display:grid!important;grid-template-columns:minmax(42px,55px) minmax(86px,110px) minmax(130px,1fr) auto;align-items:center;gap:8px;padding:9px 12px!important;font-size:14px!important}.day-group>summary .summary-dow{font-weight:900;color:#475569}.day-group>summary .summary-date{font-weight:800}.day-group>summary .summary-duty{font-weight:900}.day-group.compact-vacation>summary{box-shadow:inset 4px 0 0 #16a34a;background:#f0fdf4}.day-group.compact-free>summary{box-shadow:inset 4px 0 0 #94a3b8;background:#f8fafc}.day-group.compact-problem>summary{box-shadow:inset 4px 0 0 #dc2626;background:#fef2f2}.day-group.compact-warning>summary{box-shadow:inset 4px 0 0 #f59e0b;background:#fffbeb}.day-group[open]>summary{border-bottom:1px solid #e2e8f0}
+      .day-group{margin:6px 0!important;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;background:#fff}.day-group>summary{display:grid!important;grid-template-columns:minmax(42px,55px) minmax(86px,110px) minmax(130px,1fr) auto;align-items:center;gap:8px;padding:9px 12px!important;font-size:14px!important}.day-group>summary .summary-dow{font-weight:900;color:#475569}.day-group>summary .summary-date{font-weight:800}.day-group>summary .summary-duty{font-weight:900}.day-group.compact-vacation>summary{box-shadow:inset 4px 0 0 #16a34a;background:#f0fdf4}.day-group.compact-free>summary{box-shadow:inset 4px 0 0 #94a3b8;background:#f8fafc}.day-group.compact-problem>summary{box-shadow:inset 4px 0 0 #dc2626;background:#fef2f2}.day-group.compact-warning>summary{box-shadow:inset 4px 0 0 #f59e0b;background:#fffbeb}.day-group[open]>summary{border-bottom:1px solid #e2e8f0}.dp-vacation-from-storage{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 8px;background:#dcfce7;color:#166534;font-weight:900;font-size:12px}
       .jahresurlaub-save-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}.jahresurlaub-save-status{font-size:13px;font-weight:800;color:#166534}.jahresurlaub-save-status.error{color:#991b1b}
       @media(max-width:720px){.day-group>summary{grid-template-columns:46px 1fr;}.day-group>summary .summary-duty,.day-group>summary .summary-status,.day-group>summary .badge{grid-column:1/-1}.month-group>summary .month-overview-pills{width:100%;margin-left:0}}
     `;
@@ -168,7 +166,10 @@
       const state = loadMainState() || {};
       const next = { ...current, duties: Array.isArray(state.duties) ? state.duties : (Array.isArray(current.duties) ? current.duties : []), vacations, vacationEntitlement: Number($('vacEntitlement').value) || 30, savedAt: new Date().toISOString(), templateVersion: current.templateVersion || TEMPLATE_VERSION };
       localStorage.setItem('lrz-plan-' + profile, JSON.stringify(next));
-      $('status').textContent = 'Gespeichert.';
+      localStorage.setItem('dienstpilot_vacation_refresh', String(Date.now()));
+      $('status').textContent = 'Gespeichert. Der Urlaub erscheint jetzt im Monat.';
+      enhanceMonthOverview();
+      window.dispatchEvent(new Event('dienstpilot-vacations-updated'));
     };
     $('addVac').addEventListener('click', () => {
       const start = $('vacStart').value;
@@ -197,8 +198,7 @@
     const status = document.createElement('span');
     status.id = 'jahresurlaubSaveStatus';
     status.className = 'jahresurlaub-save-status';
-    row.appendChild(btn);
-    row.appendChild(status);
+    row.appendChild(btn); row.appendChild(status);
     const addBtn = document.getElementById('vacationAddBtn');
     if (addBtn) addBtn.insertAdjacentElement('afterend', row); else section.appendChild(row);
   }
@@ -217,9 +217,39 @@
       const entitlement = entitlementInput && entitlementInput.value !== '' ? Number(entitlementInput.value) : named.vacationEntitlement;
       const nextNamed = { ...named, duties: Array.isArray(state.duties) ? state.duties : (Array.isArray(named.duties) ? named.duties : []), vacations: Array.isArray(named.vacations) ? named.vacations : [], vacationEntitlement: Number.isFinite(entitlement) ? entitlement : 30, hideSundays: !!(state.appSettings && state.appSettings.hideSundays), savedAt: new Date().toISOString(), templateVersion: named.templateVersion || TEMPLATE_VERSION };
       localStorage.setItem('lrz-plan-' + profile, JSON.stringify(nextNamed));
+      localStorage.setItem('dienstpilot_vacation_refresh', String(Date.now()));
       if (state.appSettings) { state.appSettings.activeProfile = profile; localStorage.setItem('lenkRuhezeitenRunke20260413', JSON.stringify(state)); }
       if (status) { status.textContent = 'Jahresurlaub gespeichert.'; status.classList.remove('error'); }
+      enhanceMonthOverview();
     }, 180);
+  }
+
+  function getStoredVacationsForActiveProfile() {
+    const profile = activeProfileFromLocal() || localStorage.getItem('dienstpilot_aktiver_kollege');
+    if (!profile) return [];
+    const named = loadNamedPlan(profile);
+    return Array.isArray(named?.vacations) ? named.vacations : [];
+  }
+
+  function addStoredVacationBadges(container) {
+    const vacations = getStoredVacationsForActiveProfile();
+    container.querySelectorAll('.dp-vacation-from-storage').forEach(el => el.remove());
+    if (!vacations.length) return;
+    container.querySelectorAll('details.day-group[data-day]').forEach(day => {
+      const date = day.dataset.day;
+      const v = vacations.find(x => x && x.start && x.end && date >= x.start && date <= x.end);
+      if (!v) return;
+      const summary = day.querySelector(':scope > summary');
+      if (!summary) return;
+      if (!summary.querySelector('.vacation-badge')) {
+        const badge = document.createElement('span');
+        badge.className = 'vacation-badge dp-vacation-from-storage';
+        badge.textContent = (v.emoji || '🌴') + ' ' + (v.label || 'Urlaub');
+        const duty = summary.querySelector('.summary-duty');
+        if (duty) summary.insertBefore(badge, duty); else summary.appendChild(badge);
+      }
+      day.classList.add('compact-vacation');
+    });
   }
 
   function enhanceMonthOverview() {
@@ -227,6 +257,7 @@
     if (!container) return;
     const months = [...container.querySelectorAll('details.month-group[data-month]')];
     if (!months.length) return;
+    addStoredVacationBadges(container);
     ensureMonthJumpNav(container, months);
     months.forEach(month => {
       enhanceOneMonth(month);
