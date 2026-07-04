@@ -9,15 +9,15 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="DienstPilot" />
   <title>DienstPilot · Lenk- und Ruhezeiten-Prüfer</title>
-  <link rel="icon" type="image/png" href="favicon.png?v=dienstpilot-7" />
-  <link rel="apple-touch-icon" href="icon-192.png?v=dienstpilot-7" />
-  <link rel="manifest" href="manifest.webmanifest?v=dienstpilot-7" />
-  <link rel="stylesheet" href="src/styles.css?v=dienstpilot-7" />
-  <link rel="stylesheet" href="src/stats.css?v=dienstpilot-7" />
+  <link rel="icon" type="image/png" href="favicon.png?v=dienstpilot-8" />
+  <link rel="apple-touch-icon" href="icon-192.png?v=dienstpilot-8" />
+  <link rel="manifest" href="manifest.webmanifest?v=dienstpilot-8" />
+  <link rel="stylesheet" href="src/styles.css?v=dienstpilot-8" />
+  <link rel="stylesheet" href="src/stats.css?v=dienstpilot-8" />
   <script>
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js?v=dienstpilot-7')
+        navigator.serviceWorker.register('sw.js?v=dienstpilot-8')
           .catch((err) => console.warn('SW-Registrierung fehlgeschlagen:', err));
       });
       let swReloaded = false;
@@ -33,7 +33,7 @@
 <body class="auth-locked">
 <div id="loginScreen" class="login-screen">
   <div class="login-box">
-    <img src="favicon.png?v=dienstpilot-7" alt="DienstPilot Logo" class="login-logo">
+    <img src="favicon.png?v=dienstpilot-8" alt="DienstPilot Logo" class="login-logo">
     <h1>DienstPilot</h1>
     <p>Bitte Passwort eingeben, um die App zu öffnen.</p>
     <input id="appPassword" type="password" placeholder="Passwort eingeben" autocomplete="current-password">
@@ -44,7 +44,7 @@
 
 <div class="app">
   <header class="hero">
-    <img class="hero-logo" src="favicon.png?v=dienstpilot-7" alt="DienstPilot — Schild mit Bus und Straße" />
+    <img class="hero-logo" src="favicon.png?v=dienstpilot-8" alt="DienstPilot — Schild mit Bus und Straße" />
     <div class="hero-text">
       <h1 class="brand">DienstPilot</h1>
       <div class="brand-subtitle empty" id="profileTitle">Kein Dienstplan geladen</div>
@@ -208,9 +208,9 @@
     <section id="tab-tests" class="hidden"><div class="card"><div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;"><div><h2>Lenk- und Ruhezeiten</h2></div><span id="testsBadge"></span></div><div id="testsRows"></div></div></section>
   </main>
 </div>
-<script src="src/auth.js?v=dienstpilot-7"></script>
-<script src="src/app.js?v=dienstpilot-7"></script>
-<script src="src/print-duty-plan.js?v=dienstpilot-7"></script>
-<script src="src/urlaub-ui-fix.js?v=dienstpilot-7"></script>
+<script src="src/auth.js?v=dienstpilot-8"></script>
+<script src="src/app.js?v=dienstpilot-8"></script>
+<script src="src/print-duty-plan.js?v=dienstpilot-8"></script>
+<script src="src/urlaub-ui-fix.js?v=dienstpilot-8"></script>
 </body>
 </html>
