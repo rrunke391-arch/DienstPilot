@@ -147,13 +147,41 @@
   }
 
   function openJahresurlaub() {
-    const settingsTab = document.querySelector('.tab[data-tab="einstellungen"]');
-    if (settingsTab) settingsTab.click();
-    ensureVacationSaveButton();
-    setTimeout(() => {
-      const section = document.querySelector('.vacation-section') || document.getElementById('vacationContent');
-      if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 80);
+    const profile = activeProfileFromLocal() || localStorage.getItem('dienstpilot_aktiver_kollege');
+    if (!profile) { alert('Bitte zuerst einen Kollegen laden.'); return; }
+    const popup = window.open('', 'DienstPilotJahresurlaub', 'width=820,height=760,scrollbars=yes,resizable=yes');
+    if (!popup) { alert('Das Jahresurlaub-Fenster konnte nicht geöffnet werden. Bitte Pop-ups erlauben.'); return; }
+    const named = loadNamedPlan(profile) || {};
+    let vacations = Array.isArray(named.vacations) ? named.vacations.slice() : [];
+    const colleague = kollegeName(profile);
+    popup.document.open();
+    popup.document.write('<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Jahresurlaub</title><style>body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f8fafc;color:#0f172a}.wrap{max-width:760px;margin:0 auto;padding:20px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 10px 30px rgba(15,23,42,.08)}h1{margin:0 0 4px;font-size:24px}.muted{color:#64748b;font-weight:700}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:flex;flex-direction:column;font-weight:800;font-size:13px;gap:5px}input{padding:10px;border:1px solid #cbd5e1;border-radius:12px;font-size:15px}button{border:0;border-radius:12px;padding:10px 14px;font-weight:900;cursor:pointer}.primary{background:#2563eb;color:white}.secondary{background:#e2e8f0;color:#0f172a}.danger{background:#fee2e2;color:#991b1b}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #e2e8f0;border-radius:14px;padding:10px;margin:8px 0;background:#fff}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.status{font-weight:900;color:#166534;margin-left:8px}@media(max-width:640px){.grid{grid-template-columns:1fr}}</style></head><body><div class="wrap"><div class="card"><h1>🌴 Jahresurlaub</h1><div class="muted">' + escapeHtml(colleague) + ' · Urlaub wird getrennt pro Kollege gespeichert.</div></div><div class="card"><div class="grid"><label>Bezeichnung<input id="vacLabel" value="Urlaub"></label><label>Anspruch Tage/Jahr<input id="vacEntitlement" type="number" min="0" max="99" value="' + escapeHtml(named.vacationEntitlement || 30) + '"></label><label>Von<input id="vacStart" type="date"></label><label>Bis<input id="vacEnd" type="date"></label></div><div class="actions"><button class="primary" id="addVac">Urlaub hinzufügen</button><button class="primary" id="saveVac">💾 Jahresurlaub speichern</button><button class="secondary" id="closeVac">Fenster schließen</button><span class="status" id="status"></span></div></div><div class="card"><strong>Gespeicherte Urlaube</strong><div id="vacList"></div></div></div></body></html>');
+    popup.document.close();
+    const $ = id => popup.document.getElementById(id);
+    const render = () => {
+      const list = $('vacList');
+      list.innerHTML = vacations.length ? vacations.map((v, i) => '<div class="row"><div><strong>' + escapeHtml(v.label || 'Urlaub') + '</strong><br><span class="muted">' + escapeHtml(v.start || '') + ' bis ' + escapeHtml(v.end || '') + '</span></div><button class="danger" data-del="' + i + '">Löschen</button></div>').join('') : '<p class="muted">Noch kein Urlaub eingetragen.</p>';
+      list.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => { vacations.splice(Number(btn.dataset.del), 1); render(); }));
+    };
+    const save = () => {
+      const current = loadNamedPlan(profile) || {};
+      const state = loadMainState() || {};
+      const next = { ...current, duties: Array.isArray(state.duties) ? state.duties : (Array.isArray(current.duties) ? current.duties : []), vacations, vacationEntitlement: Number($('vacEntitlement').value) || 30, savedAt: new Date().toISOString(), templateVersion: current.templateVersion || TEMPLATE_VERSION };
+      localStorage.setItem('lrz-plan-' + profile, JSON.stringify(next));
+      $('status').textContent = 'Gespeichert.';
+    };
+    $('addVac').addEventListener('click', () => {
+      const start = $('vacStart').value;
+      const end = $('vacEnd').value || start;
+      if (!start) { $('status').textContent = 'Bitte Startdatum eintragen.'; return; }
+      vacations.push({ id: 'vac-' + Date.now(), label: $('vacLabel').value || 'Urlaub', emoji: '🌴', start, end });
+      $('vacStart').value = ''; $('vacEnd').value = ''; $('status').textContent = '';
+      render();
+    });
+    $('saveVac').addEventListener('click', save);
+    $('closeVac').addEventListener('click', () => popup.close());
+    render();
+    popup.focus();
   }
 
   function ensureVacationSaveButton() {
@@ -178,34 +206,18 @@
   function saveJahresurlaubNow() {
     const form = document.getElementById('vacationForm');
     const formSave = document.getElementById('vacationFormSave');
-    if (form && !form.classList.contains('hidden') && formSave) {
-      formSave.click();
-    }
+    if (form && !form.classList.contains('hidden') && formSave) { formSave.click(); }
     setTimeout(() => {
       const status = document.getElementById('jahresurlaubSaveStatus');
       const profile = activeProfileFromLocal() || localStorage.getItem('dienstpilot_aktiver_kollege');
-      if (!profile) {
-        if (status) { status.textContent = 'Bitte zuerst einen Kollegen laden.'; status.classList.add('error'); }
-        return;
-      }
+      if (!profile) { if (status) { status.textContent = 'Bitte zuerst einen Kollegen laden.'; status.classList.add('error'); } return; }
       const state = loadMainState() || {};
       const named = loadNamedPlan(profile) || {};
       const entitlementInput = document.getElementById('vacationEntitlement');
       const entitlement = entitlementInput && entitlementInput.value !== '' ? Number(entitlementInput.value) : named.vacationEntitlement;
-      const nextNamed = {
-        ...named,
-        duties: Array.isArray(state.duties) ? state.duties : (Array.isArray(named.duties) ? named.duties : []),
-        vacations: Array.isArray(named.vacations) ? named.vacations : [],
-        vacationEntitlement: Number.isFinite(entitlement) ? entitlement : 30,
-        hideSundays: !!(state.appSettings && state.appSettings.hideSundays),
-        savedAt: new Date().toISOString(),
-        templateVersion: named.templateVersion || TEMPLATE_VERSION
-      };
+      const nextNamed = { ...named, duties: Array.isArray(state.duties) ? state.duties : (Array.isArray(named.duties) ? named.duties : []), vacations: Array.isArray(named.vacations) ? named.vacations : [], vacationEntitlement: Number.isFinite(entitlement) ? entitlement : 30, hideSundays: !!(state.appSettings && state.appSettings.hideSundays), savedAt: new Date().toISOString(), templateVersion: named.templateVersion || TEMPLATE_VERSION };
       localStorage.setItem('lrz-plan-' + profile, JSON.stringify(nextNamed));
-      if (state.appSettings) {
-        state.appSettings.activeProfile = profile;
-        localStorage.setItem('lenkRuhezeitenRunke20260413', JSON.stringify(state));
-      }
+      if (state.appSettings) { state.appSettings.activeProfile = profile; localStorage.setItem('lenkRuhezeitenRunke20260413', JSON.stringify(state)); }
       if (status) { status.textContent = 'Jahresurlaub gespeichert.'; status.classList.remove('error'); }
     }, 180);
   }
@@ -255,13 +267,7 @@
     });
     const pills = document.createElement('span');
     pills.className = 'month-overview-pills';
-    pills.innerHTML = [
-      `<span class="month-pill work">${work} Arbeit</span>`,
-      vacation ? `<span class="month-pill vacation">${vacation} Urlaub</span>` : '',
-      free ? `<span class="month-pill free">${free} frei</span>` : '',
-      fail ? `<span class="month-pill fail">${fail} Fehler</span>` : '',
-      warn ? `<span class="month-pill warn">${warn} Hinweise</span>` : ''
-    ].filter(Boolean).join('');
+    pills.innerHTML = [`<span class="month-pill work">${work} Arbeit</span>`, vacation ? `<span class="month-pill vacation">${vacation} Urlaub</span>` : '', free ? `<span class="month-pill free">${free} frei</span>` : '', fail ? `<span class="month-pill fail">${fail} Fehler</span>` : '', warn ? `<span class="month-pill warn">${warn} Hinweise</span>` : ''].filter(Boolean).join('');
     summary.appendChild(pills);
   }
 
