@@ -19,24 +19,28 @@
   ready(() => {
     installStyles();
     removeLenkUndRuhezeiten();
+    hideSettingsVacationSection();
     removeCatalogProblems();
     replaceOldVacationButton();
     normalizeVacationBadges();
 
     document.addEventListener('click', handleClick, true);
-    window.addEventListener('focus', () => { removeCatalogProblems(); normalizeVacationBadges(); });
-    window.addEventListener('storage', () => { removeCatalogProblems(); normalizeVacationBadges(); });
+    window.addEventListener('focus', refreshUi);
+    window.addEventListener('storage', refreshUi);
 
     new MutationObserver(() => {
       clearTimeout(window.__dienstpilotVacationFixTimer);
-      window.__dienstpilotVacationFixTimer = setTimeout(() => {
-        removeLenkUndRuhezeiten();
-        removeCatalogProblems();
-        replaceOldVacationButton();
-        normalizeVacationBadges();
-      }, 120);
+      window.__dienstpilotVacationFixTimer = setTimeout(refreshUi, 120);
     }).observe(document.body, { childList: true, subtree: true });
   });
+
+  function refreshUi() {
+    removeLenkUndRuhezeiten();
+    hideSettingsVacationSection();
+    removeCatalogProblems();
+    replaceOldVacationButton();
+    normalizeVacationBadges();
+  }
 
   function ready(fn) {
     document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', fn, { once: true }) : fn();
@@ -47,7 +51,11 @@
     const style = document.createElement('style');
     style.id = 'dienstpilotVacationFixStyles';
     style.textContent = `
-      .tab[data-tab="tests"], #tab-tests { display: none !important; }
+      .tab[data-tab="tests"],
+      #tab-tests,
+      #tab-einstellungen .vacation-section {
+        display: none !important;
+      }
       #catalogReviewStats .crs-errors,
       #catalogReviewStats .crs-open,
       .catalog-card .badge.problem,
@@ -94,6 +102,14 @@
 
   function removeLenkUndRuhezeiten() {
     document.querySelectorAll('.tab[data-tab="tests"], #tab-tests').forEach((el) => el.remove());
+  }
+
+  function hideSettingsVacationSection() {
+    document.querySelectorAll('#tab-einstellungen .vacation-section').forEach((el) => {
+      el.hidden = true;
+      el.style.display = 'none';
+      el.setAttribute('aria-hidden', 'true');
+    });
   }
 
   function removeCatalogProblems() {
