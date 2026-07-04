@@ -47,269 +47,60 @@
     style.id = 'dienstpilotVacationFixStyles';
     style.textContent = `
       .tab[data-tab="tests"], #tab-tests, #tab-einstellungen .vacation-section { display: none !important; }
-      #openJahresurlaubFix {
-        min-height: 48px !important;
-        padding: 12px 18px !important;
-        font-size: 15px !important;
-        font-weight: 900 !important;
-        border-radius: 14px !important;
-        white-space: nowrap !important;
-      }
       #catalogReviewStats .crs-errors, #catalogReviewStats .crs-open,
       .catalog-card .badge.problem, .catalog-card-review, .cat-review-note, .cat-review-note-edit,
       .catalog-card.cat-has-problem::before, .catalog-card.cat-review-errors::before { display: none !important; }
-      .catalog-card.cat-has-problem, .catalog-card.cat-review-errors {
-        border-color: #e2e8f0 !important;
-        box-shadow: none !important;
-        background: #ffffff !important;
-      }
-      details.day-group.vacation-fixed > summary {
-        background: #dcfce7 !important;
-        box-shadow: inset 6px 0 0 #16a34a !important;
-        border-color: #86efac !important;
-      }
-      .dp-vacation-fixed-badge {
-        display: inline-flex !important;
-        align-items: center;
-        justify-content: center;
-        justify-self: end;
-        grid-column: 4;
-        gap: 5px;
-        border-radius: 999px;
-        padding: 4px 11px;
-        background: #bbf7d0;
-        border: 1px solid #86efac;
-        color: #166534;
-        font-weight: 900;
-        font-size: 12px;
-        white-space: nowrap;
-      }
-      .dp-vacation-modal {
-        position: fixed;
-        inset: 0;
-        z-index: 999999;
-        background: #f8fafc;
-        color: #0f172a;
-        overflow: auto;
-        -webkit-overflow-scrolling: touch;
-      }
-      .dp-vacation-shell {
-        width: min(760px, 100%);
-        margin: 0 auto;
-        padding: 16px;
-      }
-      .dp-vac-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 18px;
-        padding: 16px;
-        margin: 12px 0;
-        box-shadow: 0 10px 30px rgba(15,23,42,.08);
-      }
-      .dp-vac-title-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 12px;
-      }
-      .dp-vac-title-row h1 { margin: 0 0 4px; font-size: 26px; line-height: 1.1; }
-      .dp-vac-muted { color: #64748b; font-weight: 700; }
-      .dp-vac-close-x {
-        border: 0;
-        border-radius: 999px;
-        background: #e2e8f0;
-        color: #0f172a;
-        min-width: 44px;
-        min-height: 44px;
-        font-size: 22px;
-        font-weight: 900;
-      }
-      .dp-vac-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-      .dp-vac-field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 900; }
-      .dp-vac-field input {
-        width: 100%;
-        border: 1px solid #cbd5e1;
-        border-radius: 14px;
-        padding: 13px 12px;
-        font-size: 16px;
-        background: #fff;
-        color: #0f172a;
-      }
-      .dp-vac-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
-      .dp-vac-actions button, .dp-vac-row button {
-        border: 0;
-        border-radius: 14px;
-        padding: 12px 15px;
-        font-size: 15px;
-        font-weight: 900;
-      }
-      .dp-vac-primary { background: #2563eb; color: #fff; }
-      .dp-vac-secondary { background: #e2e8f0; color: #0f172a; }
-      .dp-vac-danger { background: #fee2e2; color: #991b1b; }
-      .dp-vac-status { font-weight: 900; color: #166534; }
-      .dp-vac-status.error { color: #991b1b; }
-      .dp-vac-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        padding: 12px;
-        margin: 8px 0;
-        background: #fff;
-      }
-      body.dp-vacation-open { overflow: hidden !important; }
-      @media (max-width: 720px) {
-        #openJahresurlaubFix, button#openJahresurlaubFix.btn-secondary {
-          width: 100% !important;
-          min-width: 100% !important;
-          min-height: 64px !important;
-          padding: 18px 20px !important;
-          font-size: 19px !important;
-          line-height: 1.2 !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          box-sizing: border-box !important;
-          margin: 8px 0 !important;
-          flex: 1 0 100% !important;
-        }
-        .dp-vacation-shell { width: 100%; max-width: none; padding: 10px; }
-        .dp-vac-card { border-radius: 16px; padding: 14px; margin: 10px 0; }
-        .dp-vac-title-row h1 { font-size: 24px; }
-        .dp-vac-grid { grid-template-columns: 1fr; }
-        .dp-vac-actions { display: grid; grid-template-columns: 1fr; }
-        .dp-vac-actions button { width: 100%; min-height: 56px; font-size: 16px; }
-        .dp-vac-row { align-items: flex-start; }
-        .dp-vac-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-modal { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
-        .dp-vacation-fixed-badge, .dp-vacation-badge, .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge, .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge, .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge, .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge, .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
-        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column: 1 / -1; justify-self: start; }
+      .catalog-card.cat-has-problem, .catalog-card.cat-review-errors { border-color:#e2e8f0 !important; box-shadow:none !important; background:#fff !important; }
+      #openJahresurlaubFix { min-height:48px !important; padding:12px 18px !important; font-size:15px !important; font-weight:900 !important; border-radius:14px !important; white-space:nowrap !important; }
+      details.day-group.vacation-fixed > summary { background:#dcfce7 !important; box-shadow:inset 6px 0 0 #16a34a !important; border-color:#86efac !important; }
+      .dp-vacation-fixed-badge { display:inline-flex !important; align-items:center; justify-content:center; justify-self:end; grid-column:4; gap:5px; border-radius:999px; padding:4px 11px; background:#bbf7d0; border:1px solid #86efac; color:#166534; font-weight:900; font-size:12px; white-space:nowrap; }
+      .dp-vacation-modal { position:fixed; inset:0; z-index:999999; background:#f8fafc; color:#0f172a; overflow:auto; -webkit-overflow-scrolling:touch; }
+      .dp-vacation-shell { width:min(760px, 100%); margin:0 auto; padding:16px; }
+      .dp-vac-card { background:#fff; border:1px solid #e2e8f0; border-radius:18px; padding:16px; margin:12px 0; box-shadow:0 10px 30px rgba(15,23,42,.08); }
+      .dp-vac-title-row { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+      .dp-vac-title-row h1 { margin:0 0 4px; font-size:26px; line-height:1.1; }
+      .dp-vac-muted { color:#64748b; font-weight:700; }
+      .dp-vac-close-x { border:0; border-radius:999px; background:#e2e8f0; color:#0f172a; min-width:44px; min-height:44px; font-size:24px; font-weight:900; }
+      .dp-vac-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+      .dp-vac-field { display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:900; }
+      .dp-vac-field input { width:100%; border:1px solid #cbd5e1; border-radius:14px; padding:13px 12px; font-size:16px; background:#fff; color:#0f172a; }
+      .dp-vac-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; align-items:center; }
+      .dp-vac-actions button, .dp-vac-row button { border:0; border-radius:14px; padding:12px 15px; font-size:15px; font-weight:900; }
+      .dp-vac-primary { background:#2563eb; color:#fff; }
+      .dp-vac-secondary { background:#e2e8f0; color:#0f172a; }
+      .dp-vac-danger { background:#fee2e2; color:#991b1b; }
+      .dp-vac-status { font-weight:900; color:#166534; }
+      .dp-vac-status.error { color:#991b1b; }
+      .dp-vac-row { display:flex; justify-content:space-between; align-items:center; gap:10px; border:1px solid #e2e8f0; border-radius:14px; padding:12px; margin:8px 0; background:#fff; }
+      body.dp-vacation-open { overflow:hidden !important; }
+      @media (max-width:720px) {
+        #openJahresurlaubFix, button#openJahresurlaubFix.btn-secondary { width:100% !important; min-width:100% !important; min-height:64px !important; padding:18px 20px !important; font-size:19px !important; line-height:1.2 !important; display:flex !important; align-items:center !important; justify-content:center !important; box-sizing:border-box !important; margin:8px 0 !important; flex:1 0 100% !important; }
+        .dp-vacation-shell { width:100%; max-width:none; padding:10px; }
+        .dp-vac-card { border-radius:16px; padding:14px; margin:10px 0; }
+        .dp-vac-title-row h1 { font-size:24px; }
+        .dp-vac-grid { grid-template-columns:1fr; }
+        .dp-vac-actions { display:grid; grid-template-columns:1fr; }
+        .dp-vac-actions button { width:100%; min-height:56px; font-size:16px; }
+        .dp-vac-row { align-items:flex-start; }
+        .dp-vacation-modal { padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+        .dp-vacation-fixed-badge, .dp-vacation-badge { grid-column:1 / -1; justify-self:start; }
       }
     `;
     document.head.appendChild(style);
   }
 
-  function removeLenkUndRuhezeiten() { document.querySelectorAll('.tab[data-tab="tests"], #tab-tests').forEach((el) => el.remove()); }
-  function hideSettingsVacationSection() { document.querySelectorAll('#tab-einstellungen .vacation-section').forEach((el) => { el.hidden = true; el.style.display = 'none'; el.setAttribute('aria-hidden', 'true'); }); }
+  function removeLenkUndRuhezeiten() {
+    document.querySelectorAll('.tab[data-tab="tests"], #tab-tests').forEach((el) => el.remove());
+  }
+
+  function hideSettingsVacationSection() {
+    document.querySelectorAll('#tab-einstellungen .vacation-section').forEach((el) => {
+      el.hidden = true;
+      el.style.display = 'none';
+      el.setAttribute('aria-hidden', 'true');
+    });
+  }
+
   function removeCatalogProblems() {
     document.querySelectorAll('#catalogReviewStats .crs-errors, #catalogReviewStats .crs-open').forEach((el) => el.remove());
     document.querySelectorAll('.catalog-card .badge.problem, .catalog-card-review, .cat-review-note').forEach((el) => el.remove());
@@ -321,46 +112,59 @@
     if (!button) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    openVacationWindow();
+    openVacationModal();
   }
 
   function replaceOldVacationButton() {
     document.querySelectorAll('#' + OLD_BUTTON_ID).forEach((button) => button.remove());
-    const existingButtons = [...document.querySelectorAll('#' + BUTTON_ID)];
-    existingButtons.slice(1).forEach((button) => button.remove());
-    if (existingButtons[0]) return;
+    const buttons = [...document.querySelectorAll('#' + BUTTON_ID)];
+    buttons.slice(1).forEach((button) => button.remove());
+    if (buttons[0]) return;
+
     const printButton = document.getElementById('printDutyPlan');
     const clearButton = document.getElementById('clearDuties');
     const group = printButton?.closest('.toolbar-group') || clearButton?.closest('.toolbar-group');
     if (!group) return;
+
     const button = document.createElement('button');
     button.type = 'button';
     button.id = BUTTON_ID;
     button.className = 'btn-secondary';
     button.textContent = '🌴 Jahresurlaub';
-    if (printButton) group.insertBefore(button, printButton); else group.appendChild(button);
+    if (printButton) group.insertBefore(button, printButton);
+    else group.appendChild(button);
   }
 
-  function activeProfile() { const main = readJson(STORE_MAIN) || {}; return main.appSettings?.activeProfile || localStorage.getItem('dienstpilot_aktiver_kollege') || 'runke'; }
+  function activeProfile() {
+    const main = readJson(STORE_MAIN) || {};
+    return main.appSettings?.activeProfile || localStorage.getItem('dienstpilot_aktiver_kollege') || 'runke';
+  }
+
   function readVacationProfile(profile) {
     const stable = readJson(VAC_PREFIX + profile) || {};
     const named = readJson('lrz-plan-' + profile) || {};
-    return { vacations: Array.isArray(stable.vacations) ? stable.vacations : (Array.isArray(named.vacations) ? named.vacations : []), vacationEntitlement: Number.isFinite(stable.vacationEntitlement) ? stable.vacationEntitlement : (Number.isFinite(named.vacationEntitlement) ? named.vacationEntitlement : 30) };
+    return {
+      vacations: Array.isArray(stable.vacations) ? stable.vacations : (Array.isArray(named.vacations) ? named.vacations : []),
+      vacationEntitlement: Number.isFinite(stable.vacationEntitlement) ? stable.vacationEntitlement : (Number.isFinite(named.vacationEntitlement) ? named.vacationEntitlement : 30)
+    };
   }
+
   function persistVacationProfile(profile, vacations, entitlement) {
     const clean = (Array.isArray(vacations) ? vacations : []).filter((v) => v && v.start && v.end && v.end >= v.start);
     localStorage.setItem(VAC_PREFIX + profile, JSON.stringify({ vacations: clean, vacationEntitlement: entitlement, savedAt: new Date().toISOString() }));
+
     const main = readJson(STORE_MAIN) || {};
     const appSettings = { ...(main.appSettings || {}), activeProfile: profile };
     const shownMonths = new Set([...(appSettings.shownMonths || []), ...BASE_MONTHS]);
     clean.forEach((v) => monthsCovered(v.start, v.end).forEach((m) => shownMonths.add(m)));
     appSettings.shownMonths = [...shownMonths].sort();
     localStorage.setItem(STORE_MAIN, JSON.stringify({ ...main, appSettings }));
+
     const named = readJson('lrz-plan-' + profile) || {};
     localStorage.setItem('lrz-plan-' + profile, JSON.stringify({ ...named, vacations: clean, vacationEntitlement: entitlement, savedAt: new Date().toISOString() }));
   }
 
-  function openVacationWindow() {
+  function openVacationModal() {
     document.getElementById(MODAL_ID)?.remove();
     const profile = activeProfile();
     const stored = readVacationProfile(profile);
@@ -435,7 +239,6 @@
     $('dpVacSave').addEventListener('click', save);
     $('dpVacClose').addEventListener('click', close);
     $('dpVacCloseTop').addEventListener('click', close);
-    modal.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); });
     render();
     $('dpVacStart')?.focus();
   }
@@ -462,10 +265,39 @@
     });
   }
 
-  function monthsCovered(start, end) { const out = new Set(); let current = start; let guard = 0; while (/^\d{4}-\d{2}-\d{2}$/.test(current) && current <= end && guard++ < 400) { out.add(current.slice(0, 7)); current = addDays(current, 1); } return [...out]; }
-  function addDays(iso, days) { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + days); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
-  function formatDateDE(iso) { if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso))) return String(iso || ''); const [y, m, d] = iso.split('-'); return `${d}.${m}.${y}`; }
-  function readJson(key) { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch { return null; } }
-  function profileLabel(profile) { const found = KOLLEGEN.find(([id]) => id === profile); return found ? found[1] : profile; }
-  function escapeHtml(value) { return String(value ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;'); }
+  function monthsCovered(start, end) {
+    const out = new Set();
+    let current = start;
+    let guard = 0;
+    while (/^\d{4}-\d{2}-\d{2}$/.test(current) && current <= end && guard++ < 400) {
+      out.add(current.slice(0, 7));
+      current = addDays(current, 1);
+    }
+    return [...out];
+  }
+
+  function addDays(iso, days) {
+    const d = new Date(iso + 'T12:00:00');
+    d.setDate(d.getDate() + days);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function formatDateDE(iso) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso))) return String(iso || '');
+    const [y, m, d] = iso.split('-');
+    return `${d}.${m}.${y}`;
+  }
+
+  function readJson(key) {
+    try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch { return null; }
+  }
+
+  function profileLabel(profile) {
+    const found = KOLLEGEN.find(([id]) => id === profile);
+    return found ? found[1] : profile;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
+  }
 })();
