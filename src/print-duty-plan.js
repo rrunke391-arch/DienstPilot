@@ -57,24 +57,14 @@
     ensurePrintButton();
     ensureKollegenAuswahl();
     updateKollegenTitelOnly();
+    enhanceMonthOverview();
 
     document.addEventListener('click', (event) => {
-      if (event.target.closest?.('#loadKollege')) {
-        event.preventDefault();
-        event.stopPropagation();
-        loadSelectedKollege(false);
-        return;
-      }
-      if (event.target.closest?.('#reloadKollegeTemplate')) {
-        event.preventDefault();
-        event.stopPropagation();
-        loadSelectedKollege(true);
-        return;
-      }
-      if (event.target.closest?.('#' + PRINT_BUTTON_ID)) {
-        event.preventDefault();
-        printDutyPlan();
-      }
+      if (event.target.closest?.('#loadKollege')) { event.preventDefault(); event.stopPropagation(); loadSelectedKollege(false); return; }
+      if (event.target.closest?.('#reloadKollegeTemplate')) { event.preventDefault(); event.stopPropagation(); loadSelectedKollege(true); return; }
+      const jump = event.target.closest?.('[data-month-jump]');
+      if (jump) { event.preventDefault(); openAndScrollToMonth(jump.dataset.monthJump); return; }
+      if (event.target.closest?.('#' + PRINT_BUTTON_ID)) { event.preventDefault(); printDutyPlan(); }
     }, true);
 
     document.addEventListener('change', (event) => {
@@ -88,6 +78,7 @@
         ensurePrintButton();
         ensureKollegenAuswahl();
         updateKollegenTitelOnly();
+        enhanceMonthOverview();
       }, 120);
     });
     observer.observe(document.body, { childList: true, subtree: true });
@@ -121,8 +112,94 @@
     if (document.getElementById('dienstpilotKollegenStyles')) return;
     const style = document.createElement('style');
     style.id = 'dienstpilotKollegenStyles';
-    style.textContent = '.kollegen-panel{display:inline-flex;align-items:center;gap:8px;padding:4px;border-radius:14px}.kollegen-panel span{font-weight:800;font-size:14px}.kollegen-panel select{min-width:170px;padding:10px 12px;border-radius:14px;border:1px solid #cbd5e1;background:#fff;font-weight:800;color:#020617}.kollegen-hinweis{font-size:12px;color:#64748b;font-weight:700}';
+    style.textContent = `
+      .kollegen-panel{display:inline-flex;align-items:center;gap:8px;padding:4px;border-radius:14px}.kollegen-panel span{font-weight:800;font-size:14px}.kollegen-panel select{min-width:170px;padding:10px 12px;border-radius:14px;border:1px solid #cbd5e1;background:#fff;font-weight:800;color:#020617}.kollegen-hinweis{font-size:12px;color:#64748b;font-weight:700}
+      .month-jump-nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0 16px;padding:10px;border:1px solid #e2e8f0;background:#f8fafc;border-radius:16px}.month-jump-nav-title{font-weight:900;color:#475569;margin-right:4px}.month-jump-nav button{padding:8px 12px;border-radius:999px;background:#fff;border:1px solid #cbd5e1;color:#0f172a;font-weight:900}
+      .month-group{border-radius:22px;overflow:hidden}.month-group>summary{display:flex!important;align-items:center;gap:10px;flex-wrap:wrap}.month-group>summary .month-overview-pills{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}.month-pill{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:900;border:1px solid #e2e8f0;background:#f8fafc;color:#334155}.month-pill.work{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}.month-pill.vacation{background:#ecfdf5;border-color:#bbf7d0;color:#166534}.month-pill.free{background:#f8fafc;border-color:#cbd5e1;color:#475569}.month-pill.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}.month-pill.fail{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+      .week-group{margin:8px 0!important;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;background:#fff}.week-group>summary{padding:10px 12px!important;background:#f8fafc;font-size:14px!important;gap:8px!important}
+      .day-group{margin:6px 0!important;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;background:#fff}.day-group>summary{display:grid!important;grid-template-columns:minmax(42px,55px) minmax(86px,110px) minmax(130px,1fr) auto;align-items:center;gap:8px;padding:9px 12px!important;font-size:14px!important}.day-group>summary .summary-dow{font-weight:900;color:#475569}.day-group>summary .summary-date{font-weight:800}.day-group>summary .summary-duty{font-weight:900}.day-group.compact-vacation>summary{box-shadow:inset 4px 0 0 #16a34a;background:#f0fdf4}.day-group.compact-free>summary{box-shadow:inset 4px 0 0 #94a3b8;background:#f8fafc}.day-group.compact-problem>summary{box-shadow:inset 4px 0 0 #dc2626;background:#fef2f2}.day-group.compact-warning>summary{box-shadow:inset 4px 0 0 #f59e0b;background:#fffbeb}.day-group[open]>summary{border-bottom:1px solid #e2e8f0}
+      @media(max-width:720px){.day-group>summary{grid-template-columns:46px 1fr;}.day-group>summary .summary-duty,.day-group>summary .summary-status,.day-group>summary .badge{grid-column:1/-1}.month-group>summary .month-overview-pills{width:100%;margin-left:0}}
+    `;
     document.head.appendChild(style);
+  }
+
+  function enhanceMonthOverview() {
+    const container = document.getElementById(DUTIES_CONTAINER_ID);
+    if (!container) return;
+    const months = [...container.querySelectorAll('details.month-group[data-month]')];
+    if (!months.length) return;
+    ensureMonthJumpNav(container, months);
+    months.forEach(month => {
+      enhanceOneMonth(month);
+      month.querySelectorAll('details.day-group').forEach(day => {
+        if (!day.dataset.compactReady) {
+          day.removeAttribute('open');
+          day.dataset.compactReady = '1';
+        }
+        markDayClass(day);
+      });
+    });
+  }
+
+  function ensureMonthJumpNav(container, months) {
+    let nav = container.querySelector(':scope > .month-jump-nav');
+    if (!nav) {
+      nav = document.createElement('div');
+      nav.className = 'month-jump-nav';
+      container.insertBefore(nav, container.firstChild);
+    }
+    const monthNames = months.map(m => m.dataset.month).join('|');
+    if (nav.dataset.months === monthNames) return;
+    nav.dataset.months = monthNames;
+    nav.innerHTML = '<span class="month-jump-nav-title">Monate:</span>' + months.map(month => {
+      const label = month.querySelector(':scope > summary')?.childNodes?.[0]?.textContent?.trim() || month.dataset.month;
+      return `<button type="button" data-month-jump="${escapeAttr(month.dataset.month)}">${escapeHtml(label)}</button>`;
+    }).join('');
+  }
+
+  function enhanceOneMonth(month) {
+    const summary = month.querySelector(':scope > summary');
+    if (!summary) return;
+    summary.querySelector('.month-overview-pills')?.remove();
+    const days = [...month.querySelectorAll('details.day-group')];
+    let work = 0, free = 0, vacation = 0, warn = 0, fail = 0;
+    days.forEach(day => {
+      const text = day.querySelector(':scope > summary')?.textContent || '';
+      const isFree = /Frei|kein Dienst/.test(text);
+      const isVacation = !!day.querySelector('.vacation-badge');
+      const hasFail = !!day.querySelector('.fail,.summary-status.fail,.badge.fail');
+      const hasWarn = !!day.querySelector('.warn,.summary-status.warn,.badge.warn');
+      if (isVacation) vacation += 1;
+      if (isFree) free += 1;
+      else work += 1;
+      if (hasFail) fail += 1;
+      else if (hasWarn) warn += 1;
+    });
+    const pills = document.createElement('span');
+    pills.className = 'month-overview-pills';
+    pills.innerHTML = [
+      `<span class="month-pill work">${work} Arbeit</span>`,
+      vacation ? `<span class="month-pill vacation">${vacation} Urlaub</span>` : '',
+      free ? `<span class="month-pill free">${free} frei</span>` : '',
+      fail ? `<span class="month-pill fail">${fail} Fehler</span>` : '',
+      warn ? `<span class="month-pill warn">${warn} Hinweise</span>` : ''
+    ].filter(Boolean).join('');
+    summary.appendChild(pills);
+  }
+
+  function markDayClass(day) {
+    const text = day.querySelector(':scope > summary')?.textContent || '';
+    day.classList.toggle('compact-free', /Frei|kein Dienst/.test(text));
+    day.classList.toggle('compact-vacation', !!day.querySelector('.vacation-badge'));
+    day.classList.toggle('compact-problem', !!day.querySelector('.fail,.summary-status.fail,.badge.fail'));
+    day.classList.toggle('compact-warning', !day.classList.contains('compact-problem') && !!day.querySelector('.warn,.summary-status.warn,.badge.warn'));
+  }
+
+  function openAndScrollToMonth(monthKey) {
+    const month = document.querySelector(`details.month-group[data-month="${CSS.escape(monthKey)}"]`);
+    if (!month) return;
+    month.open = true;
+    month.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function ensureKollegenAuswahl() {
@@ -131,47 +208,17 @@
     const syncStatus = document.getElementById('syncStatus');
     const toolbarGroup = runkeBtn?.closest('.toolbar-group') || syncStatus?.closest('.toolbar-group');
     if (!toolbarGroup) return;
-
-    if (!panel) {
-      panel = document.createElement('div');
-      panel.className = 'kollegen-panel';
-      panel.id = 'kollegenPanel';
-      toolbarGroup.insertBefore(panel, runkeBtn || syncStatus || toolbarGroup.firstChild);
-    }
-
+    if (!panel) { panel = document.createElement('div'); panel.className = 'kollegen-panel'; panel.id = 'kollegenPanel'; toolbarGroup.insertBefore(panel, runkeBtn || syncStatus || toolbarGroup.firstChild); }
     if (!document.getElementById('kollegeSelect')) {
       panel.innerHTML = '';
-      const label = document.createElement('span');
-      label.textContent = '👤 Kollege';
-      panel.appendChild(label);
-      const select = document.createElement('select');
-      select.id = 'kollegeSelect';
-      select.setAttribute('aria-label', 'Kollege auswählen');
-      for (const [id, name] of KOLLEGEN) {
-        const option = document.createElement('option');
-        option.value = id;
-        option.textContent = name;
-        select.appendChild(option);
-      }
+      const label = document.createElement('span'); label.textContent = '👤 Kollege'; panel.appendChild(label);
+      const select = document.createElement('select'); select.id = 'kollegeSelect'; select.setAttribute('aria-label', 'Kollege auswählen');
+      for (const [id, name] of KOLLEGEN) { const option = document.createElement('option'); option.value = id; option.textContent = name; select.appendChild(option); }
       panel.appendChild(select);
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.id = 'loadKollege';
-      btn.className = 'btn-secondary';
-      btn.textContent = 'Kollege laden';
-      panel.appendChild(btn);
-      const reset = document.createElement('button');
-      reset.type = 'button';
-      reset.id = 'reloadKollegeTemplate';
-      reset.className = 'btn-secondary';
-      reset.textContent = 'Vorlage neu laden';
-      panel.appendChild(reset);
-      const note = document.createElement('span');
-      note.className = 'kollegen-hinweis';
-      note.textContent = 'Dienste aus Fotoplan';
-      panel.appendChild(note);
+      const btn = document.createElement('button'); btn.type = 'button'; btn.id = 'loadKollege'; btn.className = 'btn-secondary'; btn.textContent = 'Kollege laden'; panel.appendChild(btn);
+      const reset = document.createElement('button'); reset.type = 'button'; reset.id = 'reloadKollegeTemplate'; reset.className = 'btn-secondary'; reset.textContent = 'Vorlage neu laden'; panel.appendChild(reset);
+      const note = document.createElement('span'); note.className = 'kollegen-hinweis'; note.textContent = 'Dienste aus Fotoplan'; panel.appendChild(note);
     }
-
     const active = activeProfileFromLocal() || localStorage.getItem('dienstpilot_aktiver_kollege') || 'runke';
     const select = document.getElementById('kollegeSelect');
     if (select && [...select.options].some(o => o.value === active)) select.value = active;
@@ -187,10 +234,8 @@
     const vacations = Array.isArray(stored?.vacations) ? stored.vacations : [];
     const vacationEntitlement = Number.isFinite(stored?.vacationEntitlement) ? stored.vacationEntitlement : 30;
     const hideSundays = typeof stored?.hideSundays === 'boolean' ? stored.hideSundays : false;
-
     const state = { duties, customCatalog: getExistingCustomCatalog(), appSettings: { activeProfile: profile, shownMonths: MONTHS_TO_SHOW, hideSundays } };
     const namedPlan = { duties, vacations, vacationEntitlement, bundeslaender: stored?.bundeslaender || null, hideSundays, savedAt: new Date().toISOString(), templateVersion: TEMPLATE_VERSION };
-
     localStorage.setItem('dienstpilot_aktiver_kollege', profile);
     localStorage.setItem(templateKey, TEMPLATE_VERSION);
     localStorage.setItem('lenkRuhezeitenRunke20260413', JSON.stringify(state));
@@ -204,11 +249,9 @@
     const target = profileToPlanName(profile);
     const out = [];
     for (const [start, end, names] of PLAN_ROWS) {
-      const d = parseIso(start);
-      const last = parseIso(end);
+      const d = parseIso(start); const last = parseIso(end);
       while (d <= last) {
-        const iso = formatIso(d);
-        const weekday = d.getDay() === 0 ? 6 : d.getDay() - 1;
+        const iso = formatIso(d); const weekday = d.getDay() === 0 ? 6 : d.getDay() - 1;
         for (let col = 0; col < names.length; col++) {
           if (norm(names[col]) !== target) continue;
           const number = COLUMN_PATTERNS[col]?.[weekday];
@@ -247,10 +290,7 @@
     const toolbarGroup = clearBtn?.closest('.toolbar-group') || toggleSundays?.closest('.toolbar-group');
     if (!toolbarGroup) return;
     const printBtn = document.createElement('button');
-    printBtn.type = 'button';
-    printBtn.className = 'btn-secondary';
-    printBtn.id = PRINT_BUTTON_ID;
-    printBtn.textContent = '🖨 Dienstplan drucken';
+    printBtn.type = 'button'; printBtn.className = 'btn-secondary'; printBtn.id = PRINT_BUTTON_ID; printBtn.textContent = '🖨 Dienstplan drucken';
     if (toggleSundays) toolbarGroup.insertBefore(printBtn, toggleSundays); else if (clearBtn) clearBtn.insertAdjacentElement('afterend', printBtn); else toolbarGroup.appendChild(printBtn);
   }
 
@@ -269,4 +309,5 @@
   function preparePrintableContent(container) { const clone = container.cloneNode(true); clone.querySelectorAll('button,input,select,textarea,script').forEach(el => { const r = document.createElement('span'); const v = getControlText(el); if (v) r.textContent = v; el.replaceWith(r); }); clone.querySelectorAll('[contenteditable="true"]').forEach(el => el.removeAttribute('contenteditable')); return clone.innerHTML; }
   function getControlText(element) { if (element.matches('input[type="checkbox"],input[type="radio"]')) return element.checked ? '✓' : ''; if (element.matches('input,textarea,select')) return element.value || element.getAttribute('value') || ''; return element.textContent?.trim() || ''; }
   function escapeHtml(value) { return String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;'); }
+  function escapeAttr(value) { return escapeHtml(value).replaceAll('`','&#096;'); }
 })();
