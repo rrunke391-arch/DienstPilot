@@ -19,17 +19,19 @@
   ready(() => {
     installStyles();
     removeLenkUndRuhezeiten();
+    removeCatalogProblems();
     replaceOldVacationButton();
     normalizeVacationBadges();
 
     document.addEventListener('click', handleClick, true);
-    window.addEventListener('focus', normalizeVacationBadges);
-    window.addEventListener('storage', normalizeVacationBadges);
+    window.addEventListener('focus', () => { removeCatalogProblems(); normalizeVacationBadges(); });
+    window.addEventListener('storage', () => { removeCatalogProblems(); normalizeVacationBadges(); });
 
     new MutationObserver(() => {
       clearTimeout(window.__dienstpilotVacationFixTimer);
       window.__dienstpilotVacationFixTimer = setTimeout(() => {
         removeLenkUndRuhezeiten();
+        removeCatalogProblems();
         replaceOldVacationButton();
         normalizeVacationBadges();
       }, 120);
@@ -46,6 +48,22 @@
     style.id = 'dienstpilotVacationFixStyles';
     style.textContent = `
       .tab[data-tab="tests"], #tab-tests { display: none !important; }
+      #catalogReviewStats .crs-errors,
+      #catalogReviewStats .crs-open,
+      .catalog-card .badge.problem,
+      .catalog-card-review,
+      .cat-review-note,
+      .cat-review-note-edit,
+      .catalog-card.cat-has-problem::before,
+      .catalog-card.cat-review-errors::before {
+        display: none !important;
+      }
+      .catalog-card.cat-has-problem,
+      .catalog-card.cat-review-errors {
+        border-color: #e2e8f0 !important;
+        box-shadow: none !important;
+        background: #ffffff !important;
+      }
       details.day-group.vacation-fixed > summary {
         background: #dcfce7 !important;
         box-shadow: inset 6px 0 0 #16a34a !important;
@@ -76,6 +94,14 @@
 
   function removeLenkUndRuhezeiten() {
     document.querySelectorAll('.tab[data-tab="tests"], #tab-tests').forEach((el) => el.remove());
+  }
+
+  function removeCatalogProblems() {
+    document.querySelectorAll('#catalogReviewStats .crs-errors, #catalogReviewStats .crs-open').forEach((el) => el.remove());
+    document.querySelectorAll('.catalog-card .badge.problem, .catalog-card-review, .cat-review-note').forEach((el) => el.remove());
+    document.querySelectorAll('.catalog-card.cat-has-problem, .catalog-card.cat-review-errors').forEach((el) => {
+      el.classList.remove('cat-has-problem', 'cat-review-errors');
+    });
   }
 
   function handleClick(event) {
