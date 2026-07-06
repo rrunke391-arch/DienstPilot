@@ -105,6 +105,14 @@
     setTimeout(() => document.querySelector('#dpRefreshUsers')?.click(), 100);
   }
 
+  function loadGerdingSeed() {
+    if (document.getElementById('dpGerdingSeedScript')) return;
+    const script = document.createElement('script');
+    script.id = 'dpGerdingSeedScript';
+    script.src = 'src/user-seed-gerding.js?v=dienstpilot-1';
+    document.head.appendChild(script);
+  }
+
   function loadBackupAddon() {
     if (document.getElementById('dpAdminBackupScript')) return;
     const script = document.createElement('script');
@@ -140,6 +148,7 @@
   }
 
   function start() {
+    loadGerdingSeed();
     loadBackupAddon();
     loadVacationAddon();
     addButtons();
