@@ -175,12 +175,21 @@
     document.head.appendChild(script);
   }
 
+  function loadEmergencyStore() {
+    if (document.getElementById('dpEmergencyStoreScript')) return;
+    const script = document.createElement('script');
+    script.id = 'dpEmergencyStoreScript';
+    script.src = 'src/user-emergency-store.js?v=dienstpilot-1';
+    document.head.appendChild(script);
+  }
+
   prepareDriverState();
   addStyles();
   loadDriverEditRules();
   loadAdminResetRules();
   loadAdminEditRules();
   loadAdminMailView();
+  loadEmergencyStore();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
