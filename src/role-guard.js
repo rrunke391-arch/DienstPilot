@@ -167,11 +167,20 @@
     document.head.appendChild(script);
   }
 
+  function loadAdminMailView() {
+    if (document.getElementById('dpAdminMailViewScript')) return;
+    const script = document.createElement('script');
+    script.id = 'dpAdminMailViewScript';
+    script.src = 'src/admin-mail-view.js?v=dienstpilot-1';
+    document.head.appendChild(script);
+  }
+
   prepareDriverState();
   addStyles();
   loadDriverEditRules();
   loadAdminResetRules();
   loadAdminEditRules();
+  loadAdminMailView();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
