@@ -151,9 +151,18 @@
     document.head.appendChild(script);
   }
 
+  function loadAdminResetRules() {
+    if (document.getElementById('dpAdminResetScript')) return;
+    const script = document.createElement('script');
+    script.id = 'dpAdminResetScript';
+    script.src = 'src/admin-reset.js?v=dienstpilot-1';
+    document.head.appendChild(script);
+  }
+
   prepareDriverState();
   addStyles();
   loadDriverEditRules();
+  loadAdminResetRules();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
