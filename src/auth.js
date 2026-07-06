@@ -17,18 +17,6 @@ const DIENSTPILOT_BUILTIN_USERS = [
     passwordHash: "6c651e36960ed17a84e0ab3c3e927efc05f896976a1c29144b55a75a283c4e92",
     mustChangePassword: false,
     isBuiltin: true
-  },
-  {
-    username: "Testfahrer",
-    displayName: "Testfahrer",
-    role: "Fahrer",
-    functionTitle: "Testzugang Fahrer",
-    driverProfile: "testfahrer",
-    access: "Eigener Bereich",
-    passwordHash: "",
-    startPasswordHash: "90e38dea6fb5df0f0a5ca72be74bbf196e99d90faa6d0d3ee84dfc5b9a0209ae",
-    mustChangePassword: true,
-    isBuiltin: true
   }
 ];
 
