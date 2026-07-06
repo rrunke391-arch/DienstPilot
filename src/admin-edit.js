@@ -113,6 +113,14 @@
     document.head.appendChild(script);
   }
 
+  function loadVacationAddon() {
+    if (document.getElementById('dpVacationDriverSaveScript')) return;
+    const script = document.createElement('script');
+    script.id = 'dpVacationDriverSaveScript';
+    script.src = 'src/vacation-driver-save.js?v=dienstpilot-1';
+    document.head.appendChild(script);
+  }
+
   function addButtons() {
     if (!isAdmin()) return;
     const card = document.getElementById(CARD_ID);
@@ -133,6 +141,7 @@
 
   function start() {
     loadBackupAddon();
+    loadVacationAddon();
     addButtons();
     document.addEventListener('click', e => {
       if (e.target.closest?.('[data-tab="einstellungen"],#dpRefreshUsers,#dpSaveUser,#loginButton,.dp-reset-login')) setTimeout(addButtons, 300);
