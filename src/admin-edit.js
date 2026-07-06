@@ -63,9 +63,28 @@
     return String(result || '').trim();
   }
 
+  function editRunkeEmail() {
+    const old = getUser('Runke') || {};
+    const email = ask('E-Mail für Runke:', old.email || '');
+    if (email === null) return;
+    upsert({
+      ...old,
+      username: 'Runke',
+      displayName: old.displayName || 'Runke',
+      email,
+      role: 'Administrator',
+      functionTitle: old.functionTitle || 'Entwickler von DienstPilot 2026',
+      driverProfile: 'runke',
+      access: 'Vollzugriff',
+      isBuiltin: false
+    });
+    setStatus('E-Mail für Runke wurde gespeichert.');
+    setTimeout(() => document.querySelector('#dpRefreshUsers')?.click(), 100);
+  }
+
   function editUser(username) {
     if (norm(username) === 'runke') {
-      setStatus('Runke ist geschützt und wird hier nicht bearbeitet.', true);
+      editRunkeEmail();
       return;
     }
 
@@ -128,12 +147,12 @@
     card.querySelectorAll('#dpUserAdminRows tr').forEach(row => {
       const name = row.querySelector('td strong')?.textContent?.trim();
       const actionCell = row.querySelector('td:last-child');
-      if (!name || !actionCell || norm(name) === 'runke') return;
+      if (!name || !actionCell) return;
       if (actionCell.querySelector('.dp-edit-user')) return;
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'btn-secondary dp-edit-user';
-      btn.textContent = 'Bearbeiten';
+      btn.textContent = norm(name) === 'runke' ? 'E-Mail bearbeiten' : 'Bearbeiten';
       btn.addEventListener('click', () => editUser(name));
       actionCell.prepend(btn);
     });
