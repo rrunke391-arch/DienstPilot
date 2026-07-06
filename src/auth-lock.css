@@ -1,0 +1,11 @@
+body.auth-locked {
+  overflow: hidden;
+}
+
+body.auth-locked .app {
+  display: none !important;
+}
+
+body:not(.auth-locked) #loginScreen {
+  display: none !important;
+}
