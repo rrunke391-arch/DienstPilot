@@ -159,10 +159,19 @@
     document.head.appendChild(script);
   }
 
+  function loadAdminEditRules() {
+    if (document.getElementById('dpAdminEditScript')) return;
+    const script = document.createElement('script');
+    script.id = 'dpAdminEditScript';
+    script.src = 'src/admin-edit.js?v=dienstpilot-1';
+    document.head.appendChild(script);
+  }
+
   prepareDriverState();
   addStyles();
   loadDriverEditRules();
   loadAdminResetRules();
+  loadAdminEditRules();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
