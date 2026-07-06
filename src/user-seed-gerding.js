@@ -20,10 +20,8 @@
     localStorage.setItem(KEY, JSON.stringify(users));
   }
 
-  function ensureGerding() {
-    const users = readUsers();
+  function ensureGerding(users) {
     if (users.some(user => norm(user.username) === 'gerding')) return;
-
     users.push({
       username: 'Gerding',
       displayName: 'Gerding',
@@ -37,9 +35,30 @@
       mustChangePassword: true,
       isBuiltin: false
     });
+  }
 
+  function fixTestfahrer(users) {
+    const index = users.findIndex(user => norm(user.username) === 'testfahrer');
+    if (index < 0) return;
+    const old = users[index] || {};
+    users[index] = {
+      ...old,
+      username: old.username || 'Testfahrer',
+      displayName: old.displayName || 'Testfahrer',
+      role: 'Fahrer',
+      functionTitle: 'Testzugang Fahrer',
+      driverProfile: 'testfahrer',
+      access: 'Eigener Bereich',
+      isBuiltin: false
+    };
+  }
+
+  function run() {
+    const users = readUsers();
+    ensureGerding(users);
+    fixTestfahrer(users);
     saveUsers(users);
   }
 
-  ensureGerding();
+  run();
 })();
