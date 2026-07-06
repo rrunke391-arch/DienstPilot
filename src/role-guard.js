@@ -76,6 +76,7 @@
 
   function addStyles() {
     if (document.getElementById('dpRoleGuardStyles')) return;
+
     const style = document.createElement('style');
     style.id = 'dpRoleGuardStyles';
     style.textContent = `
@@ -164,16 +165,6 @@
       event.preventDefault();
       event.stopImmediatePropagation();
     }, true);
-
-    document.addEventListener('click', () => {
-      window.setTimeout(() => {
-        const user = readUser();
-        if (!isDriver(user)) return;
-        if (sessionStorage.getItem('dienstpilot_driver_reload_done') === 'yes') return;
-        sessionStorage.setItem('dienstpilot_driver_reload_done', 'yes');
-        window.location.reload();
-      }, 700);
-    }, true);
   }
 
   function observeChanges() {
@@ -181,8 +172,17 @@
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
+  function loadStrictDriverRules() {
+    if (document.getElementById('dpDriverReadonlyScript')) return;
+    const script = document.createElement('script');
+    script.id = 'dpDriverReadonlyScript';
+    script.src = 'src/driver-readonly.js?v=dienstpilot-1';
+    document.head.appendChild(script);
+  }
+
   prepareDriverState();
   addStyles();
+  loadStrictDriverRules();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
