@@ -40,17 +40,26 @@
     box.style.color = error ? '#b91c1c' : '#166534';
   }
 
+  function textValue(value) {
+    return String(value || '').trim();
+  }
+
+  function preferNew(newValue, oldValue) {
+    const cleaned = textValue(newValue);
+    return cleaned || textValue(oldValue);
+  }
+
   function cleanUsers(list) {
     return (Array.isArray(list) ? list : [])
       .filter(u => u && u.username && norm(u.username) !== 'runke')
       .map(u => ({
-        username: String(u.username || '').trim(),
-        displayName: String(u.displayName || u.username || '').trim(),
-        email: String(u.email || '').trim(),
-        role: String(u.role || 'Fahrer').trim(),
-        functionTitle: String(u.functionTitle || '').trim(),
-        driverProfile: String(u.driverProfile || '').trim(),
-        access: String(u.access || '').trim()
+        username: textValue(u.username),
+        displayName: textValue(u.displayName || u.username),
+        email: textValue(u.email),
+        role: textValue(u.role || 'Fahrer'),
+        functionTitle: textValue(u.functionTitle),
+        driverProfile: textValue(u.driverProfile),
+        access: textValue(u.access)
       }));
   }
 
@@ -70,6 +79,24 @@
     setStatus('Benutzer-Sicherung wurde erzeugt. Text kopieren und sicher ablegen.');
   }
 
+  function mergeUser(old, incoming) {
+    return {
+      ...old,
+      ...incoming,
+      username: preferNew(incoming.username, old.username),
+      displayName: preferNew(incoming.displayName, old.displayName || incoming.username),
+      email: preferNew(incoming.email, old.email),
+      role: preferNew(incoming.role, old.role || 'Fahrer'),
+      functionTitle: preferNew(incoming.functionTitle, old.functionTitle),
+      driverProfile: preferNew(incoming.driverProfile, old.driverProfile),
+      access: preferNew(incoming.access, old.access),
+      passwordHash: old.passwordHash || '',
+      startPasswordHash: old.startPasswordHash || '',
+      mustChangePassword: old.mustChangePassword === true,
+      isBuiltin: false
+    };
+  }
+
   function readBackupText() {
     const area = document.querySelector('#dpUserBackupText');
     if (!area) return;
@@ -83,10 +110,10 @@
       const map = new Map(readLocalUsers().filter(u => norm(u.username) !== 'runke').map(u => [norm(u.username), u]));
       incoming.forEach(u => {
         const old = map.get(norm(u.username)) || {};
-        map.set(norm(u.username), { ...old, ...u, isBuiltin: false });
+        map.set(norm(u.username), mergeUser(old, u));
       });
       saveLocalUsers(Array.from(map.values()));
-      setStatus('Benutzer-Sicherung wurde eingelesen. Danach bei Bedarf Kennwort zurücksetzen nutzen.');
+      setStatus('Benutzer-Sicherung wurde eingelesen. Vorhandene E-Mail-Adressen bleiben erhalten, wenn die Sicherung dort leer ist.');
       setTimeout(() => document.querySelector('#dpRefreshUsers')?.click(), 150);
     } catch {
       setStatus('Sicherung konnte nicht gelesen werden.', true);
