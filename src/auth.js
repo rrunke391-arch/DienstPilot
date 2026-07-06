@@ -17,6 +17,30 @@ const DIENSTPILOT_BUILTIN_USERS = [
     passwordHash: "6c651e36960ed17a84e0ab3c3e927efc05f896976a1c29144b55a75a283c4e92",
     mustChangePassword: false,
     isBuiltin: true
+  },
+  {
+    username: "Testfahrer",
+    displayName: "Testfahrer",
+    role: "Fahrer",
+    functionTitle: "Fester Testzugang Fahrer",
+    driverProfile: "testfahrer",
+    access: "Eigener Bereich",
+    passwordHash: "90e38dea6fb5df0f0a5ca72be74bbf196e99d90faa6d0d3ee84dfc5b9a0209ae",
+    startPasswordHash: "",
+    mustChangePassword: false,
+    isBuiltin: true
+  },
+  {
+    username: "Gerding",
+    displayName: "Gerding",
+    role: "Fahrer",
+    functionTitle: "Fester Fahrerzugang",
+    driverProfile: "gerding",
+    access: "Eigener Bereich",
+    passwordHash: "366f65916062bc7d0c630da89862e086a038218890e193b2697e098afdb60632",
+    startPasswordHash: "",
+    mustChangePassword: false,
+    isBuiltin: true
   }
 ];
 
