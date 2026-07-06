@@ -179,7 +179,7 @@
     if (document.getElementById('dpEmergencyStoreScript')) return;
     const script = document.createElement('script');
     script.id = 'dpEmergencyStoreScript';
-    script.src = 'src/user-emergency-store.js?v=dienstpilot-1';
+    script.src = 'src/user-emergency-store.js?v=dienstpilot-2';
     document.head.appendChild(script);
   }
 
