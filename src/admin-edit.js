@@ -40,6 +40,15 @@
     box.style.color = error ? '#b91c1c' : '#166534';
   }
 
+  function normalizeRole(value) {
+    const cleaned = norm(value).replace(/\./g, '').replace(/ae/g, 'ä');
+    if (cleaned === 'fahrer') return 'Fahrer';
+    if (cleaned === 'disposition' || cleaned === 'dispo') return 'Disposition';
+    if (cleaned === 'geschäftsleitung' || cleaned === 'geschaftsleitung' || cleaned === 'leitung') return 'Geschäftsleitung';
+    if (cleaned === 'administrator' || cleaned === 'admin') return 'Administrator';
+    return '';
+  }
+
   function roleAccess(role) {
     if (role === 'Administrator') return 'Vollzugriff';
     if (role === 'Geschäftsleitung') return 'Leitung';
@@ -87,12 +96,12 @@
     const email = ask('E-Mail:', old.email || '');
     if (email === null) return;
 
-    const role = ask('Rolle: Fahrer, Disposition, Geschäftsleitung oder Administrator', old.role || 'Fahrer');
-    if (role === null) return;
+    const roleInput = ask('Rolle: Fahrer, Disposition, Geschäftsleitung oder Administrator', old.role || 'Fahrer');
+    if (roleInput === null) return;
 
-    const validRoles = ['Fahrer', 'Disposition', 'Geschäftsleitung', 'Administrator'];
-    if (!validRoles.includes(role)) {
-      setStatus('Ungültige Rolle. Erlaubt sind: Fahrer, Disposition, Geschäftsleitung, Administrator.', true);
+    const role = normalizeRole(roleInput);
+    if (!role) {
+      setStatus('Ungültige Rolle. Verwende bitte Fahrer, Disposition, Geschäftsleitung oder Administrator.', true);
       return;
     }
 
