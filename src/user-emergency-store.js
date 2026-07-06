@@ -4,12 +4,12 @@
   const MAIN = 'dienstpilot_users_v1';
   const COPY = 'dienstpilot_users_reserve_v1';
   const CARD = 'dienstpilotUserAdminCard';
+  const DB = 'dienstpilot_user_reserve_db';
+  const STORE = 'reserve';
+  const ID = 'latest';
 
   function n(v) { return String(v || '').trim().toLowerCase(); }
-
-  function readRaw(key) {
-    return localStorage.getItem(key) || '';
-  }
+  function readRaw(key) { return localStorage.getItem(key) || ''; }
 
   function readList(raw) {
     try {
@@ -18,54 +18,118 @@
       if (Array.isArray(value.users)) return value.users;
       if (typeof value.raw === 'string') return readList(value.raw);
       return [];
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   }
 
   function useful(list) {
     return list.some(user => user && user.username && n(user.username) !== 'runke');
   }
 
-  function saveCopy(raw) {
-    const list = readList(raw);
-    if (!useful(list)) return false;
-    const pack = {
+  function makePack(raw) {
+    return {
       app: 'DienstPilot',
       type: 'Benutzer-Notfallsicherung',
-      version: 2,
+      version: 3,
       savedAt: new Date().toISOString(),
       raw
     };
+  }
+
+  function openDb() {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) return reject(new Error('IndexedDB nicht verfügbar'));
+      const req = indexedDB.open(DB, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(STORE, { keyPath: 'id' });
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error || new Error('IndexedDB Fehler'));
+    });
+  }
+
+  async function writeDb(pack) {
+    const db = await openDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).put({ id: ID, pack });
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error || new Error('Sicherung nicht gespeichert'));
+    });
+    db.close();
+  }
+
+  async function readDb() {
+    const db = await openDb();
+    const result = await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readonly');
+      const req = tx.objectStore(STORE).get(ID);
+      req.onsuccess = () => resolve(req.result?.pack || null);
+      req.onerror = () => reject(req.error || new Error('Sicherung nicht gelesen'));
+    });
+    db.close();
+    return result;
+  }
+
+  async function saveCopy(raw) {
+    const list = readList(raw);
+    if (!useful(list)) return false;
+    const pack = makePack(raw);
     localStorage.setItem(COPY, JSON.stringify(pack));
+    try { await writeDb(pack); } catch {}
     return true;
   }
 
-  function autoCopy() {
+  async function bestPack() {
+    const localPack = JSON.parse(readRaw(COPY) || '{}');
+    if (useful(readList(localPack.raw || JSON.stringify(localPack.users || [])))) return localPack;
+    try {
+      const dbPack = await readDb();
+      if (dbPack && useful(readList(dbPack.raw || JSON.stringify(dbPack.users || [])))) return dbPack;
+    } catch {}
+    return null;
+  }
+
+  async function autoCopy() {
     return saveCopy(readRaw(MAIN));
   }
 
-  function restoreFromCopy() {
-    const pack = JSON.parse(readRaw(COPY) || '{}');
+  async function autoRestoreIfNeeded() {
+    if (useful(readList(readRaw(MAIN)))) {
+      await autoCopy();
+      return;
+    }
+    const pack = await bestPack();
+    if (!pack) return;
+    const raw = typeof pack.raw === 'string' ? pack.raw : JSON.stringify(pack.users || []);
+    const list = readList(raw).filter(user => n(user.username) !== 'runke');
+    if (!useful(list)) return;
+    localStorage.setItem(MAIN, JSON.stringify(list));
+    setStatus('Benutzer wurden automatisch aus der Notfallsicherung wiederhergestellt.');
+    setTimeout(() => document.querySelector('#dpRefreshUsers')?.click(), 150);
+  }
+
+  async function restoreFromCopy() {
+    const pack = await bestPack();
+    if (!pack) return setStatus('Keine brauchbare Notfallsicherung gefunden.', true);
     const raw = typeof pack.raw === 'string' ? pack.raw : JSON.stringify(pack.users || []);
     const list = readList(raw).filter(user => n(user.username) !== 'runke');
     if (!useful(list)) return setStatus('Keine brauchbare Notfallsicherung gefunden.', true);
     localStorage.setItem(MAIN, JSON.stringify(list));
-    setStatus('Benutzer wurden aus der lokalen Notfallsicherung wiederhergestellt.');
+    await saveCopy(JSON.stringify(list));
+    setStatus('Benutzer wurden aus der Notfallsicherung wiederhergestellt.');
     document.querySelector('#dpRefreshUsers')?.click();
   }
 
-  function exportText() {
-    autoCopy();
+  async function exportText() {
+    await autoCopy();
+    const pack = await bestPack();
     const area = document.querySelector('#dpUserBackupText');
-    if (!area) return;
-    area.value = readRaw(COPY);
+    if (!area || !pack) return setStatus('Keine brauchbare Notfallsicherung zum Exportieren gefunden.', true);
+    area.value = JSON.stringify(pack);
     area.focus();
     area.select();
     setStatus('Notfallsicherung wurde erzeugt. Text bitte extern speichern.');
   }
 
-  function importText() {
+  async function importText() {
     const area = document.querySelector('#dpUserBackupText');
     if (!area) return;
     try {
@@ -74,7 +138,7 @@
       const list = readList(raw).filter(user => n(user.username) !== 'runke');
       if (!useful(list)) return setStatus('Im Text wurde keine brauchbare Benutzer-Notfallsicherung gefunden.', true);
       localStorage.setItem(MAIN, JSON.stringify(list));
-      saveCopy(JSON.stringify(list));
+      await saveCopy(JSON.stringify(list));
       setStatus('Benutzer wurden aus dem Notfalltext wiederhergestellt.');
       document.querySelector('#dpRefreshUsers')?.click();
     } catch {
@@ -115,21 +179,14 @@
     area.insertAdjacentElement('afterend', row);
   }
 
-  function wrapStorage() {
-    if (localStorage.__dienstpilotUserReserve === 'yes') return;
-    const oldSet = localStorage.setItem.bind(localStorage);
-    localStorage.setItem = (key, value) => {
-      oldSet(key, value);
-      if (key === MAIN) setTimeout(autoCopy, 50);
-    };
-    localStorage.__dienstpilotUserReserve = 'yes';
-  }
-
   function start() {
-    wrapStorage();
-    autoCopy();
+    autoRestoreIfNeeded();
     addControls();
-    document.addEventListener('click', () => setTimeout(addControls, 250), true);
+    document.addEventListener('click', () => {
+      setTimeout(addControls, 250);
+      setTimeout(autoCopy, 500);
+    }, true);
+    setInterval(autoCopy, 5000);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
