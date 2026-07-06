@@ -4,6 +4,8 @@
   const MAIL = 'rrunke391' + '@' + 'gmail.com';
 
   function run() {
+    const button = document.getElementById('dpSaveUser');
+    if (button) button.textContent = 'Neuen Benutzer speichern';
     document.querySelectorAll('#dpUserAdminRows tr').forEach(row => {
       const name = String(row.querySelector('td strong')?.textContent || '').trim().toLowerCase();
       if (name !== 'runke') return;
