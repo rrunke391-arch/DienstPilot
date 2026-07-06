@@ -6,11 +6,8 @@
   const ACTIVE_TAB_KEY = 'lrz-active-tab';
 
   function readUser() {
-    try {
-      return JSON.parse(sessionStorage.getItem(USER_KEY) || 'null');
-    } catch {
-      return null;
-    }
+    try { return JSON.parse(sessionStorage.getItem(USER_KEY) || 'null'); }
+    catch { return null; }
   }
 
   function normalize(value) {
@@ -42,7 +39,6 @@
   function prepareDriverState() {
     const user = readUser();
     if (!isDriver(user)) return;
-
     const profile = driverProfile(user);
     if (!profile) return;
 
@@ -52,31 +48,17 @@
 
     const state = loadState();
     const currentProfile = normalize(state?.appSettings?.activeProfile || '');
+    const appSettings = { ...(state.appSettings || {}), activeProfile: profile };
 
     if (currentProfile && currentProfile !== profile) {
-      saveState({
-        ...state,
-        duties: [],
-        appSettings: {
-          ...(state.appSettings || {}),
-          activeProfile: profile,
-          shownMonths: []
-        }
-      });
-    } else if (!currentProfile) {
-      saveState({
-        ...state,
-        appSettings: {
-          ...(state.appSettings || {}),
-          activeProfile: profile
-        }
-      });
+      saveState({ ...state, duties: [], appSettings: { ...appSettings, shownMonths: [] } });
+    } else {
+      saveState({ ...state, appSettings });
     }
   }
 
   function addStyles() {
     if (document.getElementById('dpRoleGuardStyles')) return;
-
     const style = document.createElement('style');
     style.id = 'dpRoleGuardStyles';
     style.textContent = `
@@ -86,15 +68,15 @@
       body.role-fahrer .tab[data-tab="tests"],
       body.role-fahrer #loadRunke,
       body.role-fahrer #loadLady,
+      body.role-fahrer #loadKollege,
+      body.role-fahrer #reloadKollegeTemplate,
+      body.role-fahrer #kollegeSelect,
+      body.role-fahrer .kollegen-panel,
       body.role-fahrer #clearDuties,
       body.role-fahrer #uploadDienstkarteCatalog,
       body.role-fahrer #dienstkarteFilesCatalog,
       body.role-fahrer #uploadStatusCatalog,
-      body.role-fahrer .toolbar-pick,
       body.role-fahrer .toolbar-toggle,
-      body.role-fahrer .delete-duty,
-      body.role-fahrer .convert-to-duty,
-      body.role-fahrer .refresh-from-catalog,
       body.role-fahrer .open-catalog-link,
       body.role-fahrer .catalog-settings,
       body.role-fahrer .catalog-card-review,
@@ -102,51 +84,38 @@
       body.role-fahrer .delete-template {
         display: none !important;
       }
-      body.role-fahrer .duty-card input,
-      body.role-fahrer .duty-card select,
       body.role-fahrer .catalog-card input,
-      body.role-fahrer .catalog-card select {
+      body.role-fahrer .catalog-card select,
+      body.role-fahrer .catalog-card textarea {
         pointer-events: none !important;
         background: #f8fafc !important;
         color: #475569 !important;
-      }
-      body.role-fahrer .duty-card::after {
-        content: 'Nur Lesezugriff';
-        display: inline-flex;
-        margin-top: 12px;
-        border-radius: 999px;
-        padding: 5px 10px;
-        background: #f1f5f9;
-        color: #475569;
-        font-size: 12px;
-        font-weight: 900;
       }
     `;
     document.head.appendChild(style);
   }
 
-  function applyDriverLock() {
+  function applyDriverRules() {
     const user = readUser();
     document.body.classList.toggle('role-fahrer', isDriver(user));
     if (!isDriver(user)) return;
 
-    document.querySelectorAll('.duty-card input, .duty-card select, .catalog-card input, .catalog-card select').forEach((el) => {
-      el.readOnly = true;
-      el.disabled = true;
-      el.setAttribute('aria-readonly', 'true');
+    const activeForbidden = document.querySelector('.tab.active[data-tab="statistik"], .tab.active[data-tab="einstellungen"], .tab.active[data-tab="auswertung"], .tab.active[data-tab="tests"]');
+    if (activeForbidden) document.querySelector('.tab[data-tab="eingabe"]')?.click();
+
+    document.querySelectorAll('#loadRunke,#loadLady,#loadKollege,#reloadKollegeTemplate,#kollegeSelect,.kollegen-panel,#clearDuties,#uploadDienstkarteCatalog,.catalog-settings,.catalog-card-review,.cat-review-note-edit,.delete-template').forEach((el) => {
+      el.style.display = 'none';
+      if ('disabled' in el) el.disabled = true;
     });
 
-    const activeForbidden = document.querySelector('.tab.active[data-tab="statistik"], .tab.active[data-tab="einstellungen"], .tab.active[data-tab="auswertung"], .tab.active[data-tab="tests"]');
-    if (activeForbidden) {
-      const overview = document.querySelector('.tab[data-tab="eingabe"]');
-      if (overview) overview.click();
-    }
+    document.querySelectorAll('.catalog-card input,.catalog-card select,.catalog-card textarea').forEach((el) => {
+      if ('readOnly' in el) el.readOnly = true;
+      if ('disabled' in el) el.disabled = true;
+    });
   }
 
   function shouldStop(target) {
-    return Boolean(target.closest(
-      '.delete-duty,.convert-to-duty,.refresh-from-catalog,.open-catalog-link,.delete-template,.review-btn,.cat-review-note-edit,#loadRunke,#loadLady,#clearDuties,#uploadDienstkarteCatalog,.tab[data-tab="statistik"],.tab[data-tab="einstellungen"],.tab[data-tab="auswertung"],.tab[data-tab="tests"]'
-    ));
+    return Boolean(target.closest('#loadRunke,#loadLady,#loadKollege,#reloadKollegeTemplate,#kollegeSelect,.kollegen-panel,#clearDuties,#uploadDienstkarteCatalog,.tab[data-tab="statistik"],.tab[data-tab="einstellungen"],.tab[data-tab="auswertung"],.tab[data-tab="tests"],.open-catalog-link,.delete-template,.review-btn,.cat-review-note-edit'));
   }
 
   function installEventLocks() {
@@ -156,42 +125,44 @@
       if (!shouldStop(event.target)) return;
       event.preventDefault();
       event.stopImmediatePropagation();
+      applyDriverRules();
     }, true);
 
     document.addEventListener('change', (event) => {
       const user = readUser();
       if (!isDriver(user)) return;
-      if (!event.target.closest('.duty-card,.catalog-card,#blSettingsBody')) return;
+      if (!event.target.closest('#kollegeSelect,.catalog-card,#blSettingsBody')) return;
       event.preventDefault();
       event.stopImmediatePropagation();
+      applyDriverRules();
     }, true);
   }
 
   function observeChanges() {
-    const observer = new MutationObserver(() => applyDriverLock());
+    const observer = new MutationObserver(() => applyDriverRules());
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  function loadStrictDriverRules() {
+  function loadDriverEditRules() {
     if (document.getElementById('dpDriverReadonlyScript')) return;
     const script = document.createElement('script');
     script.id = 'dpDriverReadonlyScript';
-    script.src = 'src/driver-readonly.js?v=dienstpilot-1';
+    script.src = 'src/driver-readonly.js?v=dienstpilot-2';
     document.head.appendChild(script);
   }
 
   prepareDriverState();
   addStyles();
-  loadStrictDriverRules();
+  loadDriverEditRules();
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      applyDriverLock();
+      applyDriverRules();
       installEventLocks();
       observeChanges();
     }, { once: true });
   } else {
-    applyDriverLock();
+    applyDriverRules();
     installEventLocks();
     observeChanges();
   }
