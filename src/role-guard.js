@@ -1,6 +1,187 @@
 (() => {
   'use strict';
 
+  const API_BASE = 'https://api.dienstpilot-runke.de';
+  const TOKEN_KEY = 'dienstpilot_api_token';
+  const USER_KEY = 'dienstpilot_user';
+  const ROLE_KEY = 'dienstpilot_role';
+  const UNLOCKED_KEY = 'dienstpilot_unlocked';
+  const ACTIVE_DRIVER_KEY = 'dienstpilot_aktiver_kollege';
+
+  function normalize(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function setLoginMessage(text) {
+    const info = document.querySelector('#loginScreen .login-box p');
+    if (info) info.textContent = text;
+  }
+
+  function setLoginError(text) {
+    const error = document.getElementById('loginError');
+    if (error) error.textContent = text;
+  }
+
+  function replaceNode(node) {
+    if (!node || !node.parentNode) return node;
+    const clone = node.cloneNode(true);
+    node.parentNode.replaceChild(clone, node);
+    return clone;
+  }
+
+  function getLoginFields() {
+    let passwordInput = document.getElementById('appPassword');
+    if (!passwordInput) return null;
+
+    let usernameInput = document.getElementById('appUsername');
+    if (!usernameInput) {
+      usernameInput = document.createElement('input');
+      usernameInput.id = 'appUsername';
+      usernameInput.type = 'text';
+      usernameInput.placeholder = 'Benutzername';
+      usernameInput.autocomplete = 'username';
+      usernameInput.value = 'Runke';
+      passwordInput.parentElement.insertBefore(usernameInput, passwordInput);
+    }
+
+    const oldUsername = usernameInput.value || 'Runke';
+    const oldPassword = passwordInput.value || '';
+
+    usernameInput = replaceNode(usernameInput);
+    passwordInput = replaceNode(passwordInput);
+
+    usernameInput.value = oldUsername;
+    usernameInput.placeholder = 'Benutzername';
+    usernameInput.autocomplete = 'username';
+
+    passwordInput.value = oldPassword;
+    passwordInput.placeholder = 'Passwort';
+    passwordInput.autocomplete = 'current-password';
+
+    return { usernameInput, passwordInput };
+  }
+
+  function makePublicUser(serverUser) {
+    const username = String(serverUser.username || '').trim();
+    const role = String(serverUser.role || 'Fahrer').trim();
+    const profile = normalize(username);
+    return {
+      username,
+      displayName: String(serverUser.displayName || username).trim(),
+      role,
+      functionTitle: role === 'Administrator' ? 'Administrator DienstPilot Server' : 'Server-Benutzer',
+      driverProfile: profile,
+      access: role === 'Fahrer' ? 'Eigener Bereich' : 'Vollzugriff'
+    };
+  }
+
+  function unlockApp() {
+    document.body.classList.remove('auth-locked');
+    const loginScreen = document.getElementById('loginScreen');
+    if (loginScreen) loginScreen.style.display = 'none';
+  }
+
+  function lockApp() {
+    document.body.classList.add('auth-locked');
+    const loginScreen = document.getElementById('loginScreen');
+    if (loginScreen) loginScreen.style.display = '';
+  }
+
+  function saveServerSession(data) {
+    const user = makePublicUser(data.user || {});
+    sessionStorage.setItem(UNLOCKED_KEY, 'yes');
+    sessionStorage.setItem(TOKEN_KEY, data.token || '');
+    sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+    sessionStorage.setItem(ROLE_KEY, user.role);
+    if (user.driverProfile) localStorage.setItem(ACTIVE_DRIVER_KEY, user.driverProfile);
+    document.body.classList.toggle('role-fahrer', user.role === 'Fahrer');
+    unlockApp();
+  }
+
+  async function serverLogin(fields) {
+    const username = fields.usernameInput.value.trim();
+    const password = fields.passwordInput.value;
+
+    if (!username || !password) {
+      setLoginError('Bitte Benutzername und Passwort eingeben.');
+      return;
+    }
+
+    setLoginError('Anmeldung wird geprüft ...');
+
+    try {
+      const response = await fetch(API_BASE + '/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data.ok) {
+        setLoginError(data.error || 'Benutzername oder Passwort ist falsch.');
+        fields.passwordInput.value = '';
+        fields.passwordInput.focus();
+        return;
+      }
+
+      setLoginError('');
+      saveServerSession(data);
+    } catch (error) {
+      setLoginError('Server nicht erreichbar. Bitte Internetverbindung prüfen.');
+    }
+  }
+
+  function installServerLogin() {
+    const existingToken = sessionStorage.getItem(TOKEN_KEY);
+    const existingUser = sessionStorage.getItem(USER_KEY);
+
+    if (existingToken && existingUser && sessionStorage.getItem(UNLOCKED_KEY) === 'yes') {
+      unlockApp();
+      return;
+    }
+
+    sessionStorage.removeItem(UNLOCKED_KEY);
+    sessionStorage.removeItem(USER_KEY);
+    sessionStorage.removeItem(ROLE_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
+    lockApp();
+
+    const fields = getLoginFields();
+    if (!fields) return;
+
+    setLoginMessage('Bitte mit dem Server-Benutzer anmelden.');
+
+    let button = document.getElementById('loginButton');
+    if (button) {
+      button = replaceNode(button);
+      button.textContent = 'Am Server anmelden';
+      button.addEventListener('click', () => serverLogin(fields));
+    }
+
+    [fields.usernameInput, fields.passwordInput].forEach((input) => {
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          serverLogin(fields);
+        }
+      }, true);
+    });
+
+    fields.passwordInput.focus();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', installServerLogin, { once: true });
+  } else {
+    installServerLogin();
+  }
+})();
+
+(() => {
+  'use strict';
+
   const USER_KEY = 'dienstpilot_user';
   const STATE_KEY = 'lenkRuhezeitenRunke20260413';
   const ACTIVE_TAB_KEY = 'lrz-active-tab';
