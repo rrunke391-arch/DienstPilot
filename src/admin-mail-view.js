@@ -2,6 +2,7 @@
   'use strict';
 
   const MAIN_KEY = 'lenkRuhezeitenRunke20260413';
+  const USER_KEY = 'dienstpilot_user';
 
   function clearOldStatus() {
     const status = document.querySelector('#dpUserAdminStatus');
@@ -40,23 +41,66 @@
     }
   }
 
+  function readSessionUser() {
+    try {
+      return JSON.parse(sessionStorage.getItem(USER_KEY) || 'null');
+    } catch {
+      return null;
+    }
+  }
+
+  function normalize(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function enforceDriverProfile() {
+    const user = readSessionUser();
+    if (!user || user.role !== 'Fahrer') return;
+
+    const profile = normalize(user.driverProfile || user.username);
+    if (!profile) return;
+
+    localStorage.setItem('dienstpilot_aktiver_kollege', profile);
+    localStorage.setItem('lrz-active-tab', 'eingabe');
+
+    const main = readJson(MAIN_KEY) || {};
+    const current = normalize(main?.appSettings?.activeProfile || '');
+    if (current === profile) return;
+
+    const next = {
+      ...main,
+      duties: [],
+      appSettings: {
+        ...(main.appSettings || {}),
+        activeProfile: profile,
+        shownMonths: []
+      }
+    };
+    localStorage.setItem(MAIN_KEY, JSON.stringify(next));
+
+    const reloadKey = 'dienstpilot_driver_profile_reload_' + profile;
+    if (sessionStorage.getItem(reloadKey) === 'done') return;
+    sessionStorage.setItem(reloadKey, 'done');
+    location.reload();
+  }
+
   function hasDuties(plan) {
     return Boolean(plan && Array.isArray(plan.duties) && plan.duties.length > 0);
   }
 
   function activeProfile() {
     const main = readJson(MAIN_KEY) || {};
-    return String(main?.appSettings?.activeProfile || localStorage.getItem('dienstpilot_aktiver_kollege') || '').trim().toLowerCase();
+    return normalize(main?.appSettings?.activeProfile || localStorage.getItem('dienstpilot_aktiver_kollege') || '');
   }
 
   function localPlan(profile) {
-    const p = String(profile || '').trim().toLowerCase();
+    const p = normalize(profile);
     const named = readJson('lrz-plan-' + p) || {};
     const main = readJson(MAIN_KEY) || {};
     const vacation = readJson('dienstpilot-vacations-' + p) || {};
     const plan = { ...named };
 
-    if (!hasDuties(plan) && String(main?.appSettings?.activeProfile || '').toLowerCase() === p && Array.isArray(main.duties)) {
+    if (!hasDuties(plan) && normalize(main?.appSettings?.activeProfile || '') === p && Array.isArray(main.duties)) {
       plan.duties = main.duties;
     }
 
@@ -109,6 +153,7 @@
   function refresh() {
     clearOldStatus();
     cleanVacationButtons();
+    enforceDriverProfile();
   }
 
   function start() {
