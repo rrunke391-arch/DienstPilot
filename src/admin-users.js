@@ -98,6 +98,27 @@
     return data;
   }
 
+  async function apiResetPassword(username, password) {
+    const response = await fetch(API_BASE + '/api/users/' + encodeURIComponent(username) + '/password', {
+      method: 'PUT',
+      headers: apiHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ password })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || 'Passwort konnte nicht geändert werden.');
+    return data;
+  }
+
+  async function apiDeleteUser(username) {
+    const response = await fetch(API_BASE + '/api/users/' + encodeURIComponent(username), {
+      method: 'DELETE',
+      headers: apiHeaders()
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || 'Benutzer konnte nicht gelöscht werden.');
+    return data;
+  }
+
   function installStyles() {
     if (document.getElementById('dienstpilotUserAdminStyles')) return;
 
@@ -163,12 +184,54 @@
       #${CARD_ID} .dp-user-admin-mail {
         margin-top: 16px;
       }
+      #${CARD_ID} .dp-user-action-cell {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
       @media (max-width: 720px) {
         #${CARD_ID} .dp-user-admin-grid { grid-template-columns: 1fr; }
         #${CARD_ID} .dp-user-admin-table { font-size: 13px; }
       }
     `;
     document.head.appendChild(style);
+  }
+
+  async function resetPassword(card, user) {
+    const username = user.username || '';
+    const password = prompt(`Neues Startpasswort für ${username} eingeben:`);
+    if (password === null) return;
+    if (password.trim().length < 8) {
+      setStatus(card, 'Das neue Passwort muss mindestens 8 Zeichen haben.', false);
+      return;
+    }
+
+    try {
+      await apiResetPassword(username, password.trim());
+      const mailText = createMailText(user, password.trim());
+      const mailWrap = card.querySelector('#dpUserAdminMailWrap');
+      const mailArea = card.querySelector('#dpUserAdminMail');
+      const mailLink = card.querySelector('#dpMailInvite');
+      mailWrap.classList.remove('hidden');
+      mailArea.value = mailText;
+      mailLink.href = `mailto:?subject=${encodeURIComponent('DienstPilot Zugang')}&body=${encodeURIComponent(mailText)}`;
+      setStatus(card, `Passwort für ${username} wurde zurückgesetzt.`, true);
+    } catch (error) {
+      setStatus(card, error.message, false);
+    }
+  }
+
+  async function deleteUser(card, user) {
+    const username = user.username || '';
+    if (!confirm(`Benutzer ${username} wirklich vom Server löschen?`)) return;
+
+    try {
+      await apiDeleteUser(username);
+      setStatus(card, `Benutzer ${username} wurde gelöscht.`, true);
+      await renderUserRows(card);
+    } catch (error) {
+      setStatus(card, error.message, false);
+    }
   }
 
   async function renderUserRows(card) {
@@ -192,8 +255,28 @@
           <td>${displayRole(role)}</td>
           <td>${driverProfile}</td>
           <td>Server aktiv</td>
-          <td>${normalize(username) === 'runke' ? 'Geschützt' : 'Server-Benutzer'}</td>
+          <td class="dp-user-action-cell"></td>
         `;
+
+        const actionCell = tr.querySelector('.dp-user-action-cell');
+        if (normalize(username) === 'runke') {
+          actionCell.textContent = 'Geschützt';
+        } else {
+          const resetButton = document.createElement('button');
+          resetButton.type = 'button';
+          resetButton.className = 'btn-secondary';
+          resetButton.textContent = 'Passwort zurücksetzen';
+          resetButton.addEventListener('click', () => resetPassword(card, user));
+
+          const deleteButton = document.createElement('button');
+          deleteButton.type = 'button';
+          deleteButton.className = 'btn-secondary';
+          deleteButton.textContent = 'Löschen';
+          deleteButton.addEventListener('click', () => deleteUser(card, user));
+
+          actionCell.append(resetButton, deleteButton);
+        }
+
         body.appendChild(tr);
       });
 
@@ -212,7 +295,7 @@
     card.className = 'card';
     card.innerHTML = `
       <h2>👥 Benutzerverwaltung</h2>
-      <p class="muted">Diese Benutzerverwaltung arbeitet jetzt mit dem DienstPilot-Server. Neue Benutzer werden auf dem VPS gespeichert und können sich danach direkt anmelden.</p>
+      <p class="muted">Diese Benutzerverwaltung arbeitet mit dem DienstPilot-Server. Neue Benutzer werden auf dem VPS gespeichert. Fahrer können gelöscht und Passwörter können zurückgesetzt werden.</p>
       <div class="dp-user-admin-grid">
         <label>Benutzername<input id="dpNewUsername" type="text" placeholder="z. B. Gerding"></label>
         <label>Anzeigename<input id="dpNewDisplayName" type="text" placeholder="z. B. Gerding"></label>
