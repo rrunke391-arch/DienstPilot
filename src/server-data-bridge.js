@@ -45,21 +45,16 @@
     });
   }
 
-  function callPlanServer(url, options) {
-    return originalFetch(API_BASE + url, {
-      method: options.method || 'GET',
-      headers: apiHeaders({ 'Content-Type': 'application/json' }),
-      body: options.body
-    });
-  }
-
   window.fetch = function dienstPilotServerFetch(input, init) {
     const url = typeof input === 'string' ? input : (input && input.url) || '';
     const options = init || {};
     const method = String(options.method || 'GET').toUpperCase();
 
     if (url.startsWith('/api/plan/')) {
-      return callPlanServer(url, { method, body: options.body });
+      const profile = decodeURIComponent(url.slice('/api/plan/'.length));
+      const key = dataKey('plan', profile);
+      if (method === 'PUT') return putData(key, options.body);
+      return getData(key, {});
     }
 
     if (url === '/api/catalog-review') {
