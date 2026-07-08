@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  const USERS_KEY = 'dienstpilot_users_v1';
+  const API_BASE = 'https://api.dienstpilot-runke.de';
+  const TOKEN_KEY = 'dienstpilot_api_token';
   const APP_URL = 'https://rrunke391-arch.github.io/DienstPilot/';
   const CARD_ID = 'dienstpilotUserAdminCard';
 
@@ -20,27 +21,81 @@
     return user && user.role === 'Administrator';
   }
 
+  function token() {
+    return sessionStorage.getItem(TOKEN_KEY) || '';
+  }
+
+  function apiHeaders(extra) {
+    const headers = new Headers(extra || {});
+    const t = token();
+    if (t) headers.set('Authorization', 'Bearer ' + t);
+    return headers;
+  }
+
   function normalize(value) {
     return String(value || '').trim().toLowerCase();
   }
 
-  function loadStoredUsers() {
-    try {
-      const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-      return Array.isArray(users) ? users : [];
-    } catch {
-      return [];
-    }
+  function displayRole(role) {
+    if (role === 'Geschaeftsleitung') return 'Geschäftsleitung';
+    return role || '';
   }
 
-  function saveStoredUsers(users) {
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  function roleAccess(role) {
+    if (role === 'Administrator') return 'Vollzugriff';
+    if (role === 'Geschaeftsleitung') return 'Leitung';
+    if (role === 'Disposition') return 'Planung';
+    return 'Eigener Bereich';
   }
 
-  async function sha256Hex(value) {
-    const data = new TextEncoder().encode(String(value || ''));
-    const digest = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  function createMailText(user, startPassword) {
+    return [
+      `Hallo ${user.displayName},`,
+      '',
+      'für dich wurde ein Zugang zu DienstPilot eingerichtet.',
+      '',
+      `Link: ${APP_URL}`,
+      `Benutzername: ${user.username}`,
+      `Startpasswort: ${startPassword}`,
+      `Rolle: ${displayRole(user.role)}`,
+      '',
+      'Bitte melde dich damit in DienstPilot an.',
+      '',
+      'Viele Grüße',
+      'Runke'
+    ].join('\n');
+  }
+
+  function fieldValue(card, selector) {
+    return card.querySelector(selector)?.value?.trim() || '';
+  }
+
+  function setStatus(card, text, ok = true) {
+    const status = card.querySelector('#dpUserAdminStatus');
+    if (!status) return;
+    status.textContent = text;
+    status.style.color = ok ? '#166534' : '#b91c1c';
+  }
+
+  async function apiGetUsers() {
+    const response = await fetch(API_BASE + '/api/users', {
+      method: 'GET',
+      headers: apiHeaders()
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || 'Benutzerliste konnte nicht geladen werden.');
+    return Array.isArray(data.users) ? data.users : [];
+  }
+
+  async function apiCreateUser(payload) {
+    const response = await fetch(API_BASE + '/api/users', {
+      method: 'POST',
+      headers: apiHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || 'Benutzer konnte nicht gespeichert werden.');
+    return data;
   }
 
   function installStyles() {
@@ -109,88 +164,46 @@
         margin-top: 16px;
       }
       @media (max-width: 720px) {
-        #${CARD_ID} .dp-user-admin-grid {
-          grid-template-columns: 1fr;
-        }
-        #${CARD_ID} .dp-user-admin-table {
-          font-size: 13px;
-        }
+        #${CARD_ID} .dp-user-admin-grid { grid-template-columns: 1fr; }
+        #${CARD_ID} .dp-user-admin-table { font-size: 13px; }
       }
     `;
     document.head.appendChild(style);
   }
 
-  function roleAccess(role) {
-    if (role === 'Administrator') return 'Vollzugriff';
-    if (role === 'Geschäftsleitung') return 'Leitung';
-    if (role === 'Disposition') return 'Planung';
-    return 'Eigener Bereich';
-  }
-
-  function createMailText(user, startPassword) {
-    return [
-      `Hallo ${user.displayName},`,
-      '',
-      'für dich wurde ein Zugang zu DienstPilot eingerichtet.',
-      '',
-      `Link: ${APP_URL}`,
-      `Benutzername: ${user.username}`,
-      `Startpasswort: ${startPassword}`,
-      `Rolle: ${user.role}`,
-      '',
-      'Das Startpasswort ist nur für die erste Anmeldung gedacht.',
-      'Nach dem ersten Login musst du ein eigenes Passwort festlegen.',
-      '',
-      'Viele Grüße',
-      'Runke'
-    ].join('\n');
-  }
-
-  function fieldValue(card, selector) {
-    return card.querySelector(selector)?.value?.trim() || '';
-  }
-
-  function renderUserRows(card) {
+  async function renderUserRows(card) {
     const body = card.querySelector('#dpUserAdminRows');
     if (!body) return;
 
-    const authUsers = window.DienstPilotAuth?.getAllUsers?.() || [];
-    const stored = loadStoredUsers();
-    const storedMap = new Map(stored.map((user) => [normalize(user.username), user]));
+    body.innerHTML = '<tr><td colspan="6">Benutzer werden vom Server geladen ...</td></tr>';
 
-    body.innerHTML = '';
-    authUsers.forEach((user) => {
-      const storedUser = storedMap.get(normalize(user.username));
-      const email = storedUser?.email || '';
-      const needsChange = user.mustChangePassword || Boolean(user.startPasswordHash);
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><strong>${user.username}</strong><div class="dp-user-admin-small">${email || 'Keine E-Mail'}</div></td>
-        <td>${user.displayName || ''}</td>
-        <td>${user.role || ''}</td>
-        <td>${user.driverProfile || 'alle'}</td>
-        <td>${needsChange ? 'Startpasswort aktiv' : 'Aktiv'}</td>
-        <td></td>
-      `;
+    try {
+      const users = await apiGetUsers();
+      body.innerHTML = '';
 
-      const actionCell = tr.lastElementChild;
-      if (normalize(user.username) !== 'runke') {
-        const deleteButton = document.createElement('button');
-        deleteButton.type = 'button';
-        deleteButton.className = 'btn-secondary';
-        deleteButton.textContent = 'Löschen';
-        deleteButton.addEventListener('click', () => {
-          if (!confirm(`Benutzer ${user.username} löschen?`)) return;
-          saveStoredUsers(loadStoredUsers().filter((item) => normalize(item.username) !== normalize(user.username)));
-          renderUserRows(card);
-        });
-        actionCell.appendChild(deleteButton);
-      } else {
-        actionCell.textContent = 'Geschützt';
+      users.forEach((user) => {
+        const username = user.username || '';
+        const role = user.role || '';
+        const driverProfile = normalize(username) || 'alle';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${username}</strong><div class="dp-user-admin-small">Server-ID: ${user.id || ''}</div></td>
+          <td>${user.displayName || ''}</td>
+          <td>${displayRole(role)}</td>
+          <td>${driverProfile}</td>
+          <td>Server aktiv</td>
+          <td>${normalize(username) === 'runke' ? 'Geschützt' : 'Server-Benutzer'}</td>
+        `;
+        body.appendChild(tr);
+      });
+
+      if (users.length === 0) {
+        body.innerHTML = '<tr><td colspan="6">Noch keine Benutzer auf dem Server.</td></tr>';
       }
-
-      body.appendChild(tr);
-    });
+    } catch (error) {
+      body.innerHTML = `<tr><td colspan="6">${error.message}</td></tr>`;
+      setStatus(card, error.message, false);
+    }
   }
 
   function buildCard() {
@@ -199,18 +212,18 @@
     card.className = 'card';
     card.innerHTML = `
       <h2>👥 Benutzerverwaltung</h2>
-      <p class="muted">Nur Administratoren können Benutzer anlegen. Neue Benutzer erhalten ein Startpasswort und müssen beim ersten Login ein eigenes Passwort festlegen.</p>
+      <p class="muted">Diese Benutzerverwaltung arbeitet jetzt mit dem DienstPilot-Server. Neue Benutzer werden auf dem VPS gespeichert und können sich danach direkt anmelden.</p>
       <div class="dp-user-admin-grid">
         <label>Benutzername<input id="dpNewUsername" type="text" placeholder="z. B. Gerding"></label>
         <label>Anzeigename<input id="dpNewDisplayName" type="text" placeholder="z. B. Gerding"></label>
         <label>E-Mail<input id="dpNewEmail" type="email" placeholder="name@example.de"></label>
-        <label>Rolle<select id="dpNewRole"><option>Fahrer</option><option>Disposition</option><option>Geschäftsleitung</option><option>Administrator</option></select></label>
-        <label>Zugeordneter Fahrer<input id="dpNewDriver" type="text" placeholder="z. B. gerding oder alle"></label>
-        <label>Startpasswort<input id="dpNewStartPassword" type="text" placeholder="z. B. Gerding-Start-DP2026!"></label>
+        <label>Rolle<select id="dpNewRole"><option value="Fahrer">Fahrer</option><option value="Disposition">Disposition</option><option value="Geschaeftsleitung">Geschäftsleitung</option><option value="Administrator">Administrator</option></select></label>
+        <label>Zugeordneter Fahrer<input id="dpNewDriver" type="text" placeholder="wird später für Rechte genutzt"></label>
+        <label>Startpasswort<input id="dpNewStartPassword" type="text" placeholder="mindestens 8 Zeichen"></label>
       </div>
       <div class="dp-user-admin-actions">
-        <button type="button" class="btn-primary" id="dpSaveUser">Benutzer speichern</button>
-        <button type="button" class="btn-secondary" id="dpRefreshUsers">Liste aktualisieren</button>
+        <button type="button" class="btn-primary" id="dpSaveUser">Auf Server speichern</button>
+        <button type="button" class="btn-secondary" id="dpRefreshUsers">Serverliste aktualisieren</button>
       </div>
       <div class="dp-user-admin-status" id="dpUserAdminStatus"></div>
       <div class="dp-user-admin-mail hidden" id="dpUserAdminMailWrap">
@@ -234,62 +247,43 @@
     const displayName = fieldValue(card, '#dpNewDisplayName') || username;
     const email = fieldValue(card, '#dpNewEmail');
     const role = fieldValue(card, '#dpNewRole') || 'Fahrer';
-    const driver = fieldValue(card, '#dpNewDriver') || (role === 'Fahrer' ? normalize(displayName) : 'alle');
     const startPassword = fieldValue(card, '#dpNewStartPassword');
-    const status = card.querySelector('#dpUserAdminStatus');
 
     if (!username || !startPassword) {
-      status.textContent = 'Bitte mindestens Benutzername und Startpasswort eintragen.';
-      status.style.color = '#b91c1c';
+      setStatus(card, 'Bitte mindestens Benutzername und Startpasswort eintragen.', false);
       return;
     }
 
     if (normalize(username) === 'runke') {
-      status.textContent = 'Runke ist der feste Hauptadministrator und kann hier nicht überschrieben werden.';
-      status.style.color = '#b91c1c';
+      setStatus(card, 'Runke ist der Hauptadministrator und wird nicht überschrieben.', false);
       return;
     }
 
     if (startPassword.length < 8) {
-      status.textContent = 'Das Startpasswort muss mindestens 8 Zeichen haben.';
-      status.style.color = '#b91c1c';
+      setStatus(card, 'Das Startpasswort muss mindestens 8 Zeichen haben.', false);
       return;
     }
 
-    const startPasswordHash = await sha256Hex(startPassword);
-    const users = loadStoredUsers();
-    const user = {
-      username,
-      displayName,
-      email,
-      role,
-      functionTitle: '',
-      driverProfile: driver,
-      access: roleAccess(role),
-      passwordHash: '',
-      startPasswordHash,
-      mustChangePassword: true,
-      isBuiltin: false
-    };
+    setStatus(card, 'Benutzer wird auf dem Server gespeichert ...', true);
 
-    const index = users.findIndex((item) => normalize(item.username) === normalize(username));
-    if (index >= 0) users[index] = user;
-    else users.push(user);
+    try {
+      const user = { username, displayName, email, role, access: roleAccess(role) };
+      await apiCreateUser({ username, displayName, role, password: startPassword });
 
-    saveStoredUsers(users);
+      const mailText = createMailText(user, startPassword);
+      const mailWrap = card.querySelector('#dpUserAdminMailWrap');
+      const mailArea = card.querySelector('#dpUserAdminMail');
+      const mailLink = card.querySelector('#dpMailInvite');
+      mailWrap.classList.remove('hidden');
+      mailArea.value = mailText;
+      mailLink.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent('DienstPilot Zugang')}&body=${encodeURIComponent(mailText)}`;
 
-    const mailText = createMailText(user, startPassword);
-    const mailWrap = card.querySelector('#dpUserAdminMailWrap');
-    const mailArea = card.querySelector('#dpUserAdminMail');
-    const mailLink = card.querySelector('#dpMailInvite');
-    mailWrap.classList.remove('hidden');
-    mailArea.value = mailText;
-    mailLink.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent('DienstPilot Zugang')}&body=${encodeURIComponent(mailText)}`;
-
-    status.textContent = `Benutzer ${username} wurde gespeichert. Einladungstext ist vorbereitet.`;
-    status.style.color = '#166534';
-    card.querySelector('#dpNewStartPassword').value = '';
-    renderUserRows(card);
+      card.querySelector('#dpNewStartPassword').value = '';
+      setStatus(card, `Benutzer ${username} wurde auf dem Server gespeichert.`, true);
+      await renderUserRows(card);
+    } catch (error) {
+      setStatus(card, error.message, false);
+    }
   }
 
   function render() {
@@ -309,9 +303,7 @@
       const text = card.querySelector('#dpUserAdminMail')?.value || '';
       if (!text) return;
       await navigator.clipboard.writeText(text);
-      const status = card.querySelector('#dpUserAdminStatus');
-      status.textContent = 'Einladung wurde kopiert.';
-      status.style.color = '#166534';
+      setStatus(card, 'Einladung wurde kopiert.', true);
     });
 
     renderUserRows(card);
@@ -321,21 +313,14 @@
     render();
 
     document.addEventListener('click', (event) => {
-      if (event.target.closest && event.target.closest('#loginButton')) {
-        setTimeout(render, 500);
-      }
+      if (event.target.closest && event.target.closest('#loginButton')) setTimeout(render, 700);
+      if (event.target.closest && event.target.closest('[data-tab="einstellungen"]')) setTimeout(render, 50);
     }, true);
 
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' && event.target && (event.target.id === 'appUsername' || event.target.id === 'appPassword')) {
-        setTimeout(render, 500);
+        setTimeout(render, 700);
       }
     }, true);
-
-    document.addEventListener('click', (event) => {
-      if (event.target.closest && event.target.closest('[data-tab="einstellungen"]')) {
-        setTimeout(render, 50);
-      }
-    });
   });
 })();
