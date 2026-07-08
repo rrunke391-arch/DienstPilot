@@ -88,29 +88,6 @@
     location.reload();
   }
 
-  function enforceAdminStartProfile() {
-    const user = readSessionUser();
-    if (!user || user.role !== 'Administrator') return;
-
-    const username = normalize(user.username || 'runke') || 'runke';
-    const activeUserKey = 'dienstpilot_active_login_user';
-    const lastUser = sessionStorage.getItem(activeUserKey);
-
-    if (lastUser === username) return;
-    sessionStorage.setItem(activeUserKey, username);
-
-    const main = readJson(MAIN_KEY) || {};
-    const current = normalize(main?.appSettings?.activeProfile || '');
-    if (current === 'runke') return;
-
-    setMainProfile('runke');
-
-    const reloadKey = 'dienstpilot_admin_profile_reload_' + username;
-    if (sessionStorage.getItem(reloadKey) === 'done') return;
-    sessionStorage.setItem(reloadKey, 'done');
-    location.reload();
-  }
-
   function hasDuties(plan) {
     return Boolean(plan && Array.isArray(plan.duties) && plan.duties.length > 0);
   }
@@ -181,7 +158,6 @@
     clearOldStatus();
     cleanVacationButtons();
     enforceDriverProfile();
-    enforceAdminStartProfile();
   }
 
   function start() {
