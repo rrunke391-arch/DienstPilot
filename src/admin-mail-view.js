@@ -53,20 +53,8 @@
     return String(value || '').trim().toLowerCase();
   }
 
-  function enforceDriverProfile() {
-    const user = readSessionUser();
-    if (!user || user.role !== 'Fahrer') return;
-
-    const profile = normalize(user.driverProfile || user.username);
-    if (!profile) return;
-
-    localStorage.setItem('dienstpilot_aktiver_kollege', profile);
-    localStorage.setItem('lrz-active-tab', 'eingabe');
-
+  function setMainProfile(profile) {
     const main = readJson(MAIN_KEY) || {};
-    const current = normalize(main?.appSettings?.activeProfile || '');
-    if (current === profile) return;
-
     const next = {
       ...main,
       duties: [],
@@ -77,8 +65,47 @@
       }
     };
     localStorage.setItem(MAIN_KEY, JSON.stringify(next));
+    localStorage.setItem('dienstpilot_aktiver_kollege', profile);
+    localStorage.setItem('lrz-active-tab', 'eingabe');
+  }
+
+  function enforceDriverProfile() {
+    const user = readSessionUser();
+    if (!user || user.role !== 'Fahrer') return;
+
+    const profile = normalize(user.driverProfile || user.username);
+    if (!profile) return;
+
+    const main = readJson(MAIN_KEY) || {};
+    const current = normalize(main?.appSettings?.activeProfile || '');
+    if (current === profile) return;
+
+    setMainProfile(profile);
 
     const reloadKey = 'dienstpilot_driver_profile_reload_' + profile;
+    if (sessionStorage.getItem(reloadKey) === 'done') return;
+    sessionStorage.setItem(reloadKey, 'done');
+    location.reload();
+  }
+
+  function enforceAdminStartProfile() {
+    const user = readSessionUser();
+    if (!user || user.role !== 'Administrator') return;
+
+    const username = normalize(user.username || 'runke') || 'runke';
+    const activeUserKey = 'dienstpilot_active_login_user';
+    const lastUser = sessionStorage.getItem(activeUserKey);
+
+    if (lastUser === username) return;
+    sessionStorage.setItem(activeUserKey, username);
+
+    const main = readJson(MAIN_KEY) || {};
+    const current = normalize(main?.appSettings?.activeProfile || '');
+    if (current === 'runke') return;
+
+    setMainProfile('runke');
+
+    const reloadKey = 'dienstpilot_admin_profile_reload_' + username;
     if (sessionStorage.getItem(reloadKey) === 'done') return;
     sessionStorage.setItem(reloadKey, 'done');
     location.reload();
@@ -154,6 +181,7 @@
     clearOldStatus();
     cleanVacationButtons();
     enforceDriverProfile();
+    enforceAdminStartProfile();
   }
 
   function start() {
