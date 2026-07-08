@@ -186,7 +186,7 @@
             <div class="vacation-year-switch"><button type="button" class="vacation-year-btn" id="vacationYearPrev" aria-label="Vorheriges Jahr">‹</button><span class="vacation-year-current" id="vacationYearLabel">2026</span><button type="button" class="vacation-year-btn" id="vacationYearNext" aria-label="Nächstes Jahr">›</button></div>
             <label class="vacation-entitlement"><span class="vacation-entitlement-label">Anspruch</span><input type="number" min="0" max="99" step="1" id="vacationEntitlement" value="30"><span class="vacation-entitlement-unit">Tage / Jahr</span></label>
           </div>
-          <div class="vacation-stats"><div class="vacation-stats-numbers"><strong id="vacationStatsTaken">0</strong><span class="vacation-stats-divider">/</span><span id="vacationStatsTotal">30</span><span class="vacation-stats-label">Urlaubstage geplant</span><span class="vacation-stats-remaining" id="vacationStatsRemaining">noch 30 übrig</span></div><div class="vacation-progress"><div class="vacation-progress-fill" id="vacationProgressFill" style="width: 0%;"></div></div></div>
+          <div class="vacation-stats"><div class="vacation-stats-numbers"><strong id="vacationStatsTaken">0</strong><span class="vacation-stats-divider">/</span><span id="vacationStatsTotal">30</span><span class="vacation-stats-label">Urlaubstage geplant</span><span class="vacation-stats-remaining" id="vacationStatsRemaining">noch 30 übrig</span></div><div class="vacation-progress"><div class="vacation-progress-fill" id="vacationProgressFill"></div></div></div>
           <div class="vacation-yearstrip"><svg class="vacation-yearstrip-svg" id="vacationYearstrip" preserveAspectRatio="none" viewBox="0 0 365 32" aria-hidden="true"></svg><div class="vacation-yearstrip-labels" id="vacationYearstripLabels"></div></div>
           <div class="vacation-list" id="vacationList"></div>
           <div class="vacation-empty hidden" id="vacationEmpty"><div class="vacation-empty-icon">🌴</div><div class="vacation-empty-title">Noch kein Urlaub für <span id="vacationEmptyYear">dieses Jahr</span></div><div class="vacation-empty-text">Lege deinen ersten Urlaub mit dem Knopf unten an.</div></div>
@@ -210,10 +210,11 @@
   </main>
 </div>
 <script src="src/auth.js?v=dienstpilot-8"></script>
-<script src="src/role-guard.js?v=dienstpilot-1"></script>
+<script src="src/role-guard.js?v=dienstpilot-2"></script>
 <script src="src/signout.js?v=dienstpilot-1"></script>
 <script src="src/password-eye.js?v=dienstpilot-1"></script>
 <script src="src/admin-users.js?v=dienstpilot-1"></script>
+<script src="src/server-data-bridge.js?v=dienstpilot-1"></script>
 <script src="src/app.js?v=dienstpilot-8"></script>
 <script src="src/print-duty-plan.js?v=dienstpilot-8"></script>
 <script src="src/urlaub-ui-fix.js?v=dienstpilot-8"></script>
