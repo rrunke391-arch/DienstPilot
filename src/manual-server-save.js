@@ -8,10 +8,6 @@
   const START_DATE = '2026-08-01';
   const START_MONTH = '2026-08';
 
-  let lastSent = '';
-  let saveTimer = null;
-  let saving = false;
-
   function normalize(value) {
     return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_');
   }
@@ -74,51 +70,27 @@
 
   function setText(text, ok) {
     const el = document.getElementById('dpManualServerSaveStatus');
-    if (el) {
-      el.textContent = text;
-      el.style.color = ok ? '#047857' : '#b45309';
-    }
+    if (!el) return;
+    el.textContent = text;
+    el.style.color = ok ? '#047857' : '#b45309';
   }
 
-  function setMainSyncText(profile, state) {
-    const el = document.getElementById('syncStatus');
-    if (!el || !profile) return;
-    const name = profile.charAt(0).toUpperCase() + profile.slice(1);
-    el.textContent = 'Aktiv: ' + name + ' · ' + state;
-    el.className = 'sync-status ' + (state.includes('gespeichert') || state.includes('synchronisiert') ? 'synced' : 'saving');
-  }
-
-  function signature(profile, body) {
-    return JSON.stringify({
-      profile,
-      duties: body.duties || [],
-      vacations: body.vacations || [],
-      vacationEntitlement: body.vacationEntitlement,
-      bundeslaender: body.bundeslaender,
-      hideSundays: body.hideSundays,
-      shownMonths: body.shownMonths,
-      startDate: body.startDate
-    });
-  }
-
-  async function saveNow(reason) {
+  async function saveNow() {
     const token = sessionStorage.getItem(TOKEN_KEY) || '';
     if (!token) {
       setText('Kein Server-Token. Bitte neu anmelden.', false);
-      return false;
+      return;
     }
 
     const profile = activeProfile();
     const body = collectPlan(profile);
-    const sig = signature(profile, body);
 
-    if (!profile) return false;
-    if (reason !== 'button' && sig === lastSent) return true;
+    if (!Array.isArray(body.duties)) {
+      setText('Nicht gespeichert: Plan nicht lesbar.', false);
+      return;
+    }
 
-    if (saving) return false;
-    saving = true;
-    setText('Speichere ' + profile + ' mit ' + body.duties.length + ' Diensten ...', false);
-    setMainSyncText(profile, 'speichere auf Server...');
+    setText('Speichere ' + profile + ' mit ' + body.duties.length + ' Einträgen ...', false);
 
     try {
       const res = await fetch(API_BASE + '/api/data/plan_' + encodeURIComponent(profile), {
@@ -131,29 +103,13 @@
       });
       const text = await res.text().catch(() => '');
       if (res.ok) {
-        lastSent = sig;
-        setText('Server gespeichert: ' + profile + ' · ' + body.duties.length + ' Dienste', true);
-        setMainSyncText(profile, 'auf Server gespeichert');
-        return true;
+        setText('Server gespeichert: ' + profile + ' · ' + body.duties.length + ' Einträge', true);
+      } else {
+        setText('Serverfehler ' + res.status + ': ' + text, false);
       }
-      setText('Serverfehler ' + res.status + ': ' + text, false);
-      setMainSyncText(profile, 'Serverfehler');
-      return false;
     } catch (error) {
       setText('Server nicht erreichbar: ' + (error && error.message ? error.message : error), false);
-      setMainSyncText(profile, 'offline');
-      return false;
-    } finally {
-      saving = false;
     }
-  }
-
-  function scheduleSave() {
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      saveTimer = null;
-      saveNow('auto');
-    }, 1200);
   }
 
   function installButton() {
@@ -166,7 +122,7 @@
     btn.type = 'button';
     btn.className = 'btn-secondary';
     btn.textContent = '☁ Server speichern';
-    btn.addEventListener('click', () => saveNow('button'));
+    btn.addEventListener('click', saveNow);
 
     const status = document.createElement('span');
     status.id = 'dpManualServerSaveStatus';
@@ -177,16 +133,6 @@
     toolbar.appendChild(btn);
     toolbar.appendChild(status);
   }
-
-  document.addEventListener('input', scheduleSave, true);
-  document.addEventListener('change', scheduleSave, true);
-  document.addEventListener('click', (event) => {
-    const target = event.target;
-    if (!target || !target.closest) return;
-    if (target.closest('button,input,select,textarea,.day-card,.duty-card')) scheduleSave();
-  }, true);
-
-  setInterval(scheduleSave, 5000);
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', installButton, { once: true });
