@@ -8,6 +8,37 @@
   const START_DATE = '2026-08-01';
   const START_MONTH = '2026-08';
 
+  function installIsoWeekFix() {
+    // Fix fuer doppelte/verschobene KW-Anzeige nach der Zeitumstellung.
+    // Ursache: die alte KW-Berechnung mischte 12:00 Uhr mit Jahresbeginn 00:00 Uhr.
+    // Durch Sommerzeit entstand ein Bruchteil und bestimmte Wochen wurden +1 gerechnet.
+    window.isoWeekKey = function fixedIsoWeekKey(dateString) {
+      const iso = String(dateString || '').match(/^\d{4}-\d{2}-\d{2}$/) ? String(dateString) : new Date().toISOString().slice(0, 10);
+      const parts = iso.split('-').map(Number);
+      const date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+      const day = date.getUTCDay() || 7;
+      date.setUTCDate(date.getUTCDate() + 4 - day);
+      const isoYear = date.getUTCFullYear();
+      const yearStart = new Date(Date.UTC(isoYear, 0, 1));
+      const week = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+      return isoYear + '-KW' + String(week).padStart(2, '0');
+    };
+
+    window.mondayOfWeekKey = function fixedMondayOfWeekKey(weekKey) {
+      const m = String(weekKey || '').match(/^(\d{4})-KW(\d+)/);
+      if (!m) return null;
+      const year = Number(m[1]);
+      const week = Number(m[2]);
+      const jan4 = new Date(Date.UTC(year, 0, 4, 12, 0, 0));
+      const jan4Day = jan4.getUTCDay() || 7;
+      const monday = new Date(jan4);
+      monday.setUTCDate(jan4.getUTCDate() - jan4Day + 1 + (week - 1) * 7);
+      return monday;
+    };
+  }
+
+  installIsoWeekFix();
+
   function normalize(value) {
     return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_');
   }
@@ -113,6 +144,7 @@
   }
 
   function installButton() {
+    installIsoWeekFix();
     if (document.getElementById('dpManualServerSave')) return;
     const toolbar = document.querySelector('.profile-toolbar') || document.querySelector('.toolbar');
     if (!toolbar) return;
