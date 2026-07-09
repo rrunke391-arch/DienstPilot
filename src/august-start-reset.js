@@ -2,6 +2,7 @@
   'use strict';
 
   const MAIN_KEY = 'lenkRuhezeitenRunke20260413';
+  const USER_KEY = 'dienstpilot_user';
   const ACTIVE_DRIVER_KEY = 'dienstpilot_aktiver_kollege';
   const START_MONTH = '2026-08';
   const START_DATE = '2026-08-01';
@@ -11,7 +12,7 @@
 
   function readJson(key) {
     try {
-      const value = JSON.parse(localStorage.getItem(key) || 'null');
+      const value = JSON.parse(localStorage.getItem(key) || sessionStorage.getItem(key) || 'null');
       return value && typeof value === 'object' ? value : null;
     } catch {
       return null;
@@ -38,6 +39,18 @@
     return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_');
   }
 
+  function currentProfile() {
+    const user = readJson(USER_KEY);
+    if (user && user.role === 'Fahrer') return normalizeProfile(user.driverProfile || user.username || 'testfahrer');
+    const main = readJson(MAIN_KEY) || {};
+    return normalizeProfile(main?.appSettings?.activeProfile || localStorage.getItem(ACTIVE_DRIVER_KEY) || 'runke');
+  }
+
+  function hasNoMonths(plan) {
+    const months = Array.isArray(plan?.shownMonths) ? plan.shownMonths : [];
+    return months.length === 0;
+  }
+
   function hasOldMonths(plan) {
     const months = Array.isArray(plan?.shownMonths) ? plan.shownMonths : [];
     return months.some((month) => String(month || '') < START_MONTH);
@@ -48,9 +61,9 @@
     return duties.some((duty) => String(duty?.date || '') < START_DATE);
   }
 
-  function localStateHasOldData() {
+  function localStateNeedsAugustReset() {
     const main = readJson(MAIN_KEY) || {};
-    if (hasOldMonths(main?.appSettings) || hasOldDuties(main)) return true;
+    if (hasNoMonths(main?.appSettings) || hasOldMonths(main?.appSettings) || hasOldDuties(main)) return true;
 
     for (let i = 0; i < localStorage.length; i += 1) {
       const key = localStorage.key(i);
@@ -105,19 +118,21 @@
     }));
   }
 
-  function resetOldLocalState() {
+  function resetLocalStateToAugust() {
+    const active = currentProfile();
     removeOldLocalPlanKeys();
-    writeLocalProfile('runke', cleanPlan('runke'));
+    localStorage.setItem(PLAN_PREFIX + 'runke', JSON.stringify(cleanPlan('runke')));
     localStorage.setItem(PLAN_PREFIX + 'gerding', JSON.stringify(cleanPlan('gerding')));
     localStorage.setItem(PLAN_PREFIX + 'testfahrer', JSON.stringify(cleanPlan('testfahrer')));
+    writeLocalProfile(active, cleanPlan(active));
   }
 
-  if (localStateHasOldData()) {
-    resetOldLocalState();
+  if (localStateNeedsAugustReset()) {
+    resetLocalStateToAugust();
   }
 
   async function loadProfileFromServer(profile) {
-    const p = normalizeProfile(profile || 'runke');
+    const p = normalizeProfile(profile || currentProfile() || 'runke');
     try {
       const response = await fetch('/api/plan/' + encodeURIComponent(p), { cache: 'no-store' });
       if (response.ok) {
