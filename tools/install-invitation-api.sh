@@ -4,6 +4,7 @@ set -euo pipefail
 APP_DIR="/opt/dienstpilot-api"
 SERVER_FILE="$APP_DIR/server.js"
 MODULE_FILE="$APP_DIR/invitation-routes.js"
+TEMP_MODULE_FILE="$APP_DIR/invitation-routes.tmp.js"
 DB_FILE="$APP_DIR/dienstpilot.sqlite"
 BACKUP_DIR="/opt/dienstpilot-backups"
 MODULE_URL="https://raw.githubusercontent.com/rrunke391-arch/DienstPilot/main/server/dienstpilot-api/invitation-routes.js"
@@ -30,10 +31,13 @@ if [[ -f "$DB_FILE" ]]; then
   cp -a "$DB_FILE" "$BACKUP_DIR/dienstpilot-vor-einladung-$stamp.sqlite"
 fi
 
+trap 'rm -f "$TEMP_MODULE_FILE"' EXIT
+
 echo "Servermodul wird geladen ..."
-curl -fsSL "$MODULE_URL" -o "$MODULE_FILE.tmp"
-node --check "$MODULE_FILE.tmp"
-mv "$MODULE_FILE.tmp" "$MODULE_FILE"
+curl -fsSL "$MODULE_URL" -o "$TEMP_MODULE_FILE"
+node --check "$TEMP_MODULE_FILE"
+mv "$TEMP_MODULE_FILE" "$MODULE_FILE"
+trap - EXIT
 chown --reference="$SERVER_FILE" "$MODULE_FILE" 2>/dev/null || true
 chmod 0644 "$MODULE_FILE"
 
