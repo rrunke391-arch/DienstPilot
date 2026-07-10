@@ -3,12 +3,8 @@
 
   const BUTTON_ID = 'openJahresurlaubFix';
   const WEEK_FIX_MARK = '__dienstpilotCrossMonthWeekFix';
-  const OBSERVER_MARK = '__dienstpilotOverviewCleanupObserver';
   const STYLE_ID = 'dienstpilotOverviewCleanupStyles';
   const REMOVED_TABS = new Set(['auswertung', 'tests']);
-
-  let cleanupRunning = false;
-  let cleanupTimer = 0;
 
   function ready(fn) {
     if (document.readyState === 'loading') {
@@ -16,6 +12,42 @@
     } else {
       fn();
     }
+  }
+
+  function installStatusStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = `
+      /* Monatsüberschrift: nur Monat, Diensttage und Stundensumme behalten. */
+      #dutiesContainer details.month-group > summary > div,
+      #dutiesContainer details.month-group > summary > span:not(.month-count):not(.summary-total) {
+        display: none !important;
+      }
+
+      /* Kalenderwoche: nur KW, Datumsbereich, Diensttage und Stundensumme behalten. */
+      #dutiesContainer details.week-group > summary > div,
+      #dutiesContainer details.week-group > summary > span:not(.week-num):not(.week-range):not(.week-count):not(.summary-total) {
+        display: none !important;
+      }
+
+      /* Tageszeile: Dienst, Datum sowie Urlaubs-/Feiertagsinformationen behalten. */
+      #dutiesContainer details.day-group > summary > div,
+      #dutiesContainer details.day-group > summary > span:not(.summary-dow):not(.summary-date):not(.summary-duty):not(.holiday-badge):not(.ferien-badge):not(.vacation-badge):not(.summary-ai) {
+        display: none !important;
+      }
+
+      /* Bekannte Statuscontainer zusätzlich generell ausblenden. */
+      #dutiesContainer .summary-status,
+      #dutiesContainer .summary-counts,
+      #dutiesContainer .status-badge,
+      #dutiesContainer summary [data-status],
+      #dutiesContainer summary [class*="status-"] {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   function disableUnusedRenderers() {
@@ -37,10 +69,11 @@
     document.querySelectorAll('main > section[id^="tab-"]').forEach((section) => {
       section.classList.toggle('hidden', section !== overviewSection);
     });
+
     try {
       localStorage.setItem('lrz-active-tab', 'eingabe');
     } catch {
-      // Private Browsermodi dürfen die Speicherung blockieren.
+      // Speicherung kann im privaten Browsermodus blockiert sein.
     }
   }
 
@@ -67,8 +100,7 @@
   }
 
   function ensureVacationButton() {
-    const existing = document.getElementById(BUTTON_ID);
-    if (existing) return;
+    if (document.getElementById(BUTTON_ID)) return;
 
     const printButton = document.getElementById('printDutyPlan');
     const clearButton = document.getElementById('clearDuties');
@@ -86,8 +118,7 @@
   }
 
   function openVacationSettings() {
-    const settingsTab = document.querySelector('.tab[data-tab="einstellungen"]');
-    if (settingsTab) settingsTab.click();
+    document.querySelector('.tab[data-tab="einstellungen"]')?.click();
 
     window.setTimeout(() => {
       const section = document.querySelector('#tab-einstellungen .vacation-section');
@@ -97,21 +128,6 @@
       section.removeAttribute('aria-hidden');
       section.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
-  }
-
-  function installStatusStyles() {
-    if (document.getElementById(STYLE_ID)) return;
-    const style = document.createElement('style');
-    style.id = STYLE_ID;
-    style.textContent = `
-      #dutiesContainer .summary-status,
-      #dutiesContainer .summary-counts,
-      #dutiesContainer summary [data-status],
-      #dutiesContainer summary [class*="status-"] {
-        display: none !important;
-      }
-    `;
-    document.head.appendChild(style);
   }
 
   function ownerMonthForIsoWeek(weekKey) {
@@ -146,70 +162,6 @@
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
     return `Σ ${hours} Std. ${String(minutes).padStart(2, '0')} Min.`;
-  }
-
-  function normalizeStatusText(value) {
-    return String(value || '')
-      .replace(/\u00a0/g, ' ')
-      .replace(/[✓✔✕×!⊘]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
-  function isStatusOnlyText(value) {
-    const text = normalizeStatusText(value);
-    if (!text) return false;
-
-    const label = '(?:Arbeit(?:stage)?|frei(?:e\\s*Tage)?|Fehler|OK|Prüfen|Verstoß(?:e)?|Hinweis(?:e)?)';
-    const single = new RegExp('^(?:\\d+\\s*)?' + label + '$', 'i');
-    if (single.test(text)) return true;
-
-    const token = new RegExp('\\d+\\s*' + label, 'gi');
-    const matches = text.match(token);
-    if (!matches || matches.length === 0) return false;
-
-    const rest = text
-      .replace(token, ' ')
-      .replace(/[·|,;:/-]+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    return rest === '';
-  }
-
-  function shouldKeepSummaryElement(element) {
-    return element.matches(
-      '.month-count, .week-count, .summary-total, .summary-duty, .summary-date, ' +
-      '.summary-dow, .week-num, .week-range, .holiday-badge, .ferien-badge, ' +
-      '.vacation-badge, .summary-ai'
-    );
-  }
-
-  function removeOverviewStatusBadges() {
-    const container = document.getElementById('dutiesContainer');
-    if (!container) return;
-
-    container.querySelectorAll(
-      '.summary-status, .summary-counts, .status-badge, .badge.ok, .badge.warn, .badge.fail, ' +
-      '.status-ok, .status-warn, .status-fail, [data-status]'
-    ).forEach((element) => element.remove());
-
-    container.querySelectorAll(
-      'details.month-group > summary, ' +
-      'details.week-group > summary, ' +
-      'details.day-group > summary'
-    ).forEach((summary) => {
-      const descendants = [...summary.querySelectorAll('*')];
-      descendants.forEach((element) => {
-        if (!element.isConnected || shouldKeepSummaryElement(element)) return;
-        if (isStatusOnlyText(element.textContent)) element.remove();
-      });
-
-      // Leere Hüllen entfernen, die nach dem Löschen der einzelnen Plaketten übrig bleiben.
-      [...summary.querySelectorAll('*')].forEach((element) => {
-        if (!element.isConnected || shouldKeepSummaryElement(element)) return;
-        if (element.children.length === 0 && !normalizeStatusText(element.textContent)) element.remove();
-      });
-    });
   }
 
   function normalizeCalendarWeeks() {
@@ -264,20 +216,9 @@
     }
   }
 
-  function runOverviewCleanup() {
-    if (cleanupRunning) return;
-    cleanupRunning = true;
-    try {
-      normalizeCalendarWeeks();
-      removeOverviewStatusBadges();
-    } finally {
-      cleanupRunning = false;
-    }
-  }
-
-  function scheduleCleanup(delay = 0) {
-    window.clearTimeout(cleanupTimer);
-    cleanupTimer = window.setTimeout(runOverviewCleanup, delay);
+  function scheduleWeekFix(delay = 0) {
+    window.clearTimeout(window.__dienstpilotWeekFixTimer);
+    window.__dienstpilotWeekFixTimer = window.setTimeout(normalizeCalendarWeeks, delay);
   }
 
   function installRenderHook(functionName) {
@@ -286,20 +227,11 @@
 
     const wrapped = function (...args) {
       const result = original.apply(this, args);
-      scheduleCleanup(0);
+      scheduleWeekFix(0);
       return result;
     };
     wrapped[WEEK_FIX_MARK] = true;
     window[functionName] = wrapped;
-  }
-
-  function installOverviewObserver() {
-    const container = document.getElementById('dutiesContainer');
-    if (!container || container[OBSERVER_MARK]) return;
-
-    const observer = new MutationObserver(() => scheduleCleanup(20));
-    observer.observe(container, { childList: true, subtree: true, characterData: true });
-    container[OBSERVER_MARK] = observer;
   }
 
   function start() {
@@ -310,8 +242,7 @@
     ensureVacationButton();
     installRenderHook('renderDuties');
     installRenderHook('renderAll');
-    installOverviewObserver();
-    scheduleCleanup(0);
+    scheduleWeekFix(0);
 
     document.addEventListener('click', (event) => {
       const button = event.target.closest?.('#' + BUTTON_ID);
@@ -319,13 +250,13 @@
         event.preventDefault();
         openVacationSettings();
       }
-      scheduleCleanup(80);
+      scheduleWeekFix(80);
     }, true);
 
-    document.addEventListener('change', () => scheduleCleanup(80), true);
-    window.addEventListener('focus', () => scheduleCleanup(0));
+    document.addEventListener('change', () => scheduleWeekFix(80), true);
 
-    [300, 1000, 2500].forEach((delay) => {
+    // Nur begrenzte Startdurchläufe. Kein MutationObserver und kein DOM-Löschzyklus.
+    [300, 1000].forEach((delay) => {
       window.setTimeout(() => {
         installStatusStyles();
         disableUnusedRenderers();
@@ -334,8 +265,7 @@
         ensureVacationButton();
         installRenderHook('renderDuties');
         installRenderHook('renderAll');
-        installOverviewObserver();
-        runOverviewCleanup();
+        normalizeCalendarWeeks();
       }, delay);
     });
   }
