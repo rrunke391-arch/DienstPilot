@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DienstPilot reparieren</title>
+  <style>
+    body{font-family:Arial,sans-serif;background:#f1f5f9;color:#0f172a;margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;box-sizing:border-box}
+    main{width:min(620px,100%);background:white;border:1px solid #cbd5e1;border-radius:18px;padding:26px;box-shadow:0 16px 45px rgba(15,23,42,.14)}
+    h1{margin-top:0} p{line-height:1.55} #status{font-weight:700;padding:14px;border-radius:12px;background:#e0f2fe;margin:18px 0}
+    button{border:0;border-radius:12px;background:#2563eb;color:white;font-size:17px;font-weight:700;padding:14px 18px;cursor:pointer;width:100%}
+    .small{font-size:13px;color:#475569}
+  </style>
+</head>
+<body>
+<main>
+  <h1>DienstPilot-Reparatur</h1>
+  <p>Diese Seite entfernt ausschließlich alte Programmdateien aus dem Browser-Cache. Gespeicherte Dienstpläne, Urlaube, Passwörter und Anmeldedaten werden nicht gelöscht.</p>
+  <div id="status">Reparatur wird vorbereitet …</div>
+  <button id="start" type="button">Reparatur jetzt starten</button>
+  <p class="small">Das Fenster wechselt nach erfolgreicher Reparatur automatisch zurück zu DienstPilot.</p>
+</main>
+<script>
+(() => {
+  'use strict';
+  const status = document.getElementById('status');
+  const button = document.getElementById('start');
+  let running = false;
+
+  const files = [
+    './index.html',
+    './sw.js?v=dienstpilot-8',
+    './src/auth.js?v=dienstpilot-8',
+    './src/role-guard.js?v=dienstpilot-2',
+    './src/signout.js?v=dienstpilot-1',
+    './src/password-eye.js?v=dienstpilot-1',
+    './src/admin-users.js?v=dienstpilot-1',
+    './src/server-data-bridge.js?v=dienstpilot-1',
+    './src/august-start-reset.js?v=dienstpilot-2',
+    './src/app.js?v=dienstpilot-8',
+    './src/manual-server-save.js?v=dienstpilot-2',
+    './src/print-duty-plan.js?v=dienstpilot-8',
+    './src/urlaub-ui-fix.js?v=dienstpilot-8',
+    './src/styles.css?v=dienstpilot-8',
+    './src/stats.css?v=dienstpilot-8',
+    './src/auth-lock.css?v=dienstpilot-1'
+  ];
+
+  async function repair() {
+    if (running) return;
+    running = true;
+    button.disabled = true;
+    button.textContent = 'Reparatur läuft …';
+
+    try {
+      status.textContent = 'Alte Hintergrunddienste werden entfernt …';
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+      }
+
+      status.textContent = 'Alter App-Cache wird entfernt …';
+      if ('caches' in window) {
+        const names = await caches.keys();
+        await Promise.all(names.map((name) => caches.delete(name)));
+      }
+
+      status.textContent = 'Korrigierte Programmdateien werden geladen …';
+      for (const file of files) {
+        try {
+          await fetch(file, { cache: 'reload', credentials: 'same-origin' });
+        } catch (_) {
+          // Einzelne optionale Datei darf fehlen; der Start wird trotzdem versucht.
+        }
+      }
+
+      status.textContent = 'Reparatur abgeschlossen. DienstPilot wird geöffnet …';
+      window.setTimeout(() => {
+        location.replace('./?repariert=20260710-5');
+      }, 700);
+    } catch (error) {
+      status.textContent = 'Die automatische Reparatur konnte nicht vollständig ausgeführt werden. Bitte Chrome schließen und die Seite erneut öffnen.';
+      button.disabled = false;
+      button.textContent = 'Noch einmal versuchen';
+      running = false;
+    }
+  }
+
+  button.addEventListener('click', repair);
+  window.setTimeout(repair, 500);
+})();
+</script>
+</body>
+</html>
