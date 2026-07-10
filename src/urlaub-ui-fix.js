@@ -141,6 +141,32 @@
     return '';
   }
 
+  function removeOverviewStatusBadges() {
+    const container = document.getElementById('dutiesContainer');
+    if (!container) return;
+
+    // Technische Statusklassen direkt entfernen.
+    container.querySelectorAll(
+      '.summary-status, .status-badge, .badge.ok, .badge.warn, .badge.fail, ' +
+      '.status-ok, .status-warn, .status-fail'
+    ).forEach((element) => element.remove());
+
+    // Zusätzlich nach sichtbarem Text filtern. Das erfasst auch die Monatschips
+    // „Arbeit“, „frei“ und „Fehler“, deren Klassennamen je nach Version variieren.
+    const statusText = /^(?:\d+\s+)?(?:Arbeit|frei|Fehler|OK|Verstoß|Verstöße|Hinweis|Hinweise)$/i;
+    container.querySelectorAll(
+      'details.month-group > summary span, ' +
+      'details.week-group > summary span, ' +
+      'details.day-group > summary span'
+    ).forEach((element) => {
+      // Die eigentliche Tagesangabe „Frei“ bleibt als Information erhalten;
+      // nur die zusätzliche farbige Statusplakette wird entfernt.
+      if (element.classList.contains('summary-duty')) return;
+      const text = String(element.textContent || '').trim();
+      if (statusText.test(text)) element.remove();
+    });
+  }
+
   function normalizeCalendarWeeks() {
     const container = document.getElementById('dutiesContainer');
     if (!container) return;
@@ -215,9 +241,14 @@
     }
   }
 
+  function runOverviewCleanup() {
+    normalizeCalendarWeeks();
+    removeOverviewStatusBadges();
+  }
+
   function scheduleWeekFix() {
     window.clearTimeout(window.__dienstpilotWeekFixTimer);
-    window.__dienstpilotWeekFixTimer = window.setTimeout(normalizeCalendarWeeks, 0);
+    window.__dienstpilotWeekFixTimer = window.setTimeout(runOverviewCleanup, 0);
   }
 
   function installRenderHook(functionName) {
@@ -263,7 +294,7 @@
         ensureVacationButton();
         installRenderHook('renderDuties');
         installRenderHook('renderAll');
-        normalizeCalendarWeeks();
+        runOverviewCleanup();
       }, delay);
     });
   }
