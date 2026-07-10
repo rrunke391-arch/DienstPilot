@@ -1,0 +1,43 @@
+/* Dauerhafte DienstPilot-Bereinigung: nur Anzeige, keine Daten werden verändert. */
+
+/* Übersicht: sämtliche Status- und Prüfplaketten ausblenden. */
+#dutiesContainer summary .summary-counts,
+#dutiesContainer summary .summary-status,
+#dutiesContainer summary .status-badge,
+#dutiesContainer summary [data-status],
+#dutiesContainer summary [class*="status-"] {
+  display: none !important;
+}
+
+/* Dienstkatalog: Prüfstatistik, Problemhinweise und Prüfschalter entfernen. */
+#tab-katalog #catalogReviewStats,
+#tab-katalog .catalog-review-stats,
+#tab-katalog .catalog-card-review,
+#tab-katalog .cat-review-note,
+#tab-katalog .cat-review-note-edit,
+#tab-katalog .review-btn,
+#tab-katalog .badge.problem,
+#tab-katalog .problem-badge,
+#tab-katalog [data-review-status],
+#tab-katalog [class*="review-status"] {
+  display: none !important;
+}
+
+#tab-katalog .catalog-card.cat-has-problem,
+#tab-katalog .catalog-card.cat-review-errors,
+#tab-katalog .catalog-card.problem,
+#tab-katalog .catalog-card.error {
+  border-color: var(--slate-200, #e2e8f0) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Statistik: Gesamtstatus mit Verstößen und Hinweisen entfernen. */
+#tab-statistik #overallPanel,
+#tab-statistik .stats-status {
+  display: none !important;
+}
+
+#tab-statistik .stats-header {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
