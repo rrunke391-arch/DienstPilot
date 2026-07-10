@@ -37,6 +37,49 @@
     };
   }
 
+  function mondayOfIsoWeekUtc(weekKey) {
+    const m = String(weekKey || '').match(/^(\d{4})-KW(\d+)/);
+    if (!m) return null;
+    const year = Number(m[1]);
+    const week = Number(m[2]);
+    const jan4 = new Date(Date.UTC(year, 0, 4, 12, 0, 0));
+    const jan4Day = jan4.getUTCDay() || 7;
+    const monday = new Date(jan4);
+    monday.setUTCDate(jan4.getUTCDate() - jan4Day + 1 + (week - 1) * 7);
+    return monday;
+  }
+
+  function addUtcDays(date, days) {
+    const d = new Date(date.getTime());
+    d.setUTCDate(d.getUTCDate() + days);
+    return d;
+  }
+
+  function formatWeekRangeUtc(monday, sunday) {
+    const dd = (d) => String(d.getUTCDate()).padStart(2, '0');
+    const mm = (d) => String(d.getUTCMonth() + 1).padStart(2, '0');
+    if (monday.getUTCMonth() === sunday.getUTCMonth() && monday.getUTCFullYear() === sunday.getUTCFullYear()) {
+      return dd(monday) + '.–' + dd(sunday) + '.' + mm(sunday) + '.' + sunday.getUTCFullYear();
+    }
+    return dd(monday) + '.' + mm(monday) + '.–' + dd(sunday) + '.' + mm(sunday) + '.' + sunday.getUTCFullYear();
+  }
+
+  function fixRenderedWeekRanges() {
+    const container = document.getElementById('dutiesContainer');
+    if (!container) return;
+    container.querySelectorAll('details.week-group[data-week]').forEach((weekGroup) => {
+      const key = weekGroup.dataset.week || '';
+      const monday = mondayOfIsoWeekUtc(key);
+      if (!monday) return;
+      const sunday = addUtcDays(monday, 6);
+      const range = weekGroup.querySelector(':scope > summary .week-range');
+      if (range) range.textContent = formatWeekRangeUtc(monday, sunday);
+      const num = weekGroup.querySelector(':scope > summary .week-num');
+      const match = key.match(/KW(\d+)/);
+      if (num && match) num.textContent = 'KW ' + Number(match[1]);
+    });
+  }
+
   installIsoWeekFix();
 
   function normalize(value) {
@@ -145,6 +188,7 @@
 
   function installButton() {
     installIsoWeekFix();
+    fixRenderedWeekRanges();
     if (document.getElementById('dpManualServerSave')) return;
     const toolbar = document.querySelector('.profile-toolbar') || document.querySelector('.toolbar');
     if (!toolbar) return;
@@ -172,5 +216,10 @@
     installButton();
   }
 
-  new MutationObserver(installButton).observe(document.documentElement, { childList: true, subtree: true });
+  const observer = new MutationObserver(() => {
+    installButton();
+    clearTimeout(window.__dienstpilotKwFixTimer);
+    window.__dienstpilotKwFixTimer = setTimeout(fixRenderedWeekRanges, 60);
+  });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
 })();
