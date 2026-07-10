@@ -78,17 +78,22 @@
     refreshName();
   }
 
-  function loadVacationPersistence() {
-    if (document.getElementById('dpVacationPersistenceV3')) return;
+  function loadScript(id, src) {
+    if (document.getElementById(id)) return;
     const script = document.createElement('script');
-    script.id = 'dpVacationPersistenceV3';
-    script.src = 'src/vacation-persistence-v3.js?v=20260710-3';
+    script.id = id;
+    script.src = src;
     document.head.appendChild(script);
+  }
+
+  function loadVacationModules() {
+    loadScript('dpVacationPersistenceV3', 'src/vacation-persistence-v3.js?v=20260710-4');
+    loadScript('dpDriverVacationAccess', 'src/driver-vacation-access.js?v=20260710-1');
   }
 
   onReady(() => {
     createButton();
-    loadVacationPersistence();
+    loadVacationModules();
     document.addEventListener('click', (event) => {
       if (event.target.closest && event.target.closest('#loginButton')) {
         setTimeout(refreshName, 500);
