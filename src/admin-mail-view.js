@@ -170,3 +170,12 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
   else start();
 })();
+
+(() => {
+  'use strict';
+  if (document.getElementById('dpSecureInviteScript')) return;
+  const script = document.createElement('script');
+  script.id = 'dpSecureInviteScript';
+  script.src = 'src/invite-flow.js?v=dienstpilot-1';
+  document.head.appendChild(script);
+})();
