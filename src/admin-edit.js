@@ -4,6 +4,7 @@
   const USER_KEY = 'dienstpilot_user';
   const ACTIVE_TAB_KEY = 'lrz-active-tab';
   const INSTALL_MARK = 'dienstpilotCatalogRestoreInstalled';
+  const REVIEW_STYLE_ID = 'dienstpilotCatalogReviewCleanupStyles';
 
   function readUser() {
     try {
@@ -16,6 +17,58 @@
   function isAdministrator() {
     const user = readUser();
     return Boolean(user && user.role === 'Administrator');
+  }
+
+  function installReviewCleanupStyles() {
+    if (document.getElementById(REVIEW_STYLE_ID)) return;
+
+    const style = document.createElement('style');
+    style.id = REVIEW_STYLE_ID;
+    style.textContent = `
+      #tab-katalog #catalogReviewStats,
+      #tab-katalog .catalog-review-stats,
+      #tab-katalog .catalog-card-review,
+      #tab-katalog .cat-review-note,
+      #tab-katalog .cat-review-note-edit,
+      #tab-katalog .review-btn,
+      #tab-katalog .badge.problem,
+      #tab-katalog .problem-badge,
+      #tab-katalog [data-review-status],
+      #tab-katalog [class*="review-status"] {
+        display: none !important;
+      }
+
+      #tab-katalog .catalog-card.cat-has-problem,
+      #tab-katalog .catalog-card.cat-review-errors,
+      #tab-katalog .catalog-card.problem,
+      #tab-katalog .catalog-card.error {
+        border-color: var(--slate-200, #e2e8f0) !important;
+        outline: none !important;
+        box-shadow: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function cleanCatalogReviewArtifacts() {
+    const section = document.getElementById('tab-katalog');
+    if (!section) return;
+
+    section.querySelectorAll(
+      '#catalogReviewStats, .catalog-review-stats, .catalog-card-review, ' +
+      '.cat-review-note, .cat-review-note-edit, .review-btn, .badge.problem, ' +
+      '.problem-badge, [data-review-status], [class*="review-status"]'
+    ).forEach((element) => element.remove());
+
+    section.querySelectorAll(
+      '.catalog-card.cat-has-problem, .catalog-card.cat-review-errors, ' +
+      '.catalog-card.problem, .catalog-card.error'
+    ).forEach((card) => {
+      card.classList.remove('cat-has-problem', 'cat-review-errors', 'problem', 'error');
+      card.style.removeProperty('border-color');
+      card.style.removeProperty('outline');
+      card.style.removeProperty('box-shadow');
+    });
   }
 
   function buildCatalogSection() {
@@ -36,7 +89,6 @@
           </div>
         </div>
         <div id="uploadStatusCatalog" class="upload-status hidden" role="status" aria-live="polite"></div>
-        <div id="catalogReviewStats" class="catalog-review-stats hidden"></div>
         <div class="catalog-grid" id="catalogGrid"></div>
       </div>
     `;
@@ -68,11 +120,15 @@
     if (typeof window.renderCatalog === 'function') {
       window.renderCatalog();
     }
+
+    window.setTimeout(cleanCatalogReviewArtifacts, 0);
+    window.setTimeout(cleanCatalogReviewArtifacts, 120);
   }
 
   function ensureCatalogForAdministrator() {
     if (!isAdministrator()) return;
 
+    installReviewCleanupStyles();
     document.body.classList.remove('role-fahrer');
 
     const nav = document.querySelector('nav.tabs, .tabs');
@@ -117,6 +173,8 @@
     const fileInput = section.querySelector('#dienstkarteFilesCatalog');
     if (fileInput) fileInput.style.display = 'none';
 
+    cleanCatalogReviewArtifacts();
+
     if (!button.dataset.catalogRestoreHandler) {
       button.dataset.catalogRestoreHandler = 'yes';
       button.addEventListener('click', (event) => {
@@ -131,6 +189,8 @@
 
     if (typeof window.renderCatalog === 'function') {
       window.renderCatalog();
+      window.setTimeout(cleanCatalogReviewArtifacts, 0);
+      window.setTimeout(cleanCatalogReviewArtifacts, 120);
     }
   }
 
@@ -138,6 +198,7 @@
     if (window[INSTALL_MARK]) return;
     window[INSTALL_MARK] = true;
 
+    installReviewCleanupStyles();
     ensureCatalogForAdministrator();
 
     document.addEventListener('click', (event) => {
@@ -147,7 +208,10 @@
     }, true);
 
     [250, 800, 1800, 3500].forEach((delay) => {
-      window.setTimeout(ensureCatalogForAdministrator, delay);
+      window.setTimeout(() => {
+        ensureCatalogForAdministrator();
+        cleanCatalogReviewArtifacts();
+      }, delay);
     });
   }
 
