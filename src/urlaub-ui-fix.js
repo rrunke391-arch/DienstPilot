@@ -46,6 +46,16 @@
       #dutiesContainer summary [class*="status-"] {
         display: none !important;
       }
+
+      /* Statistik: Gesamtstatus mit Verstößen und Hinweisen vollständig entfernen. */
+      #tab-statistik #overallPanel,
+      #tab-statistik .stats-status {
+        display: none !important;
+      }
+
+      #tab-statistik .stats-header {
+        grid-template-columns: minmax(0, 1fr) !important;
+      }
     `;
     document.head.appendChild(style);
   }
