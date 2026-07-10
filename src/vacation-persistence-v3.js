@@ -14,6 +14,7 @@
   let saveTimer = null;
   let saveInProgress = null;
   let loadSequence = 0;
+  let lastObservedSession = '';
 
   function normalize(value) {
     return String(value || '')
@@ -457,7 +458,21 @@
       if (event.key === 'Enter' && event.target?.id === 'vacationFormLabel') {
         scheduleSave(0, { allowEmptyDuties: false });
       }
+      if (event.key === 'Enter' && (event.target?.id === 'appUsername' || event.target?.id === 'appPassword')) {
+        [700, 1500, 3000].forEach((delay) => window.setTimeout(() => void loadNow(), delay));
+      }
     }, true);
+  }
+
+  function installSessionWatcher() {
+    window.setInterval(() => {
+      const currentToken = token();
+      const profile = activeProfile();
+      const signature = currentToken && profile ? currentToken.slice(-12) + '|' + profile : '';
+      if (!signature || signature === lastObservedSession) return;
+      lastObservedSession = signature;
+      void loadNow(profile);
+    }, 1000);
   }
 
   window.dienstpilotFlushBeforeSignout = async function dienstpilotFlushBeforeSignout() {
@@ -474,6 +489,7 @@
 
   patchLocalPlanFunctions();
   installEvents();
+  installSessionWatcher();
 
   [300, 900, 1800].forEach((delay) => {
     window.setTimeout(() => {
