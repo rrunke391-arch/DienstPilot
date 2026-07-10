@@ -3,7 +3,12 @@
 
   const BUTTON_ID = 'openJahresurlaubFix';
   const WEEK_FIX_MARK = '__dienstpilotCrossMonthWeekFix';
+  const OBSERVER_MARK = '__dienstpilotOverviewCleanupObserver';
+  const STYLE_ID = 'dienstpilotOverviewCleanupStyles';
   const REMOVED_TABS = new Set(['auswertung', 'tests']);
+
+  let cleanupRunning = false;
+  let cleanupTimer = 0;
 
   function ready(fn) {
     if (document.readyState === 'loading') {
@@ -14,9 +19,6 @@
   }
 
   function disableUnusedRenderers() {
-    // Die Bereiche Auswertung und interne Tests werden nicht mehr angezeigt.
-    // Ihre Renderer werden auf No-op gesetzt, damit renderAll() auch nach dem
-    // Entfernen der DOM-Bereiche weiterhin gefahrlos aufgerufen werden kann.
     window.renderMessages = () => {};
     window.renderOverview = () => {};
     window.renderTests = () => {};
@@ -97,6 +99,21 @@
     }, 50);
   }
 
+  function installStatusStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = `
+      #dutiesContainer .summary-status,
+      #dutiesContainer .summary-counts,
+      #dutiesContainer summary [data-status],
+      #dutiesContainer summary [class*="status-"] {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   function ownerMonthForIsoWeek(weekKey) {
     const match = String(weekKey || '').match(/^(\d{4})-KW(\d{1,2})$/);
     if (!match) return '';
@@ -108,8 +125,6 @@
     const monday = new Date(jan4);
     monday.setUTCDate(jan4.getUTCDate() - jan4Day + 1 + (week - 1) * 7);
 
-    // Eine über den Monatswechsel laufende ISO-Woche gehört zu dem Monat,
-    // in dem ihr Donnerstag liegt. Dadurch erscheint jede KW genau einmal.
     const thursday = new Date(monday);
     thursday.setUTCDate(monday.getUTCDate() + 3);
     return thursday.getUTCFullYear() + '-' + String(thursday.getUTCMonth() + 1).padStart(2, '0');
@@ -133,37 +148,67 @@
     return `Σ ${hours} Std. ${String(minutes).padStart(2, '0')} Min.`;
   }
 
-  function statusKind(element) {
-    const text = String(element?.textContent || '');
-    if (/Verstoß/i.test(text)) return 'fail';
-    if (/Hinweis/i.test(text)) return 'warn';
-    if (/\bOK\b/i.test(text)) return 'ok';
-    return '';
+  function normalizeStatusText(value) {
+    return String(value || '')
+      .replace(/\u00a0/g, ' ')
+      .replace(/[✓✔✕×!⊘]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function isStatusOnlyText(value) {
+    const text = normalizeStatusText(value);
+    if (!text) return false;
+
+    const label = '(?:Arbeit(?:stage)?|frei(?:e\\s*Tage)?|Fehler|OK|Prüfen|Verstoß(?:e)?|Hinweis(?:e)?)';
+    const single = new RegExp('^(?:\\d+\\s*)?' + label + '$', 'i');
+    if (single.test(text)) return true;
+
+    const token = new RegExp('\\d+\\s*' + label, 'gi');
+    const matches = text.match(token);
+    if (!matches || matches.length === 0) return false;
+
+    const rest = text
+      .replace(token, ' ')
+      .replace(/[·|,;:/-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return rest === '';
+  }
+
+  function shouldKeepSummaryElement(element) {
+    return element.matches(
+      '.month-count, .week-count, .summary-total, .summary-duty, .summary-date, ' +
+      '.summary-dow, .week-num, .week-range, .holiday-badge, .ferien-badge, ' +
+      '.vacation-badge, .summary-ai'
+    );
   }
 
   function removeOverviewStatusBadges() {
     const container = document.getElementById('dutiesContainer');
     if (!container) return;
 
-    // Technische Statusklassen direkt entfernen.
     container.querySelectorAll(
-      '.summary-status, .status-badge, .badge.ok, .badge.warn, .badge.fail, ' +
-      '.status-ok, .status-warn, .status-fail'
+      '.summary-status, .summary-counts, .status-badge, .badge.ok, .badge.warn, .badge.fail, ' +
+      '.status-ok, .status-warn, .status-fail, [data-status]'
     ).forEach((element) => element.remove());
 
-    // Zusätzlich nach sichtbarem Text filtern. Das erfasst auch die Monatschips
-    // „Arbeit“, „frei“ und „Fehler“, deren Klassennamen je nach Version variieren.
-    const statusText = /^(?:\d+\s+)?(?:Arbeit|frei|Fehler|OK|Verstoß|Verstöße|Hinweis|Hinweise)$/i;
     container.querySelectorAll(
-      'details.month-group > summary span, ' +
-      'details.week-group > summary span, ' +
-      'details.day-group > summary span'
-    ).forEach((element) => {
-      // Die eigentliche Tagesangabe „Frei“ bleibt als Information erhalten;
-      // nur die zusätzliche farbige Statusplakette wird entfernt.
-      if (element.classList.contains('summary-duty')) return;
-      const text = String(element.textContent || '').trim();
-      if (statusText.test(text)) element.remove();
+      'details.month-group > summary, ' +
+      'details.week-group > summary, ' +
+      'details.day-group > summary'
+    ).forEach((summary) => {
+      const descendants = [...summary.querySelectorAll('*')];
+      descendants.forEach((element) => {
+        if (!element.isConnected || shouldKeepSummaryElement(element)) return;
+        if (isStatusOnlyText(element.textContent)) element.remove();
+      });
+
+      // Leere Hüllen entfernen, die nach dem Löschen der einzelnen Plaketten übrig bleiben.
+      [...summary.querySelectorAll('*')].forEach((element) => {
+        if (!element.isConnected || shouldKeepSummaryElement(element)) return;
+        if (element.children.length === 0 && !normalizeStatusText(element.textContent)) element.remove();
+      });
     });
   }
 
@@ -189,21 +234,12 @@
 
       let dutyDays = 0;
       let totalMinutes = 0;
-      const statusCounts = { ok: 0, warn: 0, fail: 0 };
-      const statusTemplates = {};
       const daysByDate = new Map();
 
       groups.forEach((group) => {
         const summary = group.querySelector(':scope > summary');
         dutyDays += parseCount(summary?.querySelector('.week-count'));
         totalMinutes += parseMinutes(summary?.querySelector('.summary-total'));
-
-        summary?.querySelectorAll(':scope > span').forEach((span) => {
-          const kind = statusKind(span);
-          if (!kind) return;
-          statusCounts[kind] += parseCount(span);
-          if (!statusTemplates[kind]) statusTemplates[kind] = span.cloneNode(true);
-        });
 
         group.querySelectorAll(':scope > details.day-group[data-day]').forEach((day) => {
           const date = day.dataset.day || '';
@@ -225,30 +261,23 @@
 
       const totalElement = ownerSummary?.querySelector('.summary-total');
       if (totalElement) totalElement.textContent = formatMinutes(totalMinutes);
-
-      ownerSummary?.querySelectorAll(':scope > span').forEach((span) => {
-        if (statusKind(span)) span.remove();
-      });
-
-      const labels = { ok: 'OK', warn: 'Hinweis', fail: 'Verstoß' };
-      for (const kind of ['ok', 'warn', 'fail']) {
-        const count = statusCounts[kind];
-        if (!count) continue;
-        const badge = statusTemplates[kind] || document.createElement('span');
-        badge.textContent = `${count} ${count === 1 ? labels[kind] : (kind === 'warn' ? 'Hinweise' : kind === 'fail' ? 'Verstöße' : 'OK')}`;
-        ownerSummary?.appendChild(badge);
-      }
     }
   }
 
   function runOverviewCleanup() {
-    normalizeCalendarWeeks();
-    removeOverviewStatusBadges();
+    if (cleanupRunning) return;
+    cleanupRunning = true;
+    try {
+      normalizeCalendarWeeks();
+      removeOverviewStatusBadges();
+    } finally {
+      cleanupRunning = false;
+    }
   }
 
-  function scheduleWeekFix() {
-    window.clearTimeout(window.__dienstpilotWeekFixTimer);
-    window.__dienstpilotWeekFixTimer = window.setTimeout(runOverviewCleanup, 0);
+  function scheduleCleanup(delay = 0) {
+    window.clearTimeout(cleanupTimer);
+    cleanupTimer = window.setTimeout(runOverviewCleanup, delay);
   }
 
   function installRenderHook(functionName) {
@@ -257,21 +286,32 @@
 
     const wrapped = function (...args) {
       const result = original.apply(this, args);
-      scheduleWeekFix();
+      scheduleCleanup(0);
       return result;
     };
     wrapped[WEEK_FIX_MARK] = true;
     window[functionName] = wrapped;
   }
 
+  function installOverviewObserver() {
+    const container = document.getElementById('dutiesContainer');
+    if (!container || container[OBSERVER_MARK]) return;
+
+    const observer = new MutationObserver(() => scheduleCleanup(20));
+    observer.observe(container, { childList: true, subtree: true, characterData: true });
+    container[OBSERVER_MARK] = observer;
+  }
+
   function start() {
+    installStatusStyles();
     disableUnusedRenderers();
     removeUnusedAreas();
     ensureOverviewActive();
     ensureVacationButton();
     installRenderHook('renderDuties');
     installRenderHook('renderAll');
-    scheduleWeekFix();
+    installOverviewObserver();
+    scheduleCleanup(0);
 
     document.addEventListener('click', (event) => {
       const button = event.target.closest?.('#' + BUTTON_ID);
@@ -279,21 +319,22 @@
         event.preventDefault();
         openVacationSettings();
       }
-      window.setTimeout(scheduleWeekFix, 80);
+      scheduleCleanup(80);
     }, true);
 
-    document.addEventListener('change', () => window.setTimeout(scheduleWeekFix, 80), true);
-    window.addEventListener('focus', scheduleWeekFix);
+    document.addEventListener('change', () => scheduleCleanup(80), true);
+    window.addEventListener('focus', () => scheduleCleanup(0));
 
-    // Begrenzte Nachläufe statt MutationObserver: keine Endlosschleife möglich.
     [300, 1000, 2500].forEach((delay) => {
       window.setTimeout(() => {
+        installStatusStyles();
         disableUnusedRenderers();
         removeUnusedAreas();
         ensureOverviewActive();
         ensureVacationButton();
         installRenderHook('renderDuties');
         installRenderHook('renderAll');
+        installOverviewObserver();
         runOverviewCleanup();
       }, delay);
     });
