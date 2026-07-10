@@ -3,6 +3,7 @@
 
   const BUTTON_ID = 'openJahresurlaubFix';
   const WEEK_FIX_MARK = '__dienstpilotCrossMonthWeekFix';
+  const REMOVED_TABS = new Set(['auswertung', 'tests']);
 
   function ready(fn) {
     if (document.readyState === 'loading') {
@@ -12,8 +13,44 @@
     }
   }
 
+  function disableUnusedRenderers() {
+    // Die Bereiche Auswertung und interne Tests werden nicht mehr angezeigt.
+    // Ihre Renderer werden auf No-op gesetzt, damit renderAll() auch nach dem
+    // Entfernen der DOM-Bereiche weiterhin gefahrlos aufgerufen werden kann.
+    window.renderMessages = () => {};
+    window.renderOverview = () => {};
+    window.renderTests = () => {};
+  }
+
+  function ensureOverviewActive() {
+    const overviewButton = document.querySelector('.tab[data-tab="eingabe"]');
+    const overviewSection = document.getElementById('tab-eingabe');
+    if (!overviewButton || !overviewSection) return;
+
+    const activeButton = document.querySelector('.tab.active');
+    if (activeButton && !REMOVED_TABS.has(activeButton.dataset.tab)) return;
+
+    document.querySelectorAll('.tab').forEach((button) => button.classList.remove('active'));
+    overviewButton.classList.add('active');
+    document.querySelectorAll('main > section[id^="tab-"]').forEach((section) => {
+      section.classList.toggle('hidden', section !== overviewSection);
+    });
+    try {
+      localStorage.setItem('lrz-active-tab', 'eingabe');
+    } catch {
+      // Private Browsermodi dürfen die Speicherung blockieren.
+    }
+  }
+
   function removeUnusedAreas() {
-    document.querySelectorAll('.tab[data-tab="tests"], #tab-tests').forEach((element) => element.remove());
+    const removedWasActive = Boolean(document.querySelector(
+      '.tab.active[data-tab="auswertung"], .tab.active[data-tab="tests"]'
+    ));
+
+    document.querySelectorAll(
+      '.tab[data-tab="auswertung"], #tab-auswertung, ' +
+      '.tab[data-tab="tests"], #tab-tests'
+    ).forEach((element) => element.remove());
 
     document.querySelectorAll(
       '#catalogReviewStats .crs-errors, #catalogReviewStats .crs-open, ' +
@@ -23,6 +60,8 @@
     document.querySelectorAll('.catalog-card.cat-has-problem, .catalog-card.cat-review-errors').forEach((element) => {
       element.classList.remove('cat-has-problem', 'cat-review-errors');
     });
+
+    if (removedWasActive || !document.querySelector('.tab.active')) ensureOverviewActive();
   }
 
   function ensureVacationButton() {
@@ -195,7 +234,9 @@
   }
 
   function start() {
+    disableUnusedRenderers();
     removeUnusedAreas();
+    ensureOverviewActive();
     ensureVacationButton();
     installRenderHook('renderDuties');
     installRenderHook('renderAll');
@@ -216,7 +257,9 @@
     // Begrenzte Nachläufe statt MutationObserver: keine Endlosschleife möglich.
     [300, 1000, 2500].forEach((delay) => {
       window.setTimeout(() => {
+        disableUnusedRenderers();
         removeUnusedAreas();
+        ensureOverviewActive();
         ensureVacationButton();
         installRenderHook('renderDuties');
         installRenderHook('renderAll');
