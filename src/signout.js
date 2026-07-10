@@ -18,7 +18,7 @@
     if (document.getElementById('dpSignoutStyle')) return;
     const style = document.createElement('style');
     style.id = 'dpSignoutStyle';
-    style.textContent = '.dp-signout-area{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}.dp-user-pill{border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:8px 12px;background:rgba(15,23,42,.45);color:#fff;font-size:13px;font-weight:800}.dp-signout-btn{border:1px solid rgba(255,255,255,.32);border-radius:999px;padding:9px 14px;background:#fff;color:#0f172a;font-weight:900;cursor:pointer}@media(max-width:700px){.dp-signout-area{width:100%;justify-content:flex-start;margin-left:0;margin-top:8px}}';
+    style.textContent = '.dp-signout-area{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}.dp-user-pill{border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:8px 12px;background:rgba(15,23,42,.45);color:#fff;font-size:13px;font-weight:800}.dp-signout-btn{border:1px solid rgba(255,255,255,.32);border-radius:999px;padding:9px 14px;background:#fff;color:#0f172a;font-weight:900;cursor:pointer}.dp-signout-btn:disabled{opacity:.65;cursor:wait}@media(max-width:700px){.dp-signout-area{width:100%;justify-content:flex-start;margin-left:0;margin-top:8px}}';
     document.head.appendChild(style);
   }
 
@@ -29,10 +29,28 @@
     pill.textContent = user ? `${user.displayName || user.username} · ${user.role || ''}` : 'Nicht angemeldet';
   }
 
-  function doSignout() {
+  async function doSignout() {
+    const button = document.getElementById('dpSignoutButton');
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Speichere…';
+    }
+
+    try {
+      if (typeof window.dienstpilotFlushBeforeSignout === 'function') {
+        await Promise.race([
+          Promise.resolve(window.dienstpilotFlushBeforeSignout()),
+          new Promise((resolve) => window.setTimeout(resolve, 8000))
+        ]);
+      }
+    } catch (error) {
+      console.warn('Speichern vor Abmeldung fehlgeschlagen:', error);
+    }
+
     sessionStorage.removeItem('dienstpilot_unlocked');
     sessionStorage.removeItem('dienstpilot_user');
     sessionStorage.removeItem('dienstpilot_role');
+    sessionStorage.removeItem('dienstpilot_api_token');
     window.location.reload();
   }
 
@@ -60,10 +78,21 @@
     refreshName();
   }
 
+  function loadVacationPersistence() {
+    if (document.getElementById('dpVacationPersistenceV3')) return;
+    const script = document.createElement('script');
+    script.id = 'dpVacationPersistenceV3';
+    script.src = 'src/vacation-persistence-v3.js?v=20260710-3';
+    document.head.appendChild(script);
+  }
+
   onReady(() => {
     createButton();
+    loadVacationPersistence();
     document.addEventListener('click', (event) => {
-      if (event.target.closest && event.target.closest('#loginButton')) setTimeout(refreshName, 500);
+      if (event.target.closest && event.target.closest('#loginButton')) {
+        setTimeout(refreshName, 500);
+      }
     }, true);
   });
 })();
