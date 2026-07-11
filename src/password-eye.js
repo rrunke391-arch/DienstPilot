@@ -77,7 +77,8 @@
     loadScript('dpDailyDutyPhotoAuto', 'src/daily-duty-plan-photo-auto.js?v=20260711-2');
     loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260711-1');
     loadScript('dpDailyDutySeparation', 'src/daily-duty-plan-separation.js?v=20260711-1');
-    loadScript('dpDailyDutyPrintAnytime', 'src/daily-duty-plan-print-anytime.js?v=20260711-1');
+    loadScript('dpDailyDutyPrintAnytime', 'src/daily-duty-plan-print-anytime.js?v=20260711-2');
+    loadScript('dpDailyDutyWeekendPhoto', 'src/daily-duty-plan-weekend-photo.js?v=20260711-1');
     loadScript('dpDailyDutySeparationGuard', 'src/daily-duty-plan-separation-guard.js?v=20260711-2');
   }
 
@@ -89,8 +90,6 @@
       const input = event.target.closest?.('#dpDailyPlanRows input[data-field="duty"]');
       if (!input || input.dataset.dpDutyCommit === '1') return;
 
-      // Während der Eingabe darf die Tagesplan-Funktion die Zeile nicht nach
-      // jeder Ziffer neu aufbauen. Erst beim Verlassen des Feldes wird übernommen.
       input.dataset.field = 'dutyTyping';
       queueMicrotask(() => {
         if (input.isConnected) input.dataset.field = 'duty';
