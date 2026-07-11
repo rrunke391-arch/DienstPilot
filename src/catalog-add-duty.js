@@ -4,6 +4,7 @@
   const API = 'https://api.dienstpilot-runke.de/api/data/catalog_custom';
   const TOKEN_KEY = 'dienstpilot_api_token';
   const USER_KEY = 'dienstpilot_user';
+  const ROLE_KEY = 'dienstpilot_role';
   const MAIN_KEY = 'lenkRuhezeitenRunke20260413';
   const BUTTON_ID = 'dpCatalogAddDuty';
   const MODAL_ID = 'dpCatalogEditModal';
@@ -39,17 +40,18 @@
 
   function allowed() {
     const user = currentUser();
-    const username = normalize(user.username);
-    const role = String(user.role || '').trim();
-    const permitted = (role === 'Administrator' && username === 'runke')
+    const userRole = String(user.role || '').trim();
+    const storedRole = String(sessionStorage.getItem(ROLE_KEY) || '').trim();
+    const role = userRole || storedRole;
+    const permitted = role === 'Administrator'
       || role === 'Geschaeftsleitung'
       || role === 'Geschäftsleitung';
 
     if (permitted) confirmedEditor = true;
 
-    // Beim Laden kann der Sitzungsbenutzer für einen kurzen Moment noch fehlen.
-    // Eine bereits bestätigte Admin-Sitzung darf dadurch den Schalter nicht verlieren.
-    if (!username && !role && confirmedEditor) return true;
+    // Während der Anmeldung können die Sitzungsdaten kurz nacheinander gesetzt werden.
+    // Eine bereits bestätigte Bearbeitungsrolle darf den Schalter dabei nicht verlieren.
+    if (!role && confirmedEditor && sessionStorage.getItem(TOKEN_KEY)) return true;
     return permitted;
   }
 
