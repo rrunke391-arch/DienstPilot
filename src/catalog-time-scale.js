@@ -132,7 +132,7 @@
   }
 
   document.addEventListener('click', (event) => {
-    if (!event.target.closest?.('.dp-catalog-edit')) return;
+    if (!event.target.closest?.('.dp-catalog-edit,.dp-catalog-add')) return;
     window.setTimeout(enhanceModal, 0);
     window.setTimeout(enhanceModal, 80);
   });
