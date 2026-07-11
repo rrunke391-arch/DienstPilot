@@ -1,6 +1,14 @@
 (() => {
   'use strict';
 
+  const eyeIcon = (slashed) => `
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+      <circle cx="12" cy="12" r="2.7" fill="none" stroke="currentColor" stroke-width="1.8"></circle>
+      ${slashed ? '<path d="M4 4 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path>' : ''}
+    </svg>
+  `;
+
   function start() {
     const input = document.getElementById('appPassword');
     if (!input || document.getElementById('togglePasswordVisibility')) return;
@@ -21,24 +29,30 @@
     const button = document.createElement('button');
     button.id = 'togglePasswordVisibility';
     button.type = 'button';
-    button.textContent = '👁';
+    button.innerHTML = eyeIcon(false);
     button.title = 'Passwort anzeigen';
     button.setAttribute('aria-label', 'Passwort anzeigen');
+    button.setAttribute('aria-pressed', 'false');
     button.style.minWidth = '48px';
     button.style.minHeight = '44px';
     button.style.borderRadius = '12px';
     button.style.border = '1px solid #cbd5e1';
     button.style.background = '#ffffff';
-    button.style.fontSize = '20px';
+    button.style.color = '#0f172a';
     button.style.cursor = 'pointer';
+    button.style.display = 'inline-flex';
+    button.style.alignItems = 'center';
+    button.style.justifyContent = 'center';
     row.appendChild(button);
 
     button.addEventListener('click', () => {
-      const visible = input.type === 'text';
-      input.type = visible ? 'password' : 'text';
-      button.textContent = visible ? '👁' : '🙈';
-      button.title = visible ? 'Passwort anzeigen' : 'Passwort verbergen';
+      const showPassword = input.type === 'password';
+      input.type = showPassword ? 'text' : 'password';
+      button.innerHTML = eyeIcon(showPassword);
+      button.title = showPassword ? 'Passwort verbergen' : 'Passwort anzeigen';
       button.setAttribute('aria-label', button.title);
+      button.setAttribute('aria-pressed', showPassword ? 'true' : 'false');
+      input.focus({ preventScroll: true });
     });
   }
 
