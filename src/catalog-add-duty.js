@@ -8,6 +8,7 @@
   const BUTTON_ID = 'dpCatalogAddDuty';
   const MODAL_ID = 'dpCatalogEditModal';
   const STYLE_ID = 'dpCatalogAddDutyStyle';
+  const RESERVED_NAMES = new Set(['__proto__', 'prototype', 'constructor']);
 
   function readJson(storage, key, fallback) {
     try {
@@ -24,6 +25,14 @@
 
   function normalize(value) {
     return String(value || '').trim().toLowerCase();
+  }
+
+  function cleanDutyName(value) {
+    return String(value || '')
+      .replace(/[\r\n\t]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 30);
   }
 
   function allowed() {
@@ -104,9 +113,9 @@
         </div>
         <div class="dp-cat-grid">
           <label class="dp-cat-field">
-            Dienstnummer
-            <input id="dpCatNumber" inputmode="numeric" maxlength="4" placeholder="z. B. 3026" autocomplete="off">
-            <span class="dp-cat-number-help">Vierstellige Dienstnummer</span>
+            Dienstnummer oder Bezeichnung
+            <input id="dpCatNumber" type="text" maxlength="30" placeholder="z. B. 3026 oder Reserve" autocomplete="off">
+            <span class="dp-cat-number-help">Zahlen oder Text, maximal 30 Zeichen</span>
           </label>
           <label class="dp-cat-field">
             Gültige Tage
@@ -140,7 +149,8 @@
     const saveButton = modal.querySelector('.dp-cat-save');
 
     numberInput.addEventListener('input', () => {
-      numberInput.value = numberInput.value.replace(/\D/g, '').slice(0, 4);
+      const cleaned = String(numberInput.value || '').replace(/[\r\n\t]+/g, ' ').slice(0, 30);
+      if (numberInput.value !== cleaned) numberInput.value = cleaned;
     });
 
     modal.querySelector('.dp-cat-close').addEventListener('click', closeModal);
@@ -150,14 +160,19 @@
     });
 
     saveButton.addEventListener('click', async () => {
-      const number = numberInput.value.trim();
+      const number = cleanDutyName(numberInput.value);
       const days = modal.querySelector('#dpCatDays').value;
       const start = modal.querySelector('#dpCatStart').value;
       const end = modal.querySelector('#dpCatEnd').value;
       const fridayEnd = modal.querySelector('#dpCatFriday').value;
 
-      if (!/^\d{4}$/.test(number)) {
-        message.textContent = 'Bitte eine vierstellige Dienstnummer eingeben.';
+      if (!number) {
+        message.textContent = 'Bitte eine Dienstnummer oder Bezeichnung eingeben.';
+        numberInput.focus();
+        return;
+      }
+      if (RESERVED_NAMES.has(normalize(number))) {
+        message.textContent = 'Diese Bezeichnung kann nicht verwendet werden.';
         numberInput.focus();
         return;
       }
@@ -165,8 +180,11 @@
         message.textContent = 'Der Dienstkatalog ist noch nicht vollständig geladen.';
         return;
       }
-      if (getCatalog()[number]) {
-        message.textContent = `Dienst ${number} ist bereits vorhanden.`;
+
+      const catalog = getCatalog();
+      const existingName = Object.keys(catalog).find((key) => normalize(key) === normalize(number));
+      if (existingName) {
+        message.textContent = `Dienst ${existingName} ist bereits vorhanden.`;
         numberInput.focus();
         return;
       }
