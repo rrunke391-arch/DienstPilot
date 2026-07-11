@@ -1,25 +1,23 @@
 (() => {
   'use strict';
 
-  function loadWeekdayRepair() {
-    if (!document.getElementById('dpDailyDutyWeekdayRepair')) {
-      const script = document.createElement('script');
-      script.id = 'dpDailyDutyWeekdayRepair';
-      script.src = 'src/daily-duty-plan-weekday-repair.js?v=20260711-1';
-      script.async = false;
-      document.head.appendChild(script);
-    }
-
-    if (!document.getElementById('dpDailyDutyStartRepair')) {
-      const script = document.createElement('script');
-      script.id = 'dpDailyDutyStartRepair';
-      script.src = 'src/daily-duty-plan-start-duties-repair.js?v=20260711-1';
-      script.async = false;
-      document.head.appendChild(script);
-    }
+  function loadScript(id, src) {
+    if (document.getElementById(id)) return;
+    const script = document.createElement('script');
+    script.id = id;
+    script.src = src;
+    script.async = false;
+    document.head.appendChild(script);
   }
 
-  loadWeekdayRepair();
+  function loadExtras() {
+    loadScript('dpDailyDutyWeekdayRepair', 'src/daily-duty-plan-weekday-repair.js?v=20260711-1');
+    loadScript('dpDailyDutyStartRepair', 'src/daily-duty-plan-start-duties-repair.js?v=20260711-1');
+    loadScript('dpXlsmCore', 'src/xlsm-core.js?v=20260711-1');
+    loadScript('dpXlsmExchange', 'src/xlsm-exchange.js?v=20260711-1');
+  }
+
+  loadExtras();
 
   function setStatus(text) {
     const status = document.getElementById('dpDailyPlanStatus');
