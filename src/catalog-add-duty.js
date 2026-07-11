@@ -9,6 +9,8 @@
   const MODAL_ID = 'dpCatalogEditModal';
   const STYLE_ID = 'dpCatalogAddDutyStyle';
   const RESERVED_NAMES = new Set(['__proto__', 'prototype', 'constructor']);
+  let confirmedEditor = false;
+  let renderPatched = false;
 
   function readJson(storage, key, fallback) {
     try {
@@ -37,10 +39,18 @@
 
   function allowed() {
     const user = currentUser();
+    const username = normalize(user.username);
     const role = String(user.role || '').trim();
-    return (role === 'Administrator' && normalize(user.username) === 'runke')
+    const permitted = (role === 'Administrator' && username === 'runke')
       || role === 'Geschaeftsleitung'
       || role === 'Geschäftsleitung';
+
+    if (permitted) confirmedEditor = true;
+
+    // Beim Laden kann der Sitzungsbenutzer für einen kurzen Moment noch fehlen.
+    // Eine bereits bestätigte Admin-Sitzung darf dadurch den Schalter nicht verlieren.
+    if (!username && !role && confirmedEditor) return true;
+    return permitted;
   }
 
   function addStyle() {
@@ -49,6 +59,7 @@
     style.id = STYLE_ID;
     style.textContent = `
       #${BUTTON_ID}{white-space:nowrap}
+      #${BUTTON_ID}[hidden]{display:none!important}
       .dp-cat-number-help{font-size:12px;color:#64748b;font-weight:700}
       .dp-cat-add-message{min-height:24px;margin-top:12px;font-weight:800;color:#b91c1c}
       .dp-cat-add-message.ok{color:#047857}
@@ -194,14 +205,7 @@
       }
 
       const previous = customCatalog[number];
-      customCatalog[number] = {
-        start,
-        end,
-        days,
-        fridayEnd,
-        varianten: {}
-      };
-
+      customCatalog[number] = { start, end, days, fridayEnd, varianten: {} };
       saveButton.disabled = true;
       message.className = 'dp-cat-add-message';
       message.textContent = 'Dienst wird gespeichert …';
@@ -229,15 +233,10 @@
 
   function installButton() {
     addStyle();
-    const existing = document.getElementById(BUTTON_ID);
-    if (!allowed()) {
-      existing?.remove();
-      return false;
-    }
-    if (existing) return true;
 
     const toolbar = document.querySelector('#tab-katalog .toolbar');
     if (!toolbar) return false;
+
     let group = toolbar.querySelector('.toolbar-group');
     if (!group) {
       group = document.createElement('div');
@@ -245,23 +244,64 @@
       toolbar.prepend(group);
     }
 
-    const button = document.createElement('button');
-    button.id = BUTTON_ID;
-    button.type = 'button';
-    button.className = 'btn-primary dp-catalog-add';
-    button.textContent = '＋ Dienst hinzufügen';
-    button.addEventListener('click', openModal);
-    group.prepend(button);
-    return true;
+    let button = document.getElementById(BUTTON_ID);
+    if (!button) {
+      button = document.createElement('button');
+      button.id = BUTTON_ID;
+      button.type = 'button';
+      button.className = 'btn-primary dp-catalog-add';
+      button.textContent = '＋ Dienst hinzufügen';
+    }
+
+    if (button.parentElement !== group) group.prepend(button);
+    if (button.dataset.dpBound !== '1') {
+      button.dataset.dpBound = '1';
+      button.addEventListener('click', openModal);
+    }
+
+    const canUse = allowed();
+    button.hidden = !canUse;
+    button.disabled = !canUse;
+    button.setAttribute('aria-hidden', canUse ? 'false' : 'true');
+    button.style.display = canUse ? '' : 'none';
+    return canUse;
+  }
+
+  function patchCatalogRender() {
+    if (renderPatched || typeof renderCatalog !== 'function') return;
+    const original = renderCatalog;
+    renderCatalog = function (...args) {
+      const result = original.apply(this, args);
+      installButton();
+      return result;
+    };
+    renderPatched = true;
+  }
+
+  function refreshButton() {
+    patchCatalogRender();
+    installButton();
+  }
+
+  function scheduleRefresh(delays) {
+    delays.forEach((delay) => window.setTimeout(refreshButton, delay));
   }
 
   document.addEventListener('click', (event) => {
     if (event.target.closest?.('#loginButton')) {
-      window.setTimeout(installButton, 500);
-      window.setTimeout(installButton, 1200);
+      scheduleRefresh([0, 300, 800, 1500, 3000, 5000]);
+    }
+    if (event.target.closest?.('.tab[data-tab="katalog"]')) {
+      scheduleRefresh([0, 80, 250]);
     }
   }, true);
 
-  [0, 200, 700, 1600, 3000].forEach((delay) => window.setTimeout(installButton, delay));
-  window.setInterval(installButton, 2500);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refreshButton();
+  });
+  window.addEventListener('focus', refreshButton);
+  window.addEventListener('pageshow', refreshButton);
+
+  scheduleRefresh([0, 100, 400, 1000, 2500, 5000]);
+  window.setInterval(refreshButton, 5000);
 })();
