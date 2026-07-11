@@ -86,10 +86,20 @@
     document.head.appendChild(script);
   }
 
+  function loadStylesheet(id, href) {
+    if (document.getElementById(id)) return;
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+  }
+
   function loadUserModules() {
     loadScript('dpVacationPersistenceV3', 'src/vacation-persistence-v3.js?v=20260710-4');
     loadScript('dpDriverVacationAccess', 'src/driver-vacation-access.js?v=20260710-2');
-    loadScript('dpSelfPassword', 'src/self-password.js?v=20260711-2');
+    loadStylesheet('dpPasswordEyeSlash', 'src/password-eye-slash.css?v=20260711-1');
+    loadScript('dpSelfPassword', 'src/self-password.js?v=20260711-3');
   }
 
   onReady(() => {
