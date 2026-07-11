@@ -23,6 +23,8 @@
   }
 
   document.addEventListener('click', (event) => {
+    if (window.dienstpilotPrintAnytimeReady) return;
+
     const weekdayButton = event.target.closest?.('#dpDailyPrintWeekday');
     const weekendButton = event.target.closest?.('#dpDailyPrintWeekend');
     if (!weekdayButton && !weekendButton) return;
