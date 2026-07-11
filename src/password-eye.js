@@ -1,6 +1,8 @@
 (() => {
   'use strict';
 
+  let dailyDutyInputPatchInstalled = false;
+
   const eyeIcon = (slashed) => `
     <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
       <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -72,8 +74,35 @@
     loadScript('dpDailyDutyPlan', 'src/daily-duty-plan.js?v=20260711-1');
   }
 
+  function installDailyDutyInputPatch() {
+    if (dailyDutyInputPatchInstalled) return;
+    dailyDutyInputPatchInstalled = true;
+
+    document.addEventListener('input', (event) => {
+      const input = event.target.closest?.('#dpDailyPlanRows input[data-field="duty"]');
+      if (!input || input.dataset.dpDutyCommit === '1') return;
+
+      // Während der Eingabe darf die Tagesplan-Funktion die Zeile nicht nach
+      // jeder Ziffer neu aufbauen. Erst beim Verlassen des Feldes wird übernommen.
+      input.dataset.field = 'dutyTyping';
+      queueMicrotask(() => {
+        if (input.isConnected) input.dataset.field = 'duty';
+      });
+    }, true);
+
+    document.addEventListener('change', (event) => {
+      const input = event.target.closest?.('#dpDailyPlanRows input[data-field="duty"]');
+      if (!input) return;
+      input.dataset.dpDutyCommit = '1';
+      input.dataset.field = 'duty';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      delete input.dataset.dpDutyCommit;
+    }, true);
+  }
+
   function start() {
     startPasswordEye();
+    installDailyDutyInputPatch();
     loadCatalogModules();
   }
 
