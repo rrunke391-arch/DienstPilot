@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const MARKER_KEY = 'dienstpilot_photo_bus_defaults_v1';
+  const MARKER_KEY = 'dienstpilot_photo_bus_defaults_v2';
   let lastTrigger = 0;
 
   function markers() {
@@ -13,14 +13,24 @@
     }
   }
 
+  function dayOfWeek(date) {
+    const match = String(date || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return -1;
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12, 0, 0).getDay();
+  }
+
   function refresh() {
     const button = document.getElementById('dpDailyInsertDefaults');
-    if (button) button.textContent = 'Standarddienste und Kennzeichen einfügen';
+    const date = String(document.getElementById('dpDailyPlanDate')?.value || '').trim();
+
+    if (button) {
+      button.textContent = dayOfWeek(date) === 6
+        ? 'Samstagsdienste und Kennzeichen einfügen'
+        : 'Standarddienste und Kennzeichen einfügen';
+    }
 
     const section = document.getElementById('tab-daily-duty-plan');
     if (!section || section.classList.contains('hidden')) return;
-
-    const date = String(document.getElementById('dpDailyPlanDate')?.value || '').trim();
     if (!date || markers()[date]) return;
     if (!button || button.disabled) return;
 
