@@ -102,10 +102,10 @@
     loadStylesheet('dpCatalogFieldsHidden', 'src/catalog-fields-hidden.css?v=20260711-2');
     loadScript('dpSelfPassword', 'src/self-password.js?v=20260711-3');
     loadScript('dpLoginPasswordEyeSlash', 'src/login-password-eye-slash.js?v=20260711-1');
-    loadScript('dpCatalogEditor', 'src/catalog-editor.js?v=20260711-1');
-    loadScript('dpCatalogTimeScale', 'src/catalog-time-scale.js?v=20260711-2');
-    loadScript('dpCatalogEditorSimplify', 'src/catalog-editor-simplify.js?v=20260711-1');
-    loadScript('dpCatalogAddDuty', 'src/catalog-add-duty.js?v=20260711-4');
+    loadScript('dpCatalogEditor', 'src/catalog-editor.js?v=20260711-3');
+    loadScript('dpCatalogTimeScale', 'src/catalog-time-scale.js?v=20260711-4');
+    loadScript('dpCatalogEditorSimplify', 'src/catalog-editor-simplify.js?v=20260711-3');
+    loadScript('dpCatalogAddDutyStable', 'src/catalog-add-duty-stable.js?v=20260711-1');
   }
 
   onReady(() => {
