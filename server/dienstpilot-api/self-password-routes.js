@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 const Database = require('better-sqlite3');
 
 module.exports = function registerSelfPasswordRoutes(app) {
-  if (!app || typeof app.post !== 'function') {
+  if (!app || typeof app.post !== 'function' || typeof app.get !== 'function') {
     throw new Error('DienstPilot self-password routes: Express-App fehlt.');
   }
   if (app.__dienstpilotSelfPasswordRoutesInstalled) return;
@@ -53,7 +53,7 @@ module.exports = function registerSelfPasswordRoutes(app) {
       columns,
       id: columnName(columns, ['id', 'user_id', 'userId']),
       username: columnName(columns, ['username', 'user_name', 'login', 'name']),
-      passwordHash: columnName(columns, ['password_hash', 'passwordHash', 'pass_hash']),
+      passwordHash: columnName(columns, ['password_hash', 'passwordHash', 'pass_hash', 'password']),
       mustChange: columnName(columns, ['must_change_password', 'mustChangePassword', 'password_change_required']),
       active: columnName(columns, ['active', 'is_active', 'enabled']),
       updatedAt: columnName(columns, ['updated_at', 'updatedAt'])
@@ -130,6 +130,22 @@ module.exports = function registerSelfPasswordRoutes(app) {
     }
   }
 
+  app.get('/api/account/password/status', (req, res) => {
+    try {
+      const schema = mapUserSchema();
+      return res.json({
+        ok: true,
+        active: true,
+        version: 3,
+        database: path.basename(DB_PATH),
+        usernameColumn: schema.username,
+        passwordColumn: schema.passwordHash
+      });
+    } catch (error) {
+      return res.status(500).json({ ok: false, active: false, error: error.message });
+    }
+  });
+
   app.post('/api/account/password', requireUser, async (req, res) => {
     const currentPassword = String((req.body && req.body.currentPassword) || '');
     const newPassword = String((req.body && req.body.newPassword) || '');
@@ -182,5 +198,5 @@ module.exports = function registerSelfPasswordRoutes(app) {
     return res.json({ ok: true, message: 'Passwort wurde geändert.' });
   });
 
-  console.log('DienstPilot: persönliche Passwortänderung aktiv.');
+  console.log('DienstPilot: persönliche Passwortänderung aktiv (Version 3).');
 };
