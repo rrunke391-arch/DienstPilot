@@ -99,7 +99,7 @@
     loadScript('dpVacationPersistenceV3', 'src/vacation-persistence-v3.js?v=20260710-4');
     loadScript('dpDriverVacationAccess', 'src/driver-vacation-access.js?v=20260710-2');
     loadStylesheet('dpPasswordEyeSlash', 'src/password-eye-slash.css?v=20260711-1');
-    loadStylesheet('dpCatalogFieldsHidden', 'src/catalog-fields-hidden.css?v=20260711-1');
+    loadStylesheet('dpCatalogFieldsHidden', 'src/catalog-fields-hidden.css?v=20260711-2');
     loadScript('dpSelfPassword', 'src/self-password.js?v=20260711-3');
     loadScript('dpLoginPasswordEyeSlash', 'src/login-password-eye-slash.js?v=20260711-1');
     loadScript('dpCatalogEditor', 'src/catalog-editor.js?v=20260711-1');
