@@ -88,7 +88,7 @@
 
   function loadVacationModules() {
     loadScript('dpVacationPersistenceV3', 'src/vacation-persistence-v3.js?v=20260710-4');
-    loadScript('dpDriverVacationAccess', 'src/driver-vacation-access.js?v=20260710-1');
+    loadScript('dpDriverVacationAccess', 'src/driver-vacation-access.js?v=20260710-2');
   }
 
   onReady(() => {
