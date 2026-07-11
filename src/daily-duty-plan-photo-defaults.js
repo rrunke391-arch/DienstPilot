@@ -5,7 +5,7 @@
   const DATE_ID = 'dpDailyPlanDate';
   const INSERT_ID = 'dpDailyInsertDefaults';
   const ADD_ID = 'dpDailyAddRow';
-  const MARKER_KEY = 'dienstpilot_photo_bus_defaults_v2';
+  const MARKER_KEY = 'dienstpilot_photo_bus_defaults_v3';
   let running = false;
 
   const WEEKDAY_ASSIGNMENTS = [
@@ -52,8 +52,17 @@
     { duty: 'Einsatzwagen', name: 'Einsatzwagen', bus: 'OS-LQ 114', start: '', end: '', departure: '', stop: '' }
   ];
 
+  const SUNDAY_ASSIGNMENTS = [
+    { duty: '3061', name: 'S.Sulejmani', bus: 'OS-LK 621', start: '12:03', end: '19:46', departure: '12:20', stop: 'Wellingholzhausen, Schule' },
+    { duty: '3062', name: 'N.Murad', bus: 'OS-HD 124', start: '11:47', end: '19:38', departure: '12:12', stop: 'Neuenkirchen, Schulzentrum' },
+    { duty: '1943', occurrence: 0, name: 'A.Al Arsan', bus: 'OS-FN 919', start: '06:48', end: '14:04', departure: '', stop: '' },
+    { duty: '1943', occurrence: 1, name: 'C.Strotmann', bus: 'OS-FN 919', start: '13:44', end: '21:47', departure: '', stop: '' }
+  ];
+
   const WEEKDAY_DUTIES = new Set(WEEKDAY_ASSIGNMENTS.map((item) => item.duty.toLowerCase()));
   const SATURDAY_DUTIES = new Set(SATURDAY_ASSIGNMENTS.map((item) => item.duty.toLowerCase()));
+  const SUNDAY_DUTIES = new Set(SUNDAY_ASSIGNMENTS.map((item) => item.duty.toLowerCase()));
+  const ALL_TEMPLATE_DUTIES = new Set([...WEEKDAY_DUTIES, ...SATURDAY_DUTIES, ...SUNDAY_DUTIES]);
 
   function wait(ms) {
     return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -73,12 +82,25 @@
     return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12, 0, 0).getDay();
   }
 
-  function isSaturday(date) {
-    return dayOfWeek(date) === 6;
+  function modeForDate(date) {
+    const day = dayOfWeek(date);
+    if (day === 6) return 'saturday';
+    if (day === 0) return 'sunday';
+    return 'weekday';
   }
 
   function assignmentsForDate(date) {
-    return isSaturday(date) ? SATURDAY_ASSIGNMENTS : WEEKDAY_ASSIGNMENTS;
+    const mode = modeForDate(date);
+    if (mode === 'saturday') return SATURDAY_ASSIGNMENTS;
+    if (mode === 'sunday') return SUNDAY_ASSIGNMENTS;
+    return WEEKDAY_ASSIGNMENTS;
+  }
+
+  function expectedDutiesForDate(date) {
+    const mode = modeForDate(date);
+    if (mode === 'saturday') return SATURDAY_DUTIES;
+    if (mode === 'sunday') return SUNDAY_DUTIES;
+    return WEEKDAY_DUTIES;
   }
 
   function readMarkers() {
@@ -109,9 +131,14 @@
     return normalize(row?.querySelector('input[data-field="duty"]')?.value);
   }
 
-  function findRow(duty) {
+  function rowsForDuty(duty) {
     const wanted = normalize(duty);
-    return rows().find((row) => rowDuty(row) === wanted) || null;
+    return rows().filter((row) => rowDuty(row) === wanted);
+  }
+
+  function findRow(assignment) {
+    const matches = rowsForDuty(assignment.duty);
+    return matches[Number(assignment.occurrence || 0)] || null;
   }
 
   function setStatus(text, kind = '') {
@@ -126,15 +153,14 @@
   }
 
   function setField(row, field, value, overwrite) {
-    if (!row || !Object.prototype.hasOwnProperty.call({ value }, 'value')) return;
-    const input = row.querySelector(`input[data-field="${field}"]`);
+    const input = row?.querySelector(`input[data-field="${field}"]`);
     if (!input || input.disabled) return;
     if (!overwrite && String(input.value || '').trim()) return;
     input.value = String(value ?? '');
     dispatchInput(input);
   }
 
-  async function createRow(duty) {
+  async function createRow(assignment) {
     const addButton = document.getElementById(ADD_ID);
     if (!addButton || addButton.disabled) return null;
 
@@ -146,11 +172,11 @@
     const dutyInput = blank.querySelector('input[data-field="duty"]');
     if (!dutyInput || dutyInput.disabled) return null;
     dutyInput.dataset.dpDutyCommit = '1';
-    dutyInput.value = duty;
+    dutyInput.value = assignment.duty;
     dispatchInput(dutyInput);
     delete dutyInput.dataset.dpDutyCommit;
-    await wait(45);
-    return findRow(duty);
+    await wait(50);
+    return findRow(assignment);
   }
 
   async function clearRows() {
@@ -164,9 +190,12 @@
     }
   }
 
-  function looksLikeWeekdayTemplate() {
+  function containsOnlyKnownOtherTemplate(expectedDuties) {
     const duties = rows().map(rowDuty).filter(Boolean);
-    return duties.length >= 20 && duties.every((duty) => WEEKDAY_DUTIES.has(duty));
+    if (duties.length < 2) return false;
+    const expectedHits = duties.filter((duty) => expectedDuties.has(duty) && duty !== 'einsatzwagen').length;
+    const knownHits = duties.filter((duty) => ALL_TEMPLATE_DUTIES.has(duty)).length;
+    return expectedHits === 0 && knownHits === duties.length;
   }
 
   async function applyAssignments(createMissing) {
@@ -176,24 +205,25 @@
 
     running = true;
     try {
-      const saturday = isSaturday(date);
+      const mode = modeForDate(date);
       const firstApplication = !isApplied(date);
       const assignments = assignmentsForDate(date);
+      const expectedDuties = expectedDutiesForDate(date);
 
-      if (saturday && firstApplication && rows().length && !rows().some((row) => SATURDAY_DUTIES.has(rowDuty(row))) && looksLikeWeekdayTemplate()) {
+      if (firstApplication && rows().length && containsOnlyKnownOtherTemplate(expectedDuties)) {
         await clearRows();
       }
 
       for (const assignment of assignments) {
-        let row = findRow(assignment.duty);
+        let row = findRow(assignment);
         let created = false;
         if (!row && createMissing) {
-          row = await createRow(assignment.duty);
+          row = await createRow(assignment);
           created = Boolean(row);
         }
         if (!row) continue;
 
-        const overwrite = saturday && (firstApplication || created);
+        const overwrite = mode !== 'weekday' && (firstApplication || created);
         for (const field of ['name', 'bus', 'start', 'end', 'departure', 'stop']) {
           if (Object.prototype.hasOwnProperty.call(assignment, field)) {
             setField(row, field, assignment[field], overwrite);
@@ -202,12 +232,12 @@
       }
 
       markApplied(date);
-      setStatus(
-        saturday
-          ? 'Der Samstagsdienstplan wurde nach der Vorlage eingefügt. Alle Angaben bleiben bearbeitbar und die Kennzeichen können verschoben werden.'
-          : 'Alle Kennzeichen aus der Vorlage wurden eingefügt. Sie können weiterhin verschoben und bearbeitet werden.',
-        'ok'
-      );
+      const labels = {
+        weekday: 'Der Dienstplan Montag bis Freitag wurde eingefügt.',
+        saturday: 'Der Samstagsdienstplan wurde getrennt eingefügt.',
+        sunday: 'Der Sonntagsdienstplan wurde getrennt eingefügt.'
+      };
+      setStatus(`${labels[mode]} Alle Angaben bleiben bearbeitbar und die Kennzeichen können verschoben werden.`, 'ok');
     } finally {
       running = false;
     }
@@ -217,53 +247,38 @@
     const date = currentDate();
     if (!date || isApplied(date) || running) return;
 
+    const mode = modeForDate(date);
     const insertButton = document.getElementById(INSERT_ID);
-    if (!insertButton || insertButton.disabled) return;
 
-    if (isSaturday(date)) {
-      await applyAssignments(true);
-      return;
-    }
-
-    if (!rows().length) {
+    if (mode === 'weekday' && !rows().length) {
+      if (!insertButton || insertButton.disabled) return;
       insertButton.click();
-      await wait(120);
+      await wait(130);
     }
-    if (rows().length) await applyAssignments(true);
+
+    await applyAssignments(true);
   }
 
-  function renameInsertButton() {
-    const button = document.getElementById(INSERT_ID);
-    if (!button) return;
-    button.textContent = isSaturday(currentDate())
-      ? 'Samstagsdienste und Kennzeichen einfügen'
-      : 'Standarddienste und Kennzeichen einfügen';
-  }
+  window.dienstpilotPopulateDailyPlan = maybeAutoPopulate;
+  window.dienstpilotApplyDailyTemplate = () => applyAssignments(true);
 
   document.addEventListener('click', (event) => {
     if (event.target.closest?.(`#${INSERT_ID}`)) {
-      window.setTimeout(() => applyAssignments(true), 140);
+      window.setTimeout(() => applyAssignments(true), 150);
       return;
     }
     if (event.target.closest?.('#dpDailyDutyPlanTab')) {
-      [250, 700, 1400].forEach((delay) => window.setTimeout(() => {
-        renameInsertButton();
-        maybeAutoPopulate();
-      }, delay));
+      [250, 700, 1400].forEach((delay) => window.setTimeout(maybeAutoPopulate, delay));
     }
   }, true);
 
   document.addEventListener('change', (event) => {
     if (event.target?.id === DATE_ID) {
-      [120, 450, 900].forEach((delay) => window.setTimeout(() => {
-        renameInsertButton();
-        maybeAutoPopulate();
-      }, delay));
+      [120, 450, 900].forEach((delay) => window.setTimeout(maybeAutoPopulate, delay));
     }
   });
 
   function refresh() {
-    renameInsertButton();
     if (!isApplied(currentDate())) maybeAutoPopulate();
   }
 
