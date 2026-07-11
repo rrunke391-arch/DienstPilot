@@ -2,12 +2,21 @@
   'use strict';
 
   function loadWeekdayRepair() {
-    if (document.getElementById('dpDailyDutyWeekdayRepair')) return;
-    const script = document.createElement('script');
-    script.id = 'dpDailyDutyWeekdayRepair';
-    script.src = 'src/daily-duty-plan-weekday-repair.js?v=20260711-1';
-    script.async = false;
-    document.head.appendChild(script);
+    if (!document.getElementById('dpDailyDutyWeekdayRepair')) {
+      const script = document.createElement('script');
+      script.id = 'dpDailyDutyWeekdayRepair';
+      script.src = 'src/daily-duty-plan-weekday-repair.js?v=20260711-1';
+      script.async = false;
+      document.head.appendChild(script);
+    }
+
+    if (!document.getElementById('dpDailyDutyStartRepair')) {
+      const script = document.createElement('script');
+      script.id = 'dpDailyDutyStartRepair';
+      script.src = 'src/daily-duty-plan-start-duties-repair.js?v=20260711-1';
+      script.async = false;
+      document.head.appendChild(script);
+    }
   }
 
   loadWeekdayRepair();
