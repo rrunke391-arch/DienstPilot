@@ -1,0 +1,9 @@
+#catalogGrid .catalog-setting:has([data-cat-field="lineMode"]),
+#catalogGrid .catalog-setting:has([data-cat-field="stopDistance"]),
+#catalogGrid .catalog-setting:has([data-cat-field="pauseRule"]) {
+  display: none !important;
+}
+
+#catalogGrid .catalog-settings:not(:has([data-cat-field="tariffEight"])) {
+  display: none !important;
+}
