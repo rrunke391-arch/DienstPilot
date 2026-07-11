@@ -9,6 +9,7 @@ DB_FILE="$APP_DIR/dienstpilot.sqlite"
 BACKUP_DIR="/opt/dienstpilot-backups"
 MODULE_URL="https://raw.githubusercontent.com/rrunke391-arch/DienstPilot/main/server/dienstpilot-api/self-password-routes.js"
 MARKER="require('./self-password-routes')(app);"
+TEST_BODY_FILE="/tmp/dienstpilot-password-route-test.json"
 
 if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
   echo "Bitte mit sudo ausführen: sudo bash $0"
@@ -31,13 +32,12 @@ if [[ -f "$DB_FILE" ]]; then
   cp -a "$DB_FILE" "$BACKUP_DIR/dienstpilot-vor-passwortwechsel-$stamp.sqlite"
 fi
 
-trap 'rm -f "$TEMP_MODULE_FILE"' EXIT
+trap 'rm -f "$TEMP_MODULE_FILE" "$TEST_BODY_FILE"' EXIT
 
 echo "Passwortmodul wird geladen ..."
 curl -fsSL "$MODULE_URL" -o "$TEMP_MODULE_FILE"
 node --check "$TEMP_MODULE_FILE"
 mv "$TEMP_MODULE_FILE" "$MODULE_FILE"
-trap - EXIT
 chown --reference="$SERVER_FILE" "$MODULE_FILE" 2>/dev/null || true
 chmod 0644 "$MODULE_FILE"
 
@@ -51,7 +51,7 @@ marker = sys.argv[2]
 text = server_path.read_text(encoding="utf-8")
 
 if marker in text:
-    print("Passwortmodul ist bereits in server.js eingetragen.")
+    print("Passwortmodul ist bereits in server.js eingetragen und wird aktualisiert.")
     raise SystemExit(0)
 
 matches = list(re.finditer(r"(?m)^\s*app\.listen\s*\(", text))
@@ -86,12 +86,31 @@ sleep 2
 if curl -fsS http://127.0.0.1:3000/api/health >/dev/null 2>&1; then
   echo "DienstPilot API antwortet auf Port 3000."
 else
-  echo "WARNUNG: Der Health-Test auf Port 3000 war nicht erfolgreich."
-  echo "Prüfe: sudo journalctl -u dienstpilot-api -n 60 --no-pager"
+  echo "FEHLER: Der Health-Test auf Port 3000 war nicht erfolgreich."
+  echo "Prüfe: sudo journalctl -u dienstpilot-api -n 80 --no-pager"
+  exit 1
+fi
+
+http_status="$(curl -sS -o "$TEST_BODY_FILE" -w '%{http_code}' \
+  -X POST http://127.0.0.1:3000/api/account/password \
+  -H 'Content-Type: application/json' \
+  --data '{"currentPassword":"test","newPassword":"test12345"}' || true)"
+
+if [[ "$http_status" == "401" ]]; then
+  echo "PASSWORT-ENDPUNKT AKTIV: Der Server verlangt korrekt eine Anmeldung."
+else
+  echo "FEHLER: Passwort-Endpunkt ist nicht korrekt aktiv. HTTP-Status: ${http_status:-keiner}"
+  if [[ -s "$TEST_BODY_FILE" ]]; then
+    echo "Serverantwort:"
+    cat "$TEST_BODY_FILE"
+    echo
+  fi
+  echo "Prüfe: sudo journalctl -u dienstpilot-api -n 80 --no-pager"
+  exit 1
 fi
 
 echo
-echo "Installation abgeschlossen."
+echo "Installation und Prüfung abgeschlossen."
 echo "Sicherung server.js: $BACKUP_DIR/server-vor-passwortwechsel-$stamp.js"
 if [[ -f "$BACKUP_DIR/dienstpilot-vor-passwortwechsel-$stamp.sqlite" ]]; then
   echo "Sicherung Datenbank: $BACKUP_DIR/dienstpilot-vor-passwortwechsel-$stamp.sqlite"
