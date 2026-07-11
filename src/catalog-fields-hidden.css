@@ -7,3 +7,10 @@
 #catalogGrid .catalog-settings:not(:has([data-cat-field="tariffEight"])) {
   display: none !important;
 }
+
+/* Dienst 3001 nutzt weiterhin seine gespeicherten Anpassungen,
+   zeigt aber weder den Hinweis "Eigen" noch "Vorlage löschen" an. */
+#catalogGrid .catalog-card[data-cat-number="3001"] .catalog-card-titlewrap > .badge.warn,
+#catalogGrid .catalog-card[data-cat-number="3001"] .delete-template {
+  display: none !important;
+}
