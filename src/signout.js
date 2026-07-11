@@ -109,6 +109,7 @@
     loadScript('dpCatalogTimeScale', 'src/catalog-time-scale.js?v=20260711-4');
     loadScript('dpCatalogEditorSimplify', 'src/catalog-editor-simplify.js?v=20260711-3');
     loadScript('dpCatalogAddDutyStable', 'src/catalog-add-duty-stable.js?v=20260711-2');
+    loadScript('dpDailyDutyPlan', 'src/daily-duty-plan.js?v=20260711-1');
   }
 
   function recreateCatalogAddButtonOnce() {
