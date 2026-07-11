@@ -4,6 +4,7 @@
   const STYLE_ID = 'dpDriverVacationAccessStyle';
   const BACK_ID = 'dpDriverVacationBack';
   const OPEN_CLASS = 'dp-driver-vacation-open';
+  const ACTIVE_TAB_KEY = 'lrz-active-tab';
 
   function readUser() {
     try {
@@ -55,6 +56,40 @@
     document.head.appendChild(style);
   }
 
+  function closeDriverVacation() {
+    document.body.classList.remove(OPEN_CLASS);
+
+    const overviewSection = document.getElementById('tab-eingabe');
+    const settingsSection = document.getElementById('tab-einstellungen');
+    const overviewTab = document.querySelector('.tab[data-tab="eingabe"]');
+
+    document.querySelectorAll('main > section[id^="tab-"]').forEach((section) => {
+      const isOverview = section === overviewSection;
+      section.classList.toggle('hidden', !isOverview);
+      section.style.removeProperty('display');
+      if (isOverview) section.removeAttribute('hidden');
+    });
+
+    if (overviewSection) {
+      overviewSection.classList.remove('hidden');
+      overviewSection.removeAttribute('hidden');
+      overviewSection.style.display = '';
+    }
+    if (settingsSection) {
+      settingsSection.classList.add('hidden');
+      settingsSection.style.display = '';
+    }
+
+    document.querySelectorAll('.tab').forEach((tab) => tab.classList.remove('active'));
+    overviewTab?.classList.add('active');
+
+    try {
+      localStorage.setItem(ACTIVE_TAB_KEY, 'eingabe');
+    } catch {}
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   function ensureBackButton() {
     const section = document.querySelector('#tab-einstellungen .vacation-section');
     if (!section) return null;
@@ -66,10 +101,10 @@
     button.id = BACK_ID;
     button.className = 'btn-secondary';
     button.textContent = '← Zur Übersicht';
-    button.addEventListener('click', () => {
-      document.body.classList.remove(OPEN_CLASS);
-      document.querySelector('.tab[data-tab="eingabe"]')?.click();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      closeDriverVacation();
     });
     section.insertBefore(button, section.firstChild);
     return button;
@@ -84,7 +119,9 @@
     const section = settings?.querySelector('.vacation-section');
     const content = document.getElementById('vacationContent');
 
+    document.querySelectorAll('.tab').forEach((tab) => tab.classList.remove('active'));
     settings?.classList.remove('hidden');
+    settings?.removeAttribute('hidden');
     section?.classList.remove('hidden');
     section?.removeAttribute('hidden');
     content?.classList.remove('hidden');
@@ -118,7 +155,17 @@
     ensureBackButton();
 
     document.addEventListener('click', (event) => {
-      if (!isDriver() || !matchesVacationButton(event.target)) return;
+      if (!isDriver()) return;
+
+      const overviewTab = event.target.closest?.('.tab[data-tab="eingabe"]');
+      if (overviewTab && document.body.classList.contains(OPEN_CLASS)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        closeDriverVacation();
+        return;
+      }
+
+      if (!matchesVacationButton(event.target)) return;
       event.preventDefault();
       event.stopPropagation();
       void openDriverVacation();
@@ -127,6 +174,8 @@
     window.setTimeout(ensureBackButton, 500);
     window.setTimeout(ensureBackButton, 1500);
   }
+
+  window.dienstpilotCloseDriverVacation = closeDriverVacation;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', install, { once: true });
