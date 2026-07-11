@@ -68,7 +68,8 @@
     loadScript('dpCatalogEditor', 'src/catalog-editor.js?v=20260711-3');
     loadScript('dpCatalogTimeScale', 'src/catalog-time-scale.js?v=20260711-4');
     loadScript('dpCatalogEditorSimplify', 'src/catalog-editor-simplify.js?v=20260711-3');
-    loadScript('dpCatalogAddDutyStable', 'src/catalog-add-duty-stable.js?v=20260711-1');
+    loadScript('dpCatalogAddDutyStable', 'src/catalog-add-duty-stable.js?v=20260711-2');
+    loadScript('dpDailyDutyPlan', 'src/daily-duty-plan.js?v=20260711-1');
   }
 
   function start() {
@@ -80,7 +81,7 @@
   else start();
 
   document.addEventListener('click', (event) => {
-    if (event.target.closest?.('#loginButton,.tab[data-tab="katalog"]')) {
+    if (event.target.closest?.('#loginButton,.tab[data-tab="katalog"],#dpDailyDutyPlanTab')) {
       [0, 200, 700].forEach((delay) => window.setTimeout(loadCatalogModules, delay));
     }
   }, true);
