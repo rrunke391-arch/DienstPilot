@@ -1,6 +1,9 @@
 (() => {
   'use strict';
 
+  let catalogStaticRepairDone = false;
+  let catalogFallbackInstalled = false;
+
   function onReady(fn) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, { once: true });
     else fn();
@@ -105,12 +108,57 @@
     loadScript('dpCatalogEditor', 'src/catalog-editor.js?v=20260711-3');
     loadScript('dpCatalogTimeScale', 'src/catalog-time-scale.js?v=20260711-4');
     loadScript('dpCatalogEditorSimplify', 'src/catalog-editor-simplify.js?v=20260711-3');
-    loadScript('dpCatalogAddDutyStable', 'src/catalog-add-duty-stable.js?v=20260711-1');
+    loadScript('dpCatalogAddDutyStable', 'src/catalog-add-duty-stable.js?v=20260711-2');
+  }
+
+  function recreateCatalogAddButtonOnce() {
+    if (catalogStaticRepairDone) return;
+    const button = document.getElementById('dpCatalogAddDutyStable');
+    if (!button) return;
+
+    catalogStaticRepairDone = true;
+    button.remove();
+
+    // Die stabile Katalogfunktion reagiert auf focus und erzeugt den Schalter
+    // anschließend selbst mit dem korrekten Klick-Handler neu.
+    window.dispatchEvent(new Event('focus'));
+  }
+
+  function installCatalogAddFallback() {
+    if (catalogFallbackInstalled) return;
+    catalogFallbackInstalled = true;
+
+    document.addEventListener('click', (event) => {
+      const clicked = event.target.closest?.('#dpCatalogAddDutyStable');
+      if (!clicked) return;
+
+      window.setTimeout(() => {
+        if (document.getElementById('dpCatalogAddDutyStableModal')) return;
+
+        const current = document.getElementById('dpCatalogAddDutyStable');
+        if (!current) return;
+        current.remove();
+        window.dispatchEvent(new Event('focus'));
+
+        window.setTimeout(() => {
+          const replacement = document.getElementById('dpCatalogAddDutyStable');
+          if (replacement && replacement !== current) replacement.click();
+        }, 120);
+      }, 80);
+    }, true);
   }
 
   onReady(() => {
     createButton();
+    installCatalogAddFallback();
+
+    // Erst den fest eingebauten, noch ungebundenen HTML-Schalter entfernen.
+    // Danach lädt die stabile Funktion und erstellt ihn mit Klick-Handler neu.
+    recreateCatalogAddButtonOnce();
     loadUserModules();
+    window.setTimeout(recreateCatalogAddButtonOnce, 250);
+    window.setTimeout(recreateCatalogAddButtonOnce, 800);
+
     document.addEventListener('click', (event) => {
       if (event.target.closest && event.target.closest('#loginButton')) {
         setTimeout(refreshName, 500);
