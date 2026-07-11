@@ -101,6 +101,7 @@
     loadStylesheet('dpPasswordEyeSlash', 'src/password-eye-slash.css?v=20260711-1');
     loadScript('dpSelfPassword', 'src/self-password.js?v=20260711-3');
     loadScript('dpLoginPasswordEyeSlash', 'src/login-password-eye-slash.js?v=20260711-1');
+    loadScript('dpCatalogEditor', 'src/catalog-editor.js?v=20260711-1');
   }
 
   onReady(() => {
