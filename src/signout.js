@@ -109,6 +109,8 @@
     loadScript('dpCatalogTimeScale', 'src/catalog-time-scale.js?v=20260711-4');
     loadScript('dpCatalogEditorSimplify', 'src/catalog-editor-simplify.js?v=20260711-3');
     loadScript('dpCatalogAddDutyStable', 'src/catalog-add-duty-stable.js?v=20260711-2');
+    loadScript('dpXlsmCore', 'src/xlsm-core.js?v=20260711-1');
+    loadScript('dpXlsmExchange', 'src/xlsm-exchange.js?v=20260711-1');
     loadScript('dpDailyDutyPlan', 'src/daily-duty-plan.js?v=20260711-1');
     loadScript('dpDailyDutyBusMove', 'src/daily-duty-plan-bus-move.js?v=20260711-1');
     loadScript('dpDailyDutyPhotoDefaults', 'src/daily-duty-plan-photo-defaults.js?v=20260711-2');
