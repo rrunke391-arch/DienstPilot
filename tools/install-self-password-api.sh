@@ -10,6 +10,7 @@ BACKUP_DIR="/opt/dienstpilot-backups"
 MODULE_URL="https://raw.githubusercontent.com/rrunke391-arch/DienstPilot/main/server/dienstpilot-api/self-password-routes.js"
 MARKER="require('./self-password-routes')(app);"
 TEST_BODY_FILE="/tmp/dienstpilot-password-route-test.json"
+STATUS_BODY_FILE="/tmp/dienstpilot-password-status-test.json"
 
 if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
   echo "Bitte mit sudo ausführen: sudo bash $0"
@@ -32,9 +33,9 @@ if [[ -f "$DB_FILE" ]]; then
   cp -a "$DB_FILE" "$BACKUP_DIR/dienstpilot-vor-passwortwechsel-$stamp.sqlite"
 fi
 
-trap 'rm -f "$TEMP_MODULE_FILE" "$TEST_BODY_FILE"' EXIT
+trap 'rm -f "$TEMP_MODULE_FILE" "$TEST_BODY_FILE" "$STATUS_BODY_FILE"' EXIT
 
-echo "Passwortmodul wird geladen ..."
+echo "Aktuelles Passwortmodul wird geladen ..."
 curl -fsSL "$MODULE_URL" -o "$TEMP_MODULE_FILE"
 node --check "$TEMP_MODULE_FILE"
 mv "$TEMP_MODULE_FILE" "$MODULE_FILE"
@@ -50,19 +51,38 @@ server_path = Path(sys.argv[1])
 marker = sys.argv[2]
 text = server_path.read_text(encoding="utf-8")
 
-if marker in text:
-    print("Passwortmodul ist bereits in server.js eingetragen und wird aktualisiert.")
-    raise SystemExit(0)
+# Alte Einbindung vollständig entfernen, damit sie nicht hinter einer 404-Route stehen bleibt.
+text = re.sub(
+    r"\n?\s*//\s*Persönliche Passwortänderung[^\n]*\n\s*" + re.escape(marker) + r"\s*\n?",
+    "\n",
+    text,
+    flags=re.IGNORECASE,
+)
+text = re.sub(r"(?m)^\s*" + re.escape(marker) + r"\s*$\n?", "", text)
 
-matches = list(re.finditer(r"(?m)^\s*app\.listen\s*\(", text))
-if not matches:
-    raise SystemExit("FEHLER: app.listen(...) wurde in server.js nicht gefunden.")
+# Die Route muss nach CORS/JSON-Parser, aber vor späteren 404- oder Fehler-Handlern stehen.
+patterns = [
+    r"(?m)^\s*app\.use\s*\(\s*cors\b[^\n]*\)\s*;?\s*$",
+    r"(?m)^\s*app\.use\s*\(\s*express\.json\b[^\n]*\)\s*;?\s*$",
+    r"(?m)^\s*app\.use\s*\(\s*bodyParser\.[A-Za-z]+\b[^\n]*\)\s*;?\s*$",
+]
+positions = []
+for pattern in patterns:
+    for match in re.finditer(pattern, text):
+        positions.append(match.end())
 
-position = matches[-1].start()
-insert = "\n// Persönliche Passwortänderung für angemeldete Benutzer.\n" + marker + "\n\n"
+if positions:
+    position = max(positions)
+else:
+    app_match = re.search(r"(?m)^\s*(?:const|let|var)\s+app\s*=\s*express\s*\(\s*\)\s*;?\s*$", text)
+    if not app_match:
+        raise SystemExit("FEHLER: Express-App oder JSON-Parser wurde in server.js nicht gefunden.")
+    position = app_match.end()
+
+insert = "\n\n// Persönliche Passwortänderung für angemeldete Benutzer.\n" + marker + "\n"
 text = text[:position] + insert + text[position:]
 server_path.write_text(text, encoding="utf-8")
-print("Passwortmodul wurde vor app.listen(...) eingetragen.")
+print("Passwortmodul wurde vor möglichen 404-Handlern eingetragen.")
 PY
 
 node --check "$SERVER_FILE"
@@ -78,16 +98,30 @@ elif command -v pm2 >/dev/null 2>&1 && pm2 list 2>/dev/null | grep -qi 'dienstpi
 fi
 
 if [[ $restart_done -eq 0 ]]; then
-  echo "HINWEIS: Kein DienstPilot-Systemdienst wurde automatisch erkannt."
-  echo "Bitte den Node-Server anschließend manuell neu starten."
+  echo "FEHLER: Kein DienstPilot-Systemdienst wurde automatisch erkannt."
+  exit 1
 fi
 
-sleep 2
+sleep 3
 if curl -fsS http://127.0.0.1:3000/api/health >/dev/null 2>&1; then
   echo "DienstPilot API antwortet auf Port 3000."
 else
   echo "FEHLER: Der Health-Test auf Port 3000 war nicht erfolgreich."
-  echo "Prüfe: sudo journalctl -u dienstpilot-api -n 80 --no-pager"
+  echo "Prüfe: sudo journalctl -u dienstpilot-api -n 100 --no-pager"
+  exit 1
+fi
+
+status_code="$(curl -sS -o "$STATUS_BODY_FILE" -w '%{http_code}' \
+  http://127.0.0.1:3000/api/account/password/status || true)"
+
+if [[ "$status_code" == "200" ]] && grep -q '"active":true' "$STATUS_BODY_FILE"; then
+  echo "PASSWORT-MODUL VERSION 3 AKTIV."
+  cat "$STATUS_BODY_FILE"
+  echo
+else
+  echo "FEHLER: Status-Endpunkt ist nicht aktiv. HTTP-Status: ${status_code:-keiner}"
+  [[ -s "$STATUS_BODY_FILE" ]] && cat "$STATUS_BODY_FILE" && echo
+  echo "Prüfe: sudo journalctl -u dienstpilot-api -n 100 --no-pager"
   exit 1
 fi
 
@@ -96,21 +130,17 @@ http_status="$(curl -sS -o "$TEST_BODY_FILE" -w '%{http_code}' \
   -H 'Content-Type: application/json' \
   --data '{"currentPassword":"test","newPassword":"test12345"}' || true)"
 
-if [[ "$http_status" == "401" ]]; then
-  echo "PASSWORT-ENDPUNKT AKTIV: Der Server verlangt korrekt eine Anmeldung."
+if [[ "$http_status" == "401" ]] && grep -q 'Anmeldung erforderlich' "$TEST_BODY_FILE"; then
+  echo "PASSWORT-ENDPUNKT AKTIV: Anmeldung wird korrekt verlangt."
 else
-  echo "FEHLER: Passwort-Endpunkt ist nicht korrekt aktiv. HTTP-Status: ${http_status:-keiner}"
-  if [[ -s "$TEST_BODY_FILE" ]]; then
-    echo "Serverantwort:"
-    cat "$TEST_BODY_FILE"
-    echo
-  fi
-  echo "Prüfe: sudo journalctl -u dienstpilot-api -n 80 --no-pager"
+  echo "FEHLER: Passwort-Endpunkt antwortet nicht korrekt. HTTP-Status: ${http_status:-keiner}"
+  [[ -s "$TEST_BODY_FILE" ]] && cat "$TEST_BODY_FILE" && echo
+  echo "Prüfe: sudo journalctl -u dienstpilot-api -n 100 --no-pager"
   exit 1
 fi
 
 echo
-echo "Installation und Prüfung abgeschlossen."
+echo "REPARATUR ERFOLGREICH ABGESCHLOSSEN."
 echo "Sicherung server.js: $BACKUP_DIR/server-vor-passwortwechsel-$stamp.js"
 if [[ -f "$BACKUP_DIR/dienstpilot-vor-passwortwechsel-$stamp.sqlite" ]]; then
   echo "Sicherung Datenbank: $BACKUP_DIR/dienstpilot-vor-passwortwechsel-$stamp.sqlite"
