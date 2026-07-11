@@ -1,6 +1,17 @@
 (() => {
   'use strict';
 
+  function loadWeekdayRepair() {
+    if (document.getElementById('dpDailyDutyWeekdayRepair')) return;
+    const script = document.createElement('script');
+    script.id = 'dpDailyDutyWeekdayRepair';
+    script.src = 'src/daily-duty-plan-weekday-repair.js?v=20260711-1';
+    script.async = false;
+    document.head.appendChild(script);
+  }
+
+  loadWeekdayRepair();
+
   function setStatus(text) {
     const status = document.getElementById('dpDailyPlanStatus');
     if (!status) return;
