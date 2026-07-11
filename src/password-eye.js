@@ -6,8 +6,7 @@
       <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
       <circle cx="12" cy="12" r="2.7" fill="none" stroke="currentColor" stroke-width="1.8"></circle>
       ${slashed ? '<path d="M4 4 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path>' : ''}
-    </svg>
-  `;
+    </svg>`;
 
   function startPasswordEye() {
     const input = document.getElementById('appPassword');
@@ -56,44 +55,6 @@
     });
   }
 
-  function readUser() {
-    try {
-      return JSON.parse(sessionStorage.getItem('dienstpilot_user') || 'null') || {};
-    } catch {
-      return {};
-    }
-  }
-
-  function normalizedRole() {
-    const user = readUser();
-    return String(user.role || sessionStorage.getItem('dienstpilot_role') || '')
-      .trim()
-      .toLowerCase();
-  }
-
-  function canEditCatalog() {
-    const role = normalizedRole();
-    return role === 'administrator'
-      || role === 'geschaeftsleitung'
-      || role === 'geschäftsleitung';
-  }
-
-  function canonicalizeRole() {
-    const role = normalizedRole();
-    let canonical = '';
-    if (role === 'administrator') canonical = 'Administrator';
-    if (role === 'geschaeftsleitung') canonical = 'Geschaeftsleitung';
-    if (role === 'geschäftsleitung') canonical = 'Geschäftsleitung';
-    if (!canonical) return;
-
-    sessionStorage.setItem('dienstpilot_role', canonical);
-    const user = readUser();
-    if (user && user.role !== canonical) {
-      user.role = canonical;
-      sessionStorage.setItem('dienstpilot_user', JSON.stringify(user));
-    }
-  }
-
   function loadScript(id, src) {
     if (document.getElementById(id)) return;
     const script = document.createElement('script');
@@ -103,63 +64,24 @@
     document.head.appendChild(script);
   }
 
-  function ensureCatalogModules() {
-    loadScript('dpCatalogEditor', 'src/catalog-editor.js?v=20260711-2');
-    loadScript('dpCatalogTimeScale', 'src/catalog-time-scale.js?v=20260711-3');
-    loadScript('dpCatalogEditorSimplify', 'src/catalog-editor-simplify.js?v=20260711-2');
-    loadScript('dpCatalogAddDuty', 'src/catalog-add-duty.js?v=20260711-5');
-  }
-
-  function ensureCatalogAddButton() {
-    canonicalizeRole();
-    ensureCatalogModules();
-
-    const toolbar = document.querySelector('#tab-katalog .toolbar');
-    if (!toolbar) return;
-
-    let group = toolbar.querySelector('.toolbar-group');
-    if (!group) {
-      group = document.createElement('div');
-      group.className = 'toolbar-group';
-      toolbar.prepend(group);
-    }
-
-    let button = document.getElementById('dpCatalogAddDuty');
-    if (!button) {
-      button = document.createElement('button');
-      button.id = 'dpCatalogAddDuty';
-      button.type = 'button';
-      button.className = 'btn-primary dp-catalog-add';
-      button.textContent = '＋ Dienst hinzufügen';
-      group.prepend(button);
-    }
-
-    const permitted = canEditCatalog();
-    button.hidden = !permitted;
-    button.disabled = !permitted;
-    button.style.display = permitted ? '' : 'none';
-    button.setAttribute('aria-hidden', permitted ? 'false' : 'true');
+  function loadCatalogModules() {
+    loadScript('dpCatalogEditor', 'src/catalog-editor.js?v=20260711-3');
+    loadScript('dpCatalogTimeScale', 'src/catalog-time-scale.js?v=20260711-4');
+    loadScript('dpCatalogEditorSimplify', 'src/catalog-editor-simplify.js?v=20260711-3');
+    loadScript('dpCatalogAddDutyStable', 'src/catalog-add-duty-stable.js?v=20260711-1');
   }
 
   function start() {
     startPasswordEye();
-    ensureCatalogAddButton();
+    loadCatalogModules();
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start, { once: true });
-  } else {
-    start();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+  else start();
 
   document.addEventListener('click', (event) => {
     if (event.target.closest?.('#loginButton,.tab[data-tab="katalog"]')) {
-      [0, 150, 500, 1000, 2000].forEach((delay) => window.setTimeout(ensureCatalogAddButton, delay));
+      [0, 200, 700].forEach((delay) => window.setTimeout(loadCatalogModules, delay));
     }
   }, true);
-
-  window.addEventListener('focus', ensureCatalogAddButton);
-  window.addEventListener('pageshow', ensureCatalogAddButton);
-  [300, 1000, 2500, 5000].forEach((delay) => window.setTimeout(ensureCatalogAddButton, delay));
-  window.setInterval(ensureCatalogAddButton, 4000);
 })();
