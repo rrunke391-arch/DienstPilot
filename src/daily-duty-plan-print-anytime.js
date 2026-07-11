@@ -59,9 +59,10 @@
     ['1943', 'N.Ghulami', 'OS-FN 919', '13:44', '21:47', '', '']
   ];
 
-  const SATURDAY_ORDER = SATURDAY_ASSIGNMENTS.map((item) => item[0].toLowerCase());
-  const SUNDAY_ORDER = SUNDAY_ASSIGNMENTS.map((item) => item[0].toLowerCase());
-  const WEEKDAY_ALLOWED = new Set(WEEKDAY_ASSIGNMENTS.map((item) => item[0].toLowerCase()));
+  const SATURDAY_ORDER = [...new Set(SATURDAY_ASSIGNMENTS.map((item) => item[0].toLowerCase()))];
+  const SUNDAY_ORDER = [...new Set(SUNDAY_ASSIGNMENTS.map((item) => item[0].toLowerCase()))];
+  const WEEKDAY_ORDER = [...new Set(WEEKDAY_ASSIGNMENTS.map((item) => item[0].toLowerCase()))];
+  const WEEKDAY_ALLOWED = new Set(WEEKDAY_ORDER);
   const SATURDAY_ALLOWED = new Set(SATURDAY_ORDER);
   const SUNDAY_ALLOWED = new Set(SUNDAY_ORDER);
 
@@ -180,18 +181,14 @@
   function strictRows(date, assignments, allowed, order) {
     const source = sourceRows(date).filter((row) => allowed.has(String(row.duty || '').trim().toLowerCase()));
     const fallback = rowsFromAssignments(assignments);
-    const used = new Map();
     const result = [];
 
     order.forEach((duty) => {
       const candidates = source.filter((row) => String(row.duty || '').trim().toLowerCase() === duty);
       const fallbacks = fallback.filter((row) => String(row.duty || '').trim().toLowerCase() === duty);
-      const needed = fallbacks.length;
-      const already = used.get(duty) || 0;
-      for (let index = 0; index < needed; index += 1) {
-        result.push(normalizeRow(candidates[index + already] || fallbacks[index]));
+      for (let index = 0; index < fallbacks.length; index += 1) {
+        result.push(normalizeRow(candidates[index] || fallbacks[index]));
       }
-      used.set(duty, already + needed);
     });
 
     return result;
@@ -292,7 +289,7 @@
 
   function printWeekday() {
     const date = weekdayReferenceDate();
-    const rows = strictRows(date, WEEKDAY_ASSIGNMENTS, WEEKDAY_ALLOWED, WEEKDAY_ASSIGNMENTS.map((item) => item[0].toLowerCase()));
+    const rows = strictRows(date, WEEKDAY_ASSIGNMENTS, WEEKDAY_ALLOWED, WEEKDAY_ORDER);
     const chunks = [];
     for (let index = 0; index < rows.length; index += 17) chunks.push(rows.slice(index, index + 17));
     const html = chunks.map((chunk, index) => `<div style="${index ? 'break-before:page;' : ''}">${sectionHtml(date, chunk, 'weekday')}</div>`).join('');
@@ -318,7 +315,8 @@
     input.dispatchEvent(new Event('change', { bubbles: true }));
     window.setTimeout(() => {
       if (typeof window.dienstpilotPopulateDailyPlan === 'function') window.dienstpilotPopulateDailyPlan();
-    }, 180);
+      if (typeof window.dienstpilotApplyWeekendPhotoTemplate === 'function') window.dienstpilotApplyWeekendPhotoTemplate();
+    }, 220);
     setStatus(dayOffset === 5 ? 'Der Samstagsplan ist zum Bearbeiten geöffnet.' : 'Der Sonntagsplan ist zum Bearbeiten geöffnet.');
   }
 
