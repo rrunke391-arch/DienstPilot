@@ -28,25 +28,6 @@ module.exports = function registerSelfPasswordRoutes(app) {
     return match ? match[1] : '';
   }
 
-  function decodedUsername(decoded) {
-    if (!decoded || typeof decoded !== 'object') return '';
-    return normalize(decoded.username || decoded.user || decoded.name || decoded.sub || '');
-  }
-
-  function requireUser(req, res, next) {
-    const token = bearerToken(req);
-    if (!token) return res.status(401).json({ ok: false, error: 'Anmeldung erforderlich.' });
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET);
-      const username = decodedUsername(decoded);
-      if (!username) return res.status(401).json({ ok: false, error: 'Benutzer konnte nicht ermittelt werden.' });
-      req.passwordUser = { decoded, username };
-      return next();
-    } catch (_) {
-      return res.status(401).json({ ok: false, error: 'Die Anmeldung ist abgelaufen. Bitte neu anmelden.' });
-    }
-  }
-
   function userColumns() {
     const columns = db.prepare('PRAGMA table_info(users)').all();
     if (!columns.length) throw new Error('Die Benutzertabelle users wurde nicht gefunden.');
@@ -83,6 +64,72 @@ module.exports = function registerSelfPasswordRoutes(app) {
     return schema;
   }
 
+  function decodedIdentity(decoded) {
+    if (!decoded || typeof decoded !== 'object') return { username: '', id: null };
+
+    let username = normalize(decoded.username || decoded.user || decoded.name || '');
+    let id = decoded.id ?? decoded.userId ?? decoded.user_id ?? null;
+    const subject = decoded.sub;
+
+    if (!username && subject !== undefined && subject !== null) {
+      const text = normalize(subject);
+      if (/^\d+$/.test(text)) {
+        if (id === null || id === undefined || id === '') id = Number(text);
+      } else {
+        username = text;
+      }
+    }
+
+    return { username, id };
+  }
+
+  function findAuthenticatedUser(decoded) {
+    const schema = mapUserSchema();
+    const identity = decodedIdentity(decoded);
+    let user = null;
+
+    if (identity.username) {
+      user = db.prepare(
+        `SELECT * FROM users WHERE lower(${quoteIdentifier(schema.username)}) = lower(?)`
+      ).get(identity.username);
+    }
+
+    if (!user && schema.id && identity.id !== null && identity.id !== undefined && identity.id !== '') {
+      user = db.prepare(
+        `SELECT * FROM users WHERE ${quoteIdentifier(schema.id)} = ?`
+      ).get(identity.id);
+    }
+
+    if (!user) return { schema, user: null, username: identity.username };
+    return {
+      schema,
+      user,
+      username: normalize(user[schema.username]) || identity.username
+    };
+  }
+
+  function requireUser(req, res, next) {
+    const token = bearerToken(req);
+    if (!token) return res.status(401).json({ ok: false, error: 'Anmeldung erforderlich.' });
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const authenticated = findAuthenticatedUser(decoded);
+      if (!authenticated.user || !authenticated.username) {
+        return res.status(401).json({ ok: false, error: 'Benutzer konnte aus der Anmeldung nicht ermittelt werden. Bitte neu anmelden.' });
+      }
+      req.passwordUser = { decoded, ...authenticated };
+      return next();
+    } catch (error) {
+      return res.status(401).json({
+        ok: false,
+        error: error && error.name === 'TokenExpiredError'
+          ? 'Die Anmeldung ist abgelaufen. Bitte neu anmelden.'
+          : 'Die Anmeldung konnte nicht geprüft werden. Bitte neu anmelden.'
+      });
+    }
+  }
+
   app.post('/api/account/password', requireUser, async (req, res) => {
     const currentPassword = String((req.body && req.body.currentPassword) || '');
     const newPassword = String((req.body && req.body.newPassword) || '');
@@ -97,17 +144,7 @@ module.exports = function registerSelfPasswordRoutes(app) {
       return res.status(400).json({ ok: false, error: 'Das neue Passwort muss sich vom bisherigen Passwort unterscheiden.' });
     }
 
-    let schema;
-    let user;
-    try {
-      schema = mapUserSchema();
-      user = db.prepare(
-        `SELECT * FROM users WHERE lower(${quoteIdentifier(schema.username)}) = lower(?)`
-      ).get(req.passwordUser.username);
-    } catch (error) {
-      return res.status(500).json({ ok: false, error: 'Benutzerdaten konnten nicht gelesen werden: ' + error.message });
-    }
-
+    const { schema, user, username } = req.passwordUser;
     if (!user) {
       return res.status(404).json({ ok: false, error: 'Das angemeldete Benutzerkonto wurde nicht gefunden.' });
     }
@@ -133,7 +170,7 @@ module.exports = function registerSelfPasswordRoutes(app) {
 
       const result = db.prepare(
         `UPDATE users SET ${updates.map(([name]) => `${quoteIdentifier(name)} = ?`).join(', ')} WHERE lower(${quoteIdentifier(schema.username)}) = lower(?)`
-      ).run(...updates.map(([, value]) => value), req.passwordUser.username);
+      ).run(...updates.map(([, value]) => value), username);
 
       if (result.changes !== 1) {
         return res.status(500).json({ ok: false, error: 'Das Passwort konnte nicht gespeichert werden.' });
