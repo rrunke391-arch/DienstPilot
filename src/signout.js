@@ -89,7 +89,7 @@
   function loadUserModules() {
     loadScript('dpVacationPersistenceV3', 'src/vacation-persistence-v3.js?v=20260710-4');
     loadScript('dpDriverVacationAccess', 'src/driver-vacation-access.js?v=20260710-2');
-    loadScript('dpSelfPassword', 'src/self-password.js?v=20260711-1');
+    loadScript('dpSelfPassword', 'src/self-password.js?v=20260711-2');
   }
 
   onReady(() => {
