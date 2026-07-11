@@ -110,6 +110,7 @@
     loadScript('dpCatalogEditorSimplify', 'src/catalog-editor-simplify.js?v=20260711-3');
     loadScript('dpCatalogAddDutyStable', 'src/catalog-add-duty-stable.js?v=20260711-2');
     loadScript('dpDailyDutyPlan', 'src/daily-duty-plan.js?v=20260711-1');
+    loadScript('dpDailyDutyBusMove', 'src/daily-duty-plan-bus-move.js?v=20260711-1');
   }
 
   function recreateCatalogAddButtonOnce() {
