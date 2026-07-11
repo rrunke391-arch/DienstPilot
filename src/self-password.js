@@ -32,8 +32,12 @@
       .dp-self-password-head h2{margin:0;font-size:24px;color:#0f172a}
       .dp-self-password-close{border:0;background:#eef2f7;border-radius:999px;width:38px;height:38px;font-size:24px;cursor:pointer;color:#0f172a}
       .dp-self-password-field{display:block;margin:12px 0}
-      .dp-self-password-field span{display:block;font-weight:800;color:#334155;margin-bottom:6px}
-      .dp-self-password-field input{width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #cbd5e1;border-radius:12px;font-size:16px}
+      .dp-self-password-field>span{display:block;font-weight:800;color:#334155;margin-bottom:6px}
+      .dp-self-password-input-wrap{display:flex;align-items:stretch;width:100%;border:1px solid #cbd5e1;border-radius:12px;background:#fff;overflow:hidden}
+      .dp-self-password-input-wrap:focus-within{border-color:#64748b;box-shadow:0 0 0 3px rgba(100,116,139,.15)}
+      .dp-self-password-input-wrap input{min-width:0;flex:1;width:100%;box-sizing:border-box;padding:12px 14px;border:0;outline:0;font-size:16px;background:transparent;color:#0f172a}
+      .dp-self-password-eye{flex:0 0 48px;border:0;border-left:1px solid #e2e8f0;background:#f8fafc;color:#0f172a;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+      .dp-self-password-eye:hover,.dp-self-password-eye:focus-visible{background:#e2e8f0;outline:0}
       .dp-self-password-note{font-size:13px;color:#64748b;margin:4px 0 12px}
       .dp-self-password-message{min-height:22px;font-weight:800;margin:10px 0;color:#b91c1c}
       .dp-self-password-message.ok{color:#047857}
@@ -60,6 +64,19 @@
     document.body.classList.remove('modal-open');
   }
 
+  function wirePasswordEye(button, input) {
+    if (!button || !input) return;
+    button.addEventListener('click', () => {
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      button.textContent = show ? '🙈' : '👁';
+      button.setAttribute('aria-label', show ? 'Passwort verbergen' : 'Passwort anzeigen');
+      button.setAttribute('title', show ? 'Passwort verbergen' : 'Passwort anzeigen');
+      button.setAttribute('aria-pressed', show ? 'true' : 'false');
+      input.focus({ preventScroll: true });
+    });
+  }
+
   function openModal() {
     closeModal();
     addStyles();
@@ -76,9 +93,27 @@
           <div><h2 id="dpSelfPasswordTitle">Eigenes Passwort ändern</h2><div class="dp-self-password-note">Benutzer: ${String(user.displayName || user.username || '').replace(/[&<>"']/g, '')}</div></div>
           <button type="button" class="dp-self-password-close" aria-label="Schließen">×</button>
         </div>
-        <label class="dp-self-password-field"><span>Aktuelles Passwort</span><input id="dpCurrentPassword" type="password" autocomplete="current-password"></label>
-        <label class="dp-self-password-field"><span>Neues Passwort</span><input id="dpNewPassword" type="password" autocomplete="new-password" minlength="8"></label>
-        <label class="dp-self-password-field"><span>Neues Passwort wiederholen</span><input id="dpNewPasswordRepeat" type="password" autocomplete="new-password" minlength="8"></label>
+        <label class="dp-self-password-field">
+          <span>Aktuelles Passwort</span>
+          <div class="dp-self-password-input-wrap">
+            <input id="dpCurrentPassword" type="password" autocomplete="current-password">
+            <button type="button" class="dp-self-password-eye" data-for="dpCurrentPassword" aria-label="Passwort anzeigen" title="Passwort anzeigen" aria-pressed="false">👁</button>
+          </div>
+        </label>
+        <label class="dp-self-password-field">
+          <span>Neues Passwort</span>
+          <div class="dp-self-password-input-wrap">
+            <input id="dpNewPassword" type="password" autocomplete="new-password" minlength="8">
+            <button type="button" class="dp-self-password-eye" data-for="dpNewPassword" aria-label="Passwort anzeigen" title="Passwort anzeigen" aria-pressed="false">👁</button>
+          </div>
+        </label>
+        <label class="dp-self-password-field">
+          <span>Neues Passwort wiederholen</span>
+          <div class="dp-self-password-input-wrap">
+            <input id="dpNewPasswordRepeat" type="password" autocomplete="new-password" minlength="8">
+            <button type="button" class="dp-self-password-eye" data-for="dpNewPasswordRepeat" aria-label="Passwort anzeigen" title="Passwort anzeigen" aria-pressed="false">👁</button>
+          </div>
+        </label>
         <div class="dp-self-password-note">Das neue Passwort muss mindestens 8 Zeichen haben.</div>
         <div id="dpSelfPasswordMessage" class="dp-self-password-message" aria-live="polite"></div>
         <div class="dp-self-password-actions">
@@ -96,6 +131,10 @@
     const repeatInput = modal.querySelector('#dpNewPasswordRepeat');
     const message = modal.querySelector('#dpSelfPasswordMessage');
     const saveButton = modal.querySelector('.dp-self-password-save');
+
+    modal.querySelectorAll('.dp-self-password-eye').forEach((button) => {
+      wirePasswordEye(button, modal.querySelector('#' + button.dataset.for));
+    });
 
     modal.querySelector('.dp-self-password-close')?.addEventListener('click', closeModal);
     modal.querySelector('.dp-self-password-cancel')?.addEventListener('click', closeModal);
