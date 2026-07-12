@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotDirectMonthSelectorV3) return;
-  window.__dienstpilotDirectMonthSelectorV3 = true;
+  if (window.__dienstpilotDirectMonthSelectorV4) return;
+  window.__dienstpilotDirectMonthSelectorV4 = true;
 
   const BOX_ID = 'dpDirectMonthSelector';
   const STYLE_ID = 'dpDirectMonthSelectorStyle';
@@ -75,23 +75,32 @@
     return chosen;
   }
 
-  function hideOldMonthBars(section, duties) {
+  function removeOldMonthBars(section, duties) {
     if (!section) return;
-    section.querySelectorAll('#dpMonthSelectorStable,#dpMonthSelectorFallback').forEach((node) => {
-      node.hidden = true;
-      node.style.setProperty('display', 'none', 'important');
+
+    section.querySelectorAll('#dpMonthSelectorStable,#dpMonthSelectorFallback,[data-dp-old-month-bar="1"]').forEach((node) => {
+      if (node.id !== BOX_ID && !node.closest(`#${BOX_ID}`)) node.remove();
     });
 
-    [...section.querySelectorAll('div')].forEach((node) => {
-      if (node.id === BOX_ID || node === duties || node.closest(`#${BOX_ID}`) || node.closest('#dutiesContainer')) return;
+    const candidates = [...section.querySelectorAll('div,nav,section,aside')].filter((node) => {
+      if (node.id === BOX_ID || node === duties || node.closest(`#${BOX_ID}`)) return false;
+      if (node.matches('details.month-group') || node.closest('details.month-group')) return false;
       const value = String(node.textContent || '').replace(/\s+/g, ' ').trim();
       const matches = value.match(new RegExp(MONTH_RE.source, 'gi')) || [];
-      if (/^Monate:\s*/i.test(value) && matches.length >= 2) {
-        node.dataset.dpOldMonthBar = '1';
-        node.hidden = true;
-        node.style.setProperty('display', 'none', 'important');
-      }
+      return /^Monate:\s*/i.test(value) && matches.length >= 2;
     });
+
+    const smallestCandidates = candidates.filter((node) => !candidates.some((other) => other !== node && node.contains(other)));
+    smallestCandidates.forEach((node) => node.remove());
+
+    if (duties) {
+      [...duties.children].forEach((node) => {
+        if (node.matches?.('details.month-group,.past-divider')) return;
+        const value = String(node.textContent || '').replace(/\s+/g, ' ').trim();
+        const matches = value.match(new RegExp(MONTH_RE.source, 'gi')) || [];
+        if (/^Monate:\s*/i.test(value) && matches.length >= 2) node.remove();
+      });
+    }
   }
 
   function applySelection(key, openSelected = false) {
@@ -134,7 +143,7 @@
     const entries = monthCards();
     if (!section || !duties || !entries.length) return false;
 
-    hideOldMonthBars(section, duties);
+    removeOldMonthBars(section, duties);
 
     const signature = entries.map(({ key }) => key).join('|');
     let box = document.getElementById(BOX_ID);
