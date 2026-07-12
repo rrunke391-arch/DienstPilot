@@ -67,6 +67,7 @@
   }
 
   function loadCatalogModules() {
+    loadScript('dpMonthSelectorStable', 'src/month-selector-stable.js?v=20260712-1');
     loadScript('dpCatalogEditor', 'src/catalog-editor.js?v=20260711-3');
     loadScript('dpCatalogTimeScale', 'src/catalog-time-scale.js?v=20260711-4');
     loadScript('dpCatalogEditorSimplify', 'src/catalog-editor-simplify.js?v=20260711-3');
@@ -116,7 +117,7 @@
   else start();
 
   document.addEventListener('click', (event) => {
-    if (event.target.closest?.('#loginButton,.tab[data-tab="katalog"],#dpDailyDutyPlanTab')) {
+    if (event.target.closest?.('#loginButton,.tab[data-tab="katalog"],.tab[data-tab="eingabe"],#dpDailyDutyPlanTab')) {
       [0, 200, 700].forEach((delay) => window.setTimeout(loadCatalogModules, delay));
     }
   }, true);
