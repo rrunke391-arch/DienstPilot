@@ -1,11 +1,12 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotDirectMonthSelectorV6) return;
-  window.__dienstpilotDirectMonthSelectorV6 = true;
+  if (window.__dienstpilotDirectMonthSelectorV7) return;
+  window.__dienstpilotDirectMonthSelectorV7 = true;
 
   const BOX_ID = 'dpDirectMonthSelector';
-  const STYLE_ID = 'dpDirectMonthSelectorStyleV6';
+  const DRIVER_PANEL_ID = 'dpDriverQuickOverview';
+  const STYLE_ID = 'dpDirectMonthSelectorStyleV7';
   const STORAGE_KEY = 'dienstpilot_selected_overview_month_v3';
   const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
   let selectedMonth = '';
@@ -79,12 +80,17 @@
   function removeStructuralExtras(section, duties, box) {
     if (!section || !duties || !box) return;
 
-    // Zwischen der neuen Monatsauswahl und dem Kalender darf kein weiterer
-    // Monatsblock mehr stehen.
+    // Zwischen Monatsauswahl und Kalender werden alte Zusatzleisten entfernt.
+    // Die neue Fahrerübersicht ist ausdrücklich geschützt und wird vor die
+    // Monatsauswahl verschoben, statt gelöscht zu werden.
     let sibling = box.nextElementSibling;
     while (sibling && sibling !== duties) {
       const next = sibling.nextElementSibling;
-      sibling.remove();
+      if (sibling.id === DRIVER_PANEL_ID) {
+        section.insertBefore(sibling, box);
+      } else {
+        sibling.remove();
+      }
       sibling = next;
     }
 
@@ -101,7 +107,7 @@
     });
 
     section.querySelectorAll('#dpMonthSelectorStable,#dpMonthSelectorFallback,[data-dp-old-month-bar="1"]').forEach((node) => {
-      if (node !== box && !node.closest(`#${BOX_ID}`)) node.remove();
+      if (node !== box && node.id !== DRIVER_PANEL_ID && !node.closest(`#${BOX_ID}`)) node.remove();
     });
   }
 
@@ -185,13 +191,13 @@
 
   function wrapRender(name) {
     const original = window[name];
-    if (typeof original !== 'function' || original.__dpDirectMonthWrappedV6) return false;
+    if (typeof original !== 'function' || original.__dpDirectMonthWrappedV7) return false;
     const wrapped = function (...args) {
       const result = original.apply(this, args);
       queueMicrotask(buildSelector);
       return result;
     };
-    wrapped.__dpDirectMonthWrappedV6 = true;
+    wrapped.__dpDirectMonthWrappedV7 = true;
     window[name] = wrapped;
     return true;
   }
