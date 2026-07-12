@@ -48,7 +48,7 @@
     section.querySelectorAll('.toolbar-group').forEach(markGroup);
 
     [...section.children].forEach((node) => {
-      if (node === duties || node.id === 'dpMonthSelectorStable') return;
+      if (node === duties || node.id === 'dpMonthSelectorStable' || node.id === 'dpMonthSelectorFallback') return;
       node.classList.remove('dp-ui-profile', 'dp-ui-period', 'dp-ui-actions', 'dp-ui-toolbar-grid');
 
       const directGroups = node.matches('.toolbar') ? node.querySelectorAll(':scope > .toolbar-group') : [];
@@ -94,7 +94,7 @@
     markMonths(duties);
   }
 
-  [0, 150, 500, 1200, 2500].forEach((delay) => setTimeout(install, delay));
+  [0, 150, 500, 1200].forEach((delay) => setTimeout(install, delay));
   document.addEventListener('click', (event) => {
     if (event.target.closest?.('.tab[data-tab="eingabe"],#loginButton,#tab-eingabe button,#tab-eingabe summary')) {
       [0, 100, 300].forEach((delay) => setTimeout(install, delay));
@@ -104,6 +104,4 @@
     if (event.target.closest?.('#tab-eingabe')) setTimeout(install, 100);
   });
   addEventListener('pageshow', install);
-  addEventListener('focus', install);
-  setInterval(install, 2500);
 })();
