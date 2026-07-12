@@ -49,32 +49,43 @@
 
   function openOverview() {
     const overview = document.querySelector('.tab[data-tab="eingabe"]');
-    if (overview) overview.click();
+    if (overview && !overview.classList.contains('active')) overview.click();
   }
 
-  function closeDeniedSection(section) {
-    if (!section) return;
-    section.classList.add('hidden');
-    section.setAttribute('aria-hidden', 'true');
-    section.hidden = true;
-    section.style.setProperty('display', 'none', 'important');
-    section.style.setProperty('visibility', 'hidden', 'important');
-    section.querySelectorAll('button,input,select,textarea,a').forEach((control) => {
-      if ('disabled' in control) control.disabled = true;
-      control.tabIndex = -1;
-    });
+  function deny(tab, section) {
+    if (tab) {
+      tab.hidden = true;
+      tab.disabled = true;
+      tab.tabIndex = -1;
+      tab.classList.remove('active');
+      tab.setAttribute('aria-hidden', 'true');
+      tab.style.setProperty('display', 'none', 'important');
+      tab.style.setProperty('visibility', 'hidden', 'important');
+    }
+    if (section) {
+      section.hidden = true;
+      section.classList.add('hidden');
+      section.setAttribute('aria-hidden', 'true');
+      section.style.setProperty('display', 'none', 'important');
+      section.style.setProperty('visibility', 'hidden', 'important');
+    }
   }
 
-  function openAllowedSection(section) {
-    if (!section) return;
-    section.hidden = false;
-    section.removeAttribute('aria-hidden');
-    section.style.removeProperty('display');
-    section.style.removeProperty('visibility');
-    section.querySelectorAll('button,input,select,textarea,a').forEach((control) => {
-      if ('disabled' in control) control.disabled = false;
-      control.removeAttribute('tabindex');
-    });
+  function allow(tab, section) {
+    if (tab) {
+      tab.hidden = false;
+      tab.disabled = false;
+      tab.tabIndex = 0;
+      tab.removeAttribute('aria-hidden');
+      tab.style.removeProperty('display');
+      tab.style.removeProperty('visibility');
+    }
+    if (section) {
+      section.hidden = false;
+      section.removeAttribute('aria-hidden');
+      section.style.removeProperty('visibility');
+      if (section.classList.contains('hidden')) section.style.removeProperty('display');
+    }
   }
 
   function applyAccess() {
@@ -82,29 +93,14 @@
     const allowed = hasAccess();
     const tab = document.getElementById(TAB_ID);
     const section = document.getElementById(SECTION_ID);
+    const deniedWasActive = Boolean(tab?.classList.contains('active'))
+      || Boolean(section && !section.classList.contains('hidden') && !section.hidden);
 
     document.body.classList.toggle(DENIED_CLASS, !allowed);
-
-    if (tab) {
-      tab.hidden = !allowed;
-      tab.setAttribute('aria-hidden', allowed ? 'false' : 'true');
-      tab.tabIndex = allowed ? 0 : -1;
-      tab.disabled = !allowed;
-      if (allowed) {
-        tab.style.removeProperty('display');
-        tab.style.removeProperty('visibility');
-      } else {
-        tab.classList.remove('active');
-        tab.style.setProperty('display', 'none', 'important');
-        tab.style.setProperty('visibility', 'hidden', 'important');
-      }
-    }
-
-    if (allowed) openAllowedSection(section);
-    else closeDeniedSection(section);
-
-    if (!allowed && (tab?.classList.contains('active') || !document.getElementById('tab-eingabe')?.classList.contains('hidden'))) {
-      openOverview();
+    if (allowed) allow(tab, section);
+    else {
+      deny(tab, section);
+      if (deniedWasActive) openOverview();
     }
     return allowed;
   }
