@@ -46,10 +46,11 @@
     const heading = card.querySelector('.duty-head h2');
     if (heading) heading.textContent = `Dienst ${number || 'ohne Nummer'}`;
 
-    summary.innerHTML = `
+    const nextHtml = `
       <div class="dp-duty-summary-date">${dateText(value(card, 'date'))}</div>
       <div class="dp-duty-summary-duration"><span>Dienstzeit</span><strong>${durationText(value(card, 'start'), value(card, 'end'))}</strong></div>
     `;
+    if (summary.innerHTML !== nextHtml) summary.innerHTML = nextHtml;
   }
 
   function install() {
@@ -59,7 +60,7 @@
     section.querySelectorAll('.duty-card:not(.frei-card)').forEach(updateCard);
   }
 
-  [0, 150, 500, 1200, 2500].forEach((delay) => setTimeout(install, delay));
+  [0, 150, 500, 1200].forEach((delay) => setTimeout(install, delay));
 
   document.addEventListener('input', (event) => {
     if (!event.target.closest?.('#tab-eingabe .duty-card [data-field]')) return;
@@ -78,6 +79,4 @@
   }, true);
 
   addEventListener('pageshow', install);
-  addEventListener('focus', install);
-  setInterval(install, 2500);
 })();
