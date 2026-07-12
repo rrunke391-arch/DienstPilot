@@ -16,6 +16,7 @@
       #tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.dp-ui-period::after{background:#0ea5e9}
       #tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.dp-ui-actions::after{background:#0f172a}
       #tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.toolbar-group>*{max-width:100%}
+      @media(min-width:900px){#tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid{grid-column:1/-1}}
       @media(max-width:900px){#tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid{grid-template-columns:1fr 1fr}#tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.dp-ui-actions{grid-column:1/-1}}
       @media(max-width:700px){#tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid{grid-template-columns:1fr}#tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.dp-ui-actions{grid-column:auto}#tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.toolbar-group{display:grid!important;grid-template-columns:1fr}}
     `;
