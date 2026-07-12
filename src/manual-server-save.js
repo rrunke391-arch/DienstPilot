@@ -8,21 +8,18 @@
   const START_DATE = '2026-08-01';
   const START_MONTH = '2026-08';
 
-  function loadStableMonthSelector() {
-    if (document.getElementById('dpMonthSelectorStableDirect')) return;
+  function loadFinalMonthSelector() {
+    if (document.getElementById('dpMonthSelectorFinalDirect')) return;
     const script = document.createElement('script');
-    script.id = 'dpMonthSelectorStableDirect';
-    script.src = 'src/month-selector-stable.js?v=20260712-2';
+    script.id = 'dpMonthSelectorFinalDirect';
+    script.src = 'src/month-selector-final.js?v=20260712-1';
     script.async = false;
     document.head.appendChild(script);
   }
 
-  loadStableMonthSelector();
+  loadFinalMonthSelector();
 
   function installIsoWeekFix() {
-    // Fix fuer doppelte/verschobene KW-Anzeige nach der Zeitumstellung.
-    // Ursache: die alte KW-Berechnung mischte 12:00 Uhr mit Jahresbeginn 00:00 Uhr.
-    // Durch Sommerzeit entstand ein Bruchteil und bestimmte Wochen wurden +1 gerechnet.
     window.isoWeekKey = function fixedIsoWeekKey(dateString) {
       const iso = String(dateString || '').match(/^\d{4}-\d{2}-\d{2}$/) ? String(dateString) : new Date().toISOString().slice(0, 10);
       const parts = iso.split('-').map(Number);
@@ -156,7 +153,7 @@
 
   function installButton() {
     installIsoWeekFix();
-    loadStableMonthSelector();
+    loadFinalMonthSelector();
     if (document.getElementById('dpManualServerSave')) return;
     const toolbar = document.querySelector('.profile-toolbar') || document.querySelector('.toolbar');
     if (!toolbar) return;
@@ -184,7 +181,5 @@
     installButton();
   }
 
-  // Kein MutationObserver: Er verursachte zusammen mit der Kalenderwochen-Anpassung
-  // eine Endlosschleife und ließ den gesamten Browser-Tab einfrieren.
   window.setTimeout(installButton, 1000);
 })();
