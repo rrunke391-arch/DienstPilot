@@ -1,16 +1,20 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotDirectMonthSelectorV4) return;
-  window.__dienstpilotDirectMonthSelectorV4 = true;
+  if (window.__dienstpilotDirectMonthSelectorV5) return;
+  window.__dienstpilotDirectMonthSelectorV5 = true;
 
   const BOX_ID = 'dpDirectMonthSelector';
   const STYLE_ID = 'dpDirectMonthSelectorStyle';
   const STORAGE_KEY = 'dienstpilot_selected_overview_month_v3';
   const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-  const MONTH_RE = /(Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\s+(20\d{2})/i;
+  const MONTH_RE = /^(Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\s+(20\d{2})$/i;
   let selectedMonth = '';
   let renderHookInstalled = false;
+
+  function normalizeText(value) {
+    return String(value || '').replace(/\s+/g, ' ').trim();
+  }
 
   function addStyle() {
     if (document.getElementById(STYLE_ID)) return;
@@ -75,32 +79,51 @@
     return chosen;
   }
 
-  function removeOldMonthBars(section, duties) {
+  function monthControlCount(root) {
+    if (!root?.querySelectorAll) return 0;
+    return [...root.querySelectorAll('button,a,[role="button"]')]
+      .filter((node) => MONTH_RE.test(normalizeText(node.textContent)))
+      .length;
+  }
+
+  function isLegacyMonthBar(node) {
+    if (!(node instanceof Element)) return false;
+    if (node.id === BOX_ID || node.closest(`#${BOX_ID}`)) return false;
+    if (node.matches('details.month-group') || node.closest('details.month-group')) return false;
+    const text = normalizeText(node.textContent);
+    return /(^|\s)Monate:\s*/i.test(text) && monthControlCount(node) >= 2;
+  }
+
+  function removeOldMonthBars(section) {
     if (!section) return;
 
     section.querySelectorAll('#dpMonthSelectorStable,#dpMonthSelectorFallback,[data-dp-old-month-bar="1"]').forEach((node) => {
       if (node.id !== BOX_ID && !node.closest(`#${BOX_ID}`)) node.remove();
     });
 
-    const candidates = [...section.querySelectorAll('div,nav,section,aside')].filter((node) => {
-      if (node.id === BOX_ID || node === duties || node.closest(`#${BOX_ID}`)) return false;
-      if (node.matches('details.month-group') || node.closest('details.month-group')) return false;
-      const value = String(node.textContent || '').replace(/\s+/g, ' ').trim();
-      const matches = value.match(new RegExp(MONTH_RE.source, 'gi')) || [];
-      return /^Monate:\s*/i.test(value) && matches.length >= 2;
+    const walker = document.createTreeWalker(section, NodeFilter.SHOW_TEXT);
+    const labels = [];
+    while (walker.nextNode()) {
+      if (/^Monate:\s*$/i.test(normalizeText(walker.currentNode.nodeValue))) {
+        labels.push(walker.currentNode);
+      }
+    }
+
+    labels.forEach((textNode) => {
+      let node = textNode.parentElement;
+      while (node && node !== section) {
+        if (isLegacyMonthBar(node)) {
+          node.remove();
+          return;
+        }
+        node = node.parentElement;
+      }
     });
 
-    const smallestCandidates = candidates.filter((node) => !candidates.some((other) => other !== node && node.contains(other)));
-    smallestCandidates.forEach((node) => node.remove());
-
-    if (duties) {
-      [...duties.children].forEach((node) => {
-        if (node.matches?.('details.month-group,.past-divider')) return;
-        const value = String(node.textContent || '').replace(/\s+/g, ' ').trim();
-        const matches = value.match(new RegExp(MONTH_RE.source, 'gi')) || [];
-        if (/^Monate:\s*/i.test(value) && matches.length >= 2) node.remove();
-      });
-    }
+    [...section.querySelectorAll('div,nav,section,aside,header')]
+      .filter(isLegacyMonthBar)
+      .filter((node, _index, all) => !all.some((other) => other !== node && node.contains(other)))
+      .forEach((node) => node.remove());
   }
 
   function applySelection(key, openSelected = false) {
@@ -143,7 +166,7 @@
     const entries = monthCards();
     if (!section || !duties || !entries.length) return false;
 
-    removeOldMonthBars(section, duties);
+    removeOldMonthBars(section);
 
     const signature = entries.map(({ key }) => key).join('|');
     let box = document.getElementById(BOX_ID);
@@ -170,12 +193,15 @@
           event.stopPropagation();
           saveSelected(key);
           applySelection(key, true);
+          removeOldMonthBars(section);
         });
         buttonRow.appendChild(button);
       });
     }
 
     applySelection(readSelected() || chooseInitial(entries), false);
+    removeOldMonthBars(section);
+    queueMicrotask(() => removeOldMonthBars(section));
     return true;
   }
 
@@ -208,13 +234,13 @@
     if (event.target?.id === 'monthPicker') {
       const key = String(event.target.value || '');
       if (/^20\d{2}-(0[1-9]|1[0-2])$/.test(key)) saveSelected(key);
-      setTimeout(buildSelector, 0);
+      setTimeout(install, 0);
     }
   }, true);
 
   document.addEventListener('click', (event) => {
     if (event.target.closest?.('.tab[data-tab="eingabe"],#loginButton,#loadRunke,#loadSelectedProfile,#loadKollege')) {
-      setTimeout(install, 0);
+      [0, 120, 400].forEach((delay) => setTimeout(install, delay));
     }
   }, true);
 
@@ -224,6 +250,6 @@
     install();
   }
 
-  [100, 350, 900].forEach((delay) => setTimeout(install, delay));
+  [80, 250, 700, 1400, 2400].forEach((delay) => setTimeout(install, delay));
   window.addEventListener('pageshow', install);
 })();
