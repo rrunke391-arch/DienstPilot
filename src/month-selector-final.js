@@ -1,6 +1,9 @@
 (() => {
   'use strict';
 
+  if (window.__dienstpilotMonthSelectorFinalV2) return;
+  window.__dienstpilotMonthSelectorFinalV2 = true;
+
   const STYLE_ID = 'dpMonthSelectorFinalStyle';
   const STORAGE_KEYS = [
     'dienstpilot_selected_overview_month_final',
@@ -12,6 +15,8 @@
 
   let selectedMonth = '';
   let renderHooksInstalled = false;
+  let lastHandledKey = '';
+  let lastHandledAt = 0;
 
   function normalizeText(value) {
     return String(value || '').replace(/\s+/g, ' ').trim();
@@ -54,6 +59,7 @@
       #dutiesContainer.dp-month-filter-final > details.month-group{display:none!important}
       #dutiesContainer.dp-month-filter-final > details.month-group.dp-month-final-current{display:block!important}
       #dutiesContainer > .past-divider{display:none!important}
+      #tab-eingabe .dp-month-final-control{cursor:pointer!important;pointer-events:auto!important}
       #tab-eingabe .dp-month-final-active{border-color:#0f172a!important;background:#0f172a!important;color:#fff!important}
     `;
     document.head.appendChild(style);
@@ -68,13 +74,30 @@
       .filter(({ key }) => /^20\d{2}-(0[1-9]|1[0-2])$/.test(key));
   }
 
+  function usableControl(node) {
+    if (!(node instanceof Element)) return null;
+    if (!node.closest('#tab-eingabe') || node.closest('#dutiesContainer')) return null;
+
+    const interactive = node.closest('button,a,[role="button"],label');
+    if (interactive && !interactive.closest('#dutiesContainer') && keyFromLabel(interactive.textContent)) {
+      return interactive;
+    }
+    return keyFromLabel(node.textContent) ? node : null;
+  }
+
   function monthControls() {
     const section = document.getElementById('tab-eingabe');
     if (!section) return [];
-    return [...section.querySelectorAll('button,a,[role="button"]')]
-      .filter((control) => !control.closest('#dutiesContainer'))
-      .map((control) => ({ control, key: control.dataset.dpMonthFinal || keyFromLabel(control.textContent) }))
-      .filter(({ key }) => key);
+
+    const found = new Map();
+    section.querySelectorAll('button,a,[role="button"],label,span,div').forEach((node) => {
+      const control = usableControl(node);
+      if (!control) return;
+      const key = control.dataset.dpMonthFinal || keyFromLabel(control.textContent);
+      if (!key || found.has(control)) return;
+      found.set(control, { control, key });
+    });
+    return [...found.values()];
   }
 
   function chooseMonth(entries) {
@@ -87,6 +110,21 @@
     const chosen = available.has(current) ? current : entries[0]?.key || '';
     storeMonth(chosen);
     return chosen;
+  }
+
+  function wireControls(chosen) {
+    monthControls().forEach(({ control, key }) => {
+      control.dataset.dpMonthFinal = key;
+      control.classList.add('dp-month-final-control');
+      if (!control.matches('button,a,[role="button"],label')) {
+        control.setAttribute('role', 'button');
+        if (!control.hasAttribute('tabindex')) control.tabIndex = 0;
+      }
+      const active = key === chosen;
+      control.classList.toggle('dp-month-final-active', active);
+      control.classList.toggle('dp-ui-month-active', active);
+      control.setAttribute('aria-current', active ? 'true' : 'false');
+    });
   }
 
   function applyMonth(openSelected = false) {
@@ -102,7 +140,6 @@
 
     entries.forEach(({ card, key }) => {
       const visible = key === chosen;
-
       card.classList.remove('dp-ui-month-hidden', 'dp-stable-month-hidden', 'dp-month-current');
       card.classList.toggle('dp-month-final-current', visible);
       card.hidden = !visible;
@@ -117,21 +154,63 @@
       }
     });
 
-    monthControls().forEach(({ control, key }) => {
-      control.dataset.dpMonthFinal = key;
-      const active = key === chosen;
-      control.classList.toggle('dp-month-final-active', active);
-      control.classList.toggle('dp-ui-month-active', active);
-      control.setAttribute('aria-current', active ? 'true' : 'false');
-    });
-
+    wireControls(chosen);
     return true;
   }
 
   function selectMonth(key) {
-    if (!key) return;
+    if (!key) return false;
+    const available = new Set(monthCards().map(({ key: cardKey }) => cardKey));
+    if (!available.has(key)) return false;
     storeMonth(key);
-    applyMonth(true);
+    return applyMonth(true);
+  }
+
+  function monthFromEvent(event) {
+    const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
+    for (const node of path) {
+      if (!(node instanceof Element)) continue;
+      if (node.id === 'tab-eingabe') break;
+      const control = usableControl(node);
+      if (!control) continue;
+      const key = control.dataset.dpMonthFinal || keyFromLabel(control.textContent);
+      if (key) return { control, key };
+    }
+
+    const target = event.target instanceof Element ? usableControl(event.target) : null;
+    if (!target) return null;
+    const key = target.dataset.dpMonthFinal || keyFromLabel(target.textContent);
+    return key ? { control: target, key } : null;
+  }
+
+  function handleMonthEvent(event) {
+    const match = monthFromEvent(event);
+    if (!match) return;
+
+    const now = Date.now();
+    if (event.type === 'click' && match.key === lastHandledKey && now - lastHandledAt < 700) {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    lastHandledKey = match.key;
+    lastHandledAt = now;
+    selectMonth(match.key);
+  }
+
+  function handleMonthKey(event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    const match = monthFromEvent(event);
+    if (!match) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    selectMonth(match.key);
   }
 
   function wrapRenderFunction(name) {
@@ -160,30 +239,17 @@
     applyMonth(false);
   }
 
-  document.addEventListener('click', (event) => {
-    const control = event.target.closest?.('button,a,[role="button"]');
-    if (control && !control.closest('#dutiesContainer')) {
-      const key = control.dataset.dpMonthFinal || keyFromLabel(control.textContent);
-      if (key) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-        selectMonth(key);
-        return;
-      }
-    }
-
-    if (event.target.closest?.('.tab[data-tab="eingabe"],#loginButton,#loadRunke,#loadSelectedProfile,#loadKollege,#tab-eingabe summary,#tab-eingabe button')) {
-      setTimeout(install, 0);
-    }
-  }, true);
+  // Window-Capture läuft vor älteren document- oder elementgebundenen Handlern.
+  window.addEventListener('pointerdown', handleMonthEvent, true);
+  window.addEventListener('click', handleMonthEvent, true);
+  window.addEventListener('keydown', handleMonthKey, true);
 
   document.addEventListener('change', (event) => {
     if (event.target?.id === 'monthPicker') {
       const value = String(event.target.value || '');
       if (/^20\d{2}-(0[1-9]|1[0-2])$/.test(value)) storeMonth(value);
+      queueMicrotask(() => applyMonth(true));
     }
-    if (event.target.closest?.('#tab-eingabe')) setTimeout(install, 0);
   }, true);
 
   if (document.readyState === 'loading') {
