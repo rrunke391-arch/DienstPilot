@@ -8,6 +8,17 @@
   const START_DATE = '2026-08-01';
   const START_MONTH = '2026-08';
 
+  function loadStableMonthSelector() {
+    if (document.getElementById('dpMonthSelectorStableDirect')) return;
+    const script = document.createElement('script');
+    script.id = 'dpMonthSelectorStableDirect';
+    script.src = 'src/month-selector-stable.js?v=20260712-2';
+    script.async = false;
+    document.head.appendChild(script);
+  }
+
+  loadStableMonthSelector();
+
   function installIsoWeekFix() {
     // Fix fuer doppelte/verschobene KW-Anzeige nach der Zeitumstellung.
     // Ursache: die alte KW-Berechnung mischte 12:00 Uhr mit Jahresbeginn 00:00 Uhr.
@@ -145,6 +156,7 @@
 
   function installButton() {
     installIsoWeekFix();
+    loadStableMonthSelector();
     if (document.getElementById('dpManualServerSave')) return;
     const toolbar = document.querySelector('.profile-toolbar') || document.querySelector('.toolbar');
     if (!toolbar) return;
