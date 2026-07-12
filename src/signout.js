@@ -104,7 +104,8 @@
     loadStylesheet('dpPasswordEyeSlash', 'src/password-eye-slash.css?v=20260711-1');
     loadStylesheet('dpCatalogFieldsHidden', 'src/catalog-fields-hidden.css?v=20260711-2');
     loadStylesheet('dpOverviewPolishCss', 'src/overview-polish.css?v=20260712-1');
-    loadScript('dpOverviewPolish', 'src/overview-polish.js?v=20260712-3');
+    loadScript('dpOverviewPolish', 'src/overview-polish.js?v=20260712-4');
+    loadScript('dpMonthSelectorStable', 'src/month-selector-stable.js?v=20260712-1');
     loadStylesheet('dpDutyCardSimpleCss', 'src/duty-card-simple.css?v=20260712-1');
     loadScript('dpDutyCardSimple', 'src/duty-card-simple.js?v=20260712-1');
     loadScript('dpSelfPassword', 'src/self-password.js?v=20260711-3');
@@ -133,8 +134,6 @@
     catalogStaticRepairDone = true;
     button.remove();
 
-    // Die stabile Katalogfunktion reagiert auf focus und erzeugt den Schalter
-    // anschließend selbst mit dem korrekten Klick-Handler neu.
     window.dispatchEvent(new Event('focus'));
   }
 
@@ -165,9 +164,6 @@
   onReady(() => {
     createButton();
     installCatalogAddFallback();
-
-    // Erst den fest eingebauten, noch ungebundenen HTML-Schalter entfernen.
-    // Danach lädt die stabile Funktion und erstellt ihn mit Klick-Handler neu.
     recreateCatalogAddButtonOnce();
     loadUserModules();
     window.setTimeout(recreateCatalogAddButtonOnce, 250);
