@@ -101,7 +101,7 @@
   function loadUserModules() {
     loadScript('dpVacationPersistenceV3', 'src/vacation-persistence-v3.js?v=20260710-4');
     loadScript('dpDriverVacationAccess', 'src/driver-vacation-access.js?v=20260710-2');
-    loadScript('dpDriverQuickOverview', 'src/driver-quick-overview.js?v=20260712-1');
+    loadScript('dpDriverHomeScript', 'src/driver-home.js?v=20260712-2');
     loadStylesheet('dpPasswordEyeSlash', 'src/password-eye-slash.css?v=20260711-1');
     loadStylesheet('dpCatalogFieldsHidden', 'src/catalog-fields-hidden.css?v=20260711-2');
     loadStylesheet('dpOverviewPolishCss', 'src/overview-polish.css?v=20260712-1');
