@@ -1,0 +1,257 @@
+#tab-eingabe.dp-overview-polished{max-width:1220px;margin:0 auto}
+
+#tab-eingabe.dp-overview-polished>.dp-ui-period,
+#tab-eingabe.dp-overview-polished>.dp-ui-profile,
+#tab-eingabe.dp-overview-polished>.dp-ui-actions,
+#tab-eingabe.dp-overview-polished>.dp-ui-monthnav{
+  position:relative;
+  margin:0 0 12px;
+  padding:17px 16px 15px;
+  border:1px solid #dbe4ee;
+  border-radius:18px;
+  background:#fff;
+  box-shadow:0 8px 22px rgba(15,23,42,.055);
+}
+
+#tab-eingabe.dp-overview-polished>.dp-ui-period::before,
+#tab-eingabe.dp-overview-polished>.dp-ui-profile::before,
+#tab-eingabe.dp-overview-polished>.dp-ui-actions::before,
+#tab-eingabe.dp-overview-polished>.dp-ui-monthnav::before{
+  content:attr(data-dp-title);
+  display:block;
+  margin-bottom:10px;
+  color:#334155;
+  font-size:12px;
+  font-weight:950;
+  letter-spacing:.045em;
+  text-transform:uppercase;
+}
+
+#tab-eingabe.dp-overview-polished>.dp-ui-period::after,
+#tab-eingabe.dp-overview-polished>.dp-ui-profile::after,
+#tab-eingabe.dp-overview-polished>.dp-ui-actions::after{
+  content:"";
+  position:absolute;
+  left:16px;
+  top:42px;
+  width:44px;
+  height:3px;
+  border-radius:999px;
+  background:#2563eb;
+}
+
+#tab-eingabe.dp-overview-polished>.dp-ui-actions::after{background:#0f172a}
+#tab-eingabe.dp-overview-polished>.dp-ui-period::after{background:#0ea5e9}
+
+#tab-eingabe.dp-overview-polished>.dp-ui-profile,
+#tab-eingabe.dp-overview-polished>.dp-ui-actions{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  flex-wrap:wrap;
+}
+
+#tab-eingabe.dp-overview-polished>.dp-ui-profile::before,
+#tab-eingabe.dp-overview-polished>.dp-ui-actions::before{
+  width:100%;
+}
+
+#tab-eingabe.dp-overview-polished .dp-ui-period,
+#tab-eingabe.dp-overview-polished .dp-ui-profile,
+#tab-eingabe.dp-overview-polished .dp-ui-actions{
+  gap:9px!important;
+}
+
+#tab-eingabe.dp-overview-polished button,
+#tab-eingabe.dp-overview-polished select,
+#tab-eingabe.dp-overview-polished input[type="month"]{
+  min-height:42px;
+  border-radius:11px!important;
+}
+
+#tab-eingabe.dp-overview-polished button{
+  padding:9px 13px!important;
+  font-weight:850!important;
+  box-shadow:none!important;
+}
+
+#tab-eingabe.dp-overview-polished select{
+  min-width:220px;
+  padding:8px 34px 8px 12px!important;
+  border:1px solid #cbd5e1!important;
+  background:#fff!important;
+}
+
+#tab-eingabe.dp-overview-polished #loadRunke,
+#tab-eingabe.dp-overview-polished #printDutyPlan,
+#tab-eingabe.dp-overview-polished #manualServerSave,
+#tab-eingabe.dp-overview-polished button.active-profile{
+  border-color:#0f172a!important;
+  background:#0f172a!important;
+  color:#fff!important;
+}
+
+#tab-eingabe.dp-overview-polished #clearDuties{
+  border-color:#fecaca!important;
+  background:#fff1f2!important;
+  color:#b91c1c!important;
+}
+
+#tab-eingabe.dp-overview-polished .toolbar-toggle{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:8px 10px;
+  border:1px solid #e2e8f0;
+  border-radius:11px;
+  background:#f8fafc;
+}
+
+#tab-eingabe.dp-overview-polished .toolbar-pick{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 12px;
+  border:1px solid #cbd5e1;
+  border-radius:11px;
+  background:#fff;
+}
+
+#tab-eingabe.dp-overview-polished>.dp-ui-monthnav{
+  padding-bottom:9px;
+  overflow:hidden;
+  background:linear-gradient(90deg,#fff,#f8fafc);
+}
+
+#tab-eingabe.dp-overview-polished>.dp-ui-monthnav>*,
+#tab-eingabe.dp-overview-polished>.dp-ui-monthnav .toolbar-group{
+  display:flex!important;
+  align-items:center;
+  gap:8px!important;
+  overflow-x:auto;
+  padding:1px 1px 6px!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  scrollbar-width:thin;
+}
+
+#tab-eingabe.dp-overview-polished>.dp-ui-monthnav button,
+#tab-eingabe.dp-overview-polished>.dp-ui-monthnav a{
+  flex:0 0 auto;
+  min-height:36px;
+  padding:7px 12px!important;
+  border:1px solid #dbe4ee!important;
+  border-radius:999px!important;
+  background:#f8fafc!important;
+  color:#334155!important;
+  font-size:12px!important;
+  white-space:nowrap;
+}
+
+#tab-eingabe.dp-overview-polished>.dp-ui-monthnav button:hover,
+#tab-eingabe.dp-overview-polished>.dp-ui-monthnav a:hover{
+  border-color:#93c5fd!important;
+  background:#eff6ff!important;
+  color:#1d4ed8!important;
+}
+
+#tab-eingabe.dp-overview-polished>.dp-ui-monthnav .dp-ui-month-active{
+  border-color:#0f172a!important;
+  background:#0f172a!important;
+  color:#fff!important;
+}
+
+#dutiesContainer.dp-ui-months{
+  display:grid;
+  gap:13px;
+  margin-top:8px;
+}
+
+#dutiesContainer.dp-ui-months>.dp-ui-month-card{
+  overflow:hidden;
+  margin:0!important;
+  border:1px solid #e2e8f0!important;
+  border-radius:18px!important;
+  background:#fff!important;
+  box-shadow:0 6px 18px rgba(15,23,42,.045)!important;
+  transition:border-color .18s ease,box-shadow .18s ease;
+}
+
+#dutiesContainer.dp-ui-months>.dp-ui-month-card:hover{
+  border-color:#cbd5e1!important;
+  box-shadow:0 10px 24px rgba(15,23,42,.075)!important;
+}
+
+#dutiesContainer.dp-ui-months>.dp-ui-month-open{
+  border-color:#93c5fd!important;
+  box-shadow:0 12px 28px rgba(37,99,235,.10)!important;
+}
+
+#dutiesContainer .dp-ui-month-title{
+  min-height:58px!important;
+  padding:15px 17px!important;
+  background:linear-gradient(90deg,#fff,#f8fafc)!important;
+  color:#0f172a!important;
+  font-size:19px!important;
+  font-weight:950!important;
+  letter-spacing:-.015em;
+}
+
+#dutiesContainer .dp-ui-month-open .dp-ui-month-title{
+  background:linear-gradient(90deg,#eff6ff,#fff 78%)!important;
+}
+
+#dutiesContainer .dp-ui-week-row{
+  min-height:44px!important;
+  margin:7px 12px!important;
+  padding:9px 12px!important;
+  border:1px solid #e2e8f0!important;
+  border-radius:12px!important;
+  background:#f8fafc!important;
+  color:#334155!important;
+  font-weight:800!important;
+  box-shadow:none!important;
+}
+
+#dutiesContainer .dp-ui-week-row:hover,
+#dutiesContainer .dp-ui-week-row[aria-expanded="true"]{
+  border-color:#93c5fd!important;
+  background:#eff6ff!important;
+  color:#1d4ed8!important;
+}
+
+@media(min-width:900px){
+  #tab-eingabe.dp-overview-polished{
+    display:grid;
+    grid-template-columns:.8fr 1.35fr;
+    gap:12px;
+  }
+  #tab-eingabe.dp-overview-polished>.dp-ui-period{grid-column:1}
+  #tab-eingabe.dp-overview-polished>.dp-ui-profile{grid-column:2}
+  #tab-eingabe.dp-overview-polished>.dp-ui-actions,
+  #tab-eingabe.dp-overview-polished>.dp-ui-monthnav,
+  #tab-eingabe.dp-overview-polished>#dutiesContainer{grid-column:1/-1}
+}
+
+@media(max-width:700px){
+  #tab-eingabe.dp-overview-polished>.dp-ui-period,
+  #tab-eingabe.dp-overview-polished>.dp-ui-profile,
+  #tab-eingabe.dp-overview-polished>.dp-ui-actions,
+  #tab-eingabe.dp-overview-polished>.dp-ui-monthnav{
+    padding:15px 12px 12px;
+    border-radius:15px;
+  }
+  #tab-eingabe.dp-overview-polished>.dp-ui-profile,
+  #tab-eingabe.dp-overview-polished>.dp-ui-actions{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+  #tab-eingabe.dp-overview-polished button,
+  #tab-eingabe.dp-overview-polished select,
+  #tab-eingabe.dp-overview-polished label{
+    width:100%!important;
+    max-width:none!important;
+  }
+  #dutiesContainer .dp-ui-month-title{font-size:17px!important}
+}
