@@ -1,20 +1,15 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotDirectMonthSelectorV5) return;
-  window.__dienstpilotDirectMonthSelectorV5 = true;
+  if (window.__dienstpilotDirectMonthSelectorV6) return;
+  window.__dienstpilotDirectMonthSelectorV6 = true;
 
   const BOX_ID = 'dpDirectMonthSelector';
-  const STYLE_ID = 'dpDirectMonthSelectorStyle';
+  const STYLE_ID = 'dpDirectMonthSelectorStyleV6';
   const STORAGE_KEY = 'dienstpilot_selected_overview_month_v3';
   const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-  const MONTH_RE = /^(Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\s+(20\d{2})$/i;
   let selectedMonth = '';
   let renderHookInstalled = false;
-
-  function normalizeText(value) {
-    return String(value || '').replace(/\s+/g, ' ').trim();
-  }
 
   function addStyle() {
     if (document.getElementById(STYLE_ID)) return;
@@ -28,9 +23,11 @@
       #${BOX_ID} .dp-direct-month-button{appearance:none;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#0f172a;padding:8px 12px;font:inherit;font-size:13px;font-weight:900;line-height:1.15;cursor:pointer;touch-action:manipulation}
       #${BOX_ID} .dp-direct-month-button:hover{border-color:#64748b;background:#f8fafc}
       #${BOX_ID} .dp-direct-month-button.active{border-color:#0f172a;background:#0f172a;color:#fff}
+      #dutiesContainer.dp-direct-month-filter > :not(details.month-group):not(.past-divider){display:none!important}
       #dutiesContainer.dp-direct-month-filter > details.month-group{display:none!important}
       #dutiesContainer.dp-direct-month-filter > details.month-group.dp-direct-month-visible{display:block!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
       #dutiesContainer.dp-direct-month-filter > details.month-group.dp-direct-month-visible > summary{display:none!important}
+      #dutiesContainer.dp-direct-month-filter > details.month-group > :not(summary):not(details.week-group){display:none!important}
       #dutiesContainer.dp-direct-month-filter > details.month-group.dp-direct-month-visible > details.week-group:first-of-type{margin-top:0!important}
       #dutiesContainer > .past-divider{display:none!important}
       @media(max-width:700px){#${BOX_ID} .dp-direct-month-inner{display:block}#${BOX_ID} .dp-direct-month-label{display:block;margin-bottom:9px;padding-top:0}#${BOX_ID} .dp-direct-month-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#${BOX_ID} .dp-direct-month-button{width:100%}}
@@ -79,54 +76,36 @@
     return chosen;
   }
 
-  function monthControlCount(root) {
-    if (!root?.querySelectorAll) return 0;
-    return [...root.querySelectorAll('button,a,[role="button"]')]
-      .filter((node) => MONTH_RE.test(normalizeText(node.textContent)))
-      .length;
-  }
+  function removeStructuralExtras(section, duties, box) {
+    if (!section || !duties || !box) return;
 
-  function isLegacyMonthBar(node) {
-    if (!(node instanceof Element)) return false;
-    if (node.id === BOX_ID || node.closest(`#${BOX_ID}`)) return false;
-    if (node.matches('details.month-group') || node.closest('details.month-group')) return false;
-    const text = normalizeText(node.textContent);
-    return /(^|\s)Monate:\s*/i.test(text) && monthControlCount(node) >= 2;
-  }
-
-  function removeOldMonthBars(section) {
-    if (!section) return;
-
-    section.querySelectorAll('#dpMonthSelectorStable,#dpMonthSelectorFallback,[data-dp-old-month-bar="1"]').forEach((node) => {
-      if (node.id !== BOX_ID && !node.closest(`#${BOX_ID}`)) node.remove();
-    });
-
-    const walker = document.createTreeWalker(section, NodeFilter.SHOW_TEXT);
-    const labels = [];
-    while (walker.nextNode()) {
-      if (/^Monate:\s*$/i.test(normalizeText(walker.currentNode.nodeValue))) {
-        labels.push(walker.currentNode);
-      }
+    // Zwischen der neuen Monatsauswahl und dem Kalender darf kein weiterer
+    // Monatsblock mehr stehen.
+    let sibling = box.nextElementSibling;
+    while (sibling && sibling !== duties) {
+      const next = sibling.nextElementSibling;
+      sibling.remove();
+      sibling = next;
     }
 
-    labels.forEach((textNode) => {
-      let node = textNode.parentElement;
-      while (node && node !== section) {
-        if (isLegacyMonthBar(node)) {
-          node.remove();
-          return;
-        }
-        node = node.parentElement;
-      }
+    // Im Kalendercontainer sind nur echte Monatskarten zulässig.
+    [...duties.children].forEach((node) => {
+      if (!node.matches?.('details.month-group,.past-divider')) node.remove();
     });
 
-    [...section.querySelectorAll('div,nav,section,aside,header')]
-      .filter(isLegacyMonthBar)
-      .filter((node, _index, all) => !all.some((other) => other !== node && node.contains(other)))
-      .forEach((node) => node.remove());
+    // Innerhalb einer Monatskarte bleiben nur Überschrift und Kalenderwochen.
+    duties.querySelectorAll(':scope > details.month-group').forEach((card) => {
+      [...card.children].forEach((node) => {
+        if (!node.matches?.('summary,details.week-group')) node.remove();
+      });
+    });
+
+    section.querySelectorAll('#dpMonthSelectorStable,#dpMonthSelectorFallback,[data-dp-old-month-bar="1"]').forEach((node) => {
+      if (node !== box && !node.closest(`#${BOX_ID}`)) node.remove();
+    });
   }
 
-  function applySelection(key, openSelected = false) {
+  function applySelection(key) {
     const container = document.getElementById('dutiesContainer');
     const entries = monthCards();
     if (!container || !entries.length) return false;
@@ -166,8 +145,6 @@
     const entries = monthCards();
     if (!section || !duties || !entries.length) return false;
 
-    removeOldMonthBars(section);
-
     const signature = entries.map(({ key }) => key).join('|');
     let box = document.getElementById(BOX_ID);
     if (!box) {
@@ -176,6 +153,8 @@
       box.innerHTML = '<div class="dp-direct-month-inner"><div class="dp-direct-month-label">Monat auswählen:</div><div class="dp-direct-month-buttons"></div></div>';
       duties.insertAdjacentElement('beforebegin', box);
     }
+
+    removeStructuralExtras(section, duties, box);
 
     const buttonRow = box.querySelector('.dp-direct-month-buttons');
     if (buttonRow.dataset.signature !== signature) {
@@ -192,28 +171,27 @@
           event.preventDefault();
           event.stopPropagation();
           saveSelected(key);
-          applySelection(key, true);
-          removeOldMonthBars(section);
+          applySelection(key);
+          removeStructuralExtras(section, duties, box);
         });
         buttonRow.appendChild(button);
       });
     }
 
-    applySelection(readSelected() || chooseInitial(entries), false);
-    removeOldMonthBars(section);
-    queueMicrotask(() => removeOldMonthBars(section));
+    applySelection(readSelected() || chooseInitial(entries));
+    removeStructuralExtras(section, duties, box);
     return true;
   }
 
   function wrapRender(name) {
     const original = window[name];
-    if (typeof original !== 'function' || original.__dpDirectMonthWrapped) return false;
+    if (typeof original !== 'function' || original.__dpDirectMonthWrappedV6) return false;
     const wrapped = function (...args) {
       const result = original.apply(this, args);
       queueMicrotask(buildSelector);
       return result;
     };
-    wrapped.__dpDirectMonthWrapped = true;
+    wrapped.__dpDirectMonthWrappedV6 = true;
     window[name] = wrapped;
     return true;
   }
