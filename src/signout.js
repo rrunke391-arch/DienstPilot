@@ -104,10 +104,9 @@
     loadStylesheet('dpPasswordEyeSlash', 'src/password-eye-slash.css?v=20260711-1');
     loadStylesheet('dpCatalogFieldsHidden', 'src/catalog-fields-hidden.css?v=20260711-2');
     loadStylesheet('dpOverviewPolishCss', 'src/overview-polish.css?v=20260712-1');
-    loadScript('dpOverviewPolish', 'src/overview-polish.js?v=20260712-4');
-    loadScript('dpMonthSelectorStable', 'src/month-selector-stable.js?v=20260712-1');
+    loadScript('dpOverviewPolish', 'src/overview-polish.js?v=20260712-5');
     loadStylesheet('dpDutyCardSimpleCss', 'src/duty-card-simple.css?v=20260712-1');
-    loadScript('dpDutyCardSimple', 'src/duty-card-simple.js?v=20260712-1');
+    loadScript('dpDutyCardSimple', 'src/duty-card-simple.js?v=20260712-2');
     loadScript('dpSelfPassword', 'src/self-password.js?v=20260711-3');
     loadScript('dpLoginPasswordEyeSlash', 'src/login-password-eye-slash.js?v=20260711-1');
     loadScript('dpCatalogEditor', 'src/catalog-editor.js?v=20260711-3');
