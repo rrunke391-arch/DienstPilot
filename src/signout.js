@@ -104,7 +104,7 @@
     loadScript('dpVacationPersistenceV3', 'src/vacation-persistence-v3.js?v=20260710-4');
     loadScript('dpDriverVacationAccess', 'src/driver-vacation-access.js?v=20260710-2');
     loadScript('dpDriverHomeScript', 'src/driver-home.js?v=20260712-2');
-    loadScript('dpDutyAssignment', 'src/duty-assignment.js?v=20260712-1');
+    loadScript('dpDutyAssignment', 'src/duty-assignment.js?v=20260712-2');
     loadStylesheet('dpPasswordEyeSlash', 'src/password-eye-slash.css?v=20260711-1');
     loadStylesheet('dpCatalogFieldsHidden', 'src/catalog-fields-hidden.css?v=20260711-2');
     loadStylesheet('dpOverviewPolishCss', 'src/overview-polish.css?v=20260712-1');
@@ -166,6 +166,13 @@
     }, true);
   }
 
+  function refreshRoleModules() {
+    loadUserModules();
+    refreshName();
+    window.dispatchEvent(new Event('pageshow'));
+    window.dispatchEvent(new Event('focus'));
+  }
+
   onReady(() => {
     createButton();
     installCatalogAddFallback();
@@ -176,7 +183,7 @@
 
     document.addEventListener('click', (event) => {
       if (event.target.closest && event.target.closest('#loginButton')) {
-        setTimeout(refreshName, 500);
+        [250, 700, 1400, 2600, 4500].forEach((delay) => window.setTimeout(refreshRoleModules, delay));
       }
     }, true);
   });
