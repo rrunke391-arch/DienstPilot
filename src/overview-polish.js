@@ -2,6 +2,25 @@
   'use strict';
 
   const MONTH_RE = /^(Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\s+20\d{2}/i;
+  const GRID_STYLE_ID = 'dpOverviewToolbarGridStyle';
+
+  function addGridStyle() {
+    if (document.getElementById(GRID_STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = GRID_STYLE_ID;
+    style.textContent = `
+      #tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid{display:grid!important;grid-template-columns:.8fr 1.15fr 1.35fr;gap:12px;width:100%;margin:0 0 12px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+      #tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.toolbar-group{position:relative;display:flex!important;align-items:center;align-content:flex-start;gap:9px!important;flex-wrap:wrap;min-width:0;margin:0!important;padding:47px 14px 14px!important;border:1px solid #dbe4ee!important;border-radius:18px!important;background:#fff!important;box-shadow:0 8px 22px rgba(15,23,42,.055)!important}
+      #tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.toolbar-group::before{content:attr(data-dp-title);position:absolute;left:14px;right:14px;top:13px;color:#334155;font-size:12px;font-weight:950;letter-spacing:.045em;text-transform:uppercase}
+      #tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.toolbar-group::after{content:"";position:absolute;left:14px;top:36px;width:42px;height:3px;border-radius:999px;background:#2563eb}
+      #tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.dp-ui-period::after{background:#0ea5e9}
+      #tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.dp-ui-actions::after{background:#0f172a}
+      #tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.toolbar-group>*{max-width:100%}
+      @media(max-width:900px){#tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid{grid-template-columns:1fr 1fr}#tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.dp-ui-actions{grid-column:1/-1}}
+      @media(max-width:700px){#tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid{grid-template-columns:1fr}#tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.dp-ui-actions{grid-column:auto}#tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.toolbar-group{display:grid!important;grid-template-columns:1fr}}
+    `;
+    document.head.appendChild(style);
+  }
 
   function text(node) {
     return String(node?.textContent || '').replace(/\s+/g, ' ').trim();
@@ -77,6 +96,7 @@
   }
 
   function install() {
+    addGridStyle();
     const section = document.getElementById('tab-eingabe');
     const duties = document.getElementById('dutiesContainer');
     if (!section || !duties) return;
