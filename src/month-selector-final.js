@@ -25,7 +25,9 @@
       #${BOX_ID} .dp-direct-month-button:hover{border-color:#64748b;background:#f8fafc}
       #${BOX_ID} .dp-direct-month-button.active{border-color:#0f172a;background:#0f172a;color:#fff}
       #dutiesContainer.dp-direct-month-filter > details.month-group{display:none!important}
-      #dutiesContainer.dp-direct-month-filter > details.month-group.dp-direct-month-visible{display:block!important}
+      #dutiesContainer.dp-direct-month-filter > details.month-group.dp-direct-month-visible{display:block!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+      #dutiesContainer.dp-direct-month-filter > details.month-group.dp-direct-month-visible > summary{display:none!important}
+      #dutiesContainer.dp-direct-month-filter > details.month-group.dp-direct-month-visible > details.week-group:first-of-type{margin-top:0!important}
       #dutiesContainer > .past-divider{display:none!important}
       @media(max-width:700px){#${BOX_ID} .dp-direct-month-inner{display:block}#${BOX_ID} .dp-direct-month-label{display:block;margin-bottom:9px;padding-top:0}#${BOX_ID} .dp-direct-month-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#${BOX_ID} .dp-direct-month-button{width:100%}}
     `;
@@ -110,7 +112,7 @@
       card.setAttribute('aria-hidden', visible ? 'false' : 'true');
       if (visible) {
         card.style.setProperty('display', 'block', 'important');
-        if (openSelected) card.open = true;
+        card.open = true;
       } else {
         card.style.setProperty('display', 'none', 'important');
         card.open = false;
