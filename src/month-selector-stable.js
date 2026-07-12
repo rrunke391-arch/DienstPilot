@@ -5,10 +5,10 @@
     if (node.tagName !== 'SCRIPT') node.remove();
   });
 
-  if (document.getElementById('dpMonthSelectorFinalCompatV5')) return;
+  if (document.getElementById('dpMonthSelectorFinalCompatV7')) return;
   const script = document.createElement('script');
-  script.id = 'dpMonthSelectorFinalCompatV5';
-  script.src = 'src/month-selector-final.js?v=20260712-5';
+  script.id = 'dpMonthSelectorFinalCompatV7';
+  script.src = 'src/month-selector-final.js?v=20260712-7';
   script.async = false;
   document.head.appendChild(script);
 })();
