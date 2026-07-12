@@ -67,7 +67,7 @@
   }
 
   function loadCatalogModules() {
-    loadScript('dpMonthSelectorStable', 'src/month-selector-stable.js?v=20260712-1');
+    loadScript('dpMonthSelectorFinalV4', 'src/month-selector-final.js?v=20260712-4');
     loadScript('dpCatalogEditor', 'src/catalog-editor.js?v=20260711-3');
     loadScript('dpCatalogTimeScale', 'src/catalog-time-scale.js?v=20260711-4');
     loadScript('dpCatalogEditorSimplify', 'src/catalog-editor-simplify.js?v=20260711-3');
