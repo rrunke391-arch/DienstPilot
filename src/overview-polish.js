@@ -1,27 +1,8 @@
 (() => {
   'use strict';
 
-  const MONTH_RE = /(Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\s+(20\d{2})/i;
-  const EXACT_MONTH_RE = /^(Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\s+(20\d{2})$/i;
+  const MONTH_RE = /(Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\s+20\d{2}/i;
   const GRID_STYLE_ID = 'dpOverviewToolbarGridStyle';
-  const STORAGE_KEY = 'dienstpilot_overview_selected_month';
-  const MONTH_INDEX = {
-    januar: 1,
-    februar: 2,
-    märz: 3,
-    maerz: 3,
-    april: 4,
-    mai: 5,
-    juni: 6,
-    juli: 7,
-    august: 8,
-    september: 9,
-    oktober: 10,
-    november: 11,
-    dezember: 12
-  };
-
-  let selectedMonthKey = sessionStorage.getItem(STORAGE_KEY) || '';
 
   function addGridStyle() {
     if (document.getElementById(GRID_STYLE_ID)) return;
@@ -35,8 +16,6 @@
       #tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.dp-ui-period::after{background:#0ea5e9}
       #tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.dp-ui-actions::after{background:#0f172a}
       #tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.toolbar-group>*{max-width:100%}
-      #dutiesContainer>.dp-ui-month-hidden{display:none!important}
-      #dutiesContainer>.past-divider{display:none!important}
       @media(min-width:900px){#tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid{grid-column:1/-1}}
       @media(max-width:900px){#tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid{grid-template-columns:1fr 1fr}#tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.dp-ui-actions{grid-column:1/-1}}
       @media(max-width:700px){#tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid{grid-template-columns:1fr}#tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.dp-ui-actions{grid-column:auto}#tab-eingabe.dp-overview-polished>.dp-ui-toolbar-grid>.toolbar-group{display:grid!important;grid-template-columns:1fr}}
@@ -46,23 +25,6 @@
 
   function text(node) {
     return String(node?.textContent || '').replace(/\s+/g, ' ').trim();
-  }
-
-  function monthKey(value, exact = false) {
-    const match = String(value || '').match(exact ? EXACT_MONTH_RE : MONTH_RE);
-    if (!match) return '';
-    const month = MONTH_INDEX[match[1].toLowerCase()];
-    return month ? `${match[2]}-${String(month).padStart(2, '0')}` : '';
-  }
-
-  function currentCalendarMonthKey() {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  }
-
-  function rememberMonth(key) {
-    selectedMonthKey = key;
-    try { sessionStorage.setItem(STORAGE_KEY, key); } catch {}
   }
 
   function markGroup(group) {
@@ -86,8 +48,8 @@
     section.querySelectorAll('.toolbar-group').forEach(markGroup);
 
     [...section.children].forEach((node) => {
-      if (node === duties) return;
-      node.classList.remove('dp-ui-profile', 'dp-ui-period', 'dp-ui-actions', 'dp-ui-monthnav', 'dp-ui-toolbar-grid');
+      if (node === duties || node.id === 'dpMonthSelectorStable') return;
+      node.classList.remove('dp-ui-profile', 'dp-ui-period', 'dp-ui-actions', 'dp-ui-toolbar-grid');
 
       const directGroups = node.matches('.toolbar') ? node.querySelectorAll(':scope > .toolbar-group') : [];
       if (directGroups.length > 1) {
@@ -96,10 +58,7 @@
       }
 
       const value = text(node).toLowerCase();
-      if (value.includes('monate:')) {
-        node.classList.add('dp-ui-monthnav');
-        node.dataset.dpTitle = 'Monat auswählen';
-      } else if (value.includes('kollege') || value.includes('vorlage neu laden') || value.includes('runke laden')) {
+      if (value.includes('kollege') || value.includes('vorlage neu laden') || value.includes('runke laden')) {
         node.classList.add('dp-ui-profile');
         node.dataset.dpTitle = 'Fahrer und Vorlage';
       } else if (value.includes('alle löschen') || value.includes('jahresurlaub') || value.includes('dienstplan drucken') || value.includes('server speichern')) {
@@ -112,134 +71,39 @@
     });
   }
 
-  function collectMonthCards(duties) {
-    const direct = [...duties.querySelectorAll(':scope > details.month-group[data-month]')];
-    const source = direct.length ? direct : [...duties.children].filter((node) => node.matches?.('details.month-group'));
-
-    return source.map((card) => {
-      card.classList.add('dp-ui-month-card');
-      const title = card.querySelector(':scope > summary') || [...card.querySelectorAll('button,summary,h2,h3')].find((node) => MONTH_RE.test(text(node)));
-      const key = String(card.dataset.month || monthKey(text(title))).trim();
-      if (title) title.classList.add('dp-ui-month-title');
-      if (key) card.dataset.dpMonthKey = key;
-      card.querySelectorAll('button,summary,h2,h3').forEach((node) => {
-        if (/^KW\s+\d+/i.test(text(node))) node.classList.add('dp-ui-week-row');
-      });
-      return { card, title, key, open: Boolean(card.open) };
-    }).filter((entry) => /^20\d{2}-\d{2}$/.test(entry.key));
-  }
-
-  function chooseInitialMonth(cards) {
-    const available = new Set(cards.map((entry) => entry.key));
-    if (selectedMonthKey && available.has(selectedMonthKey)) return;
-
-    const stored = sessionStorage.getItem(STORAGE_KEY) || '';
-    if (stored && available.has(stored)) {
-      selectedMonthKey = stored;
-      return;
-    }
-
-    const current = currentCalendarMonthKey();
-    if (available.has(current)) {
-      rememberMonth(current);
-      return;
-    }
-
-    const opened = cards.find((entry) => entry.open);
-    rememberMonth(opened?.key || cards[0]?.key || '');
-  }
-
-  function navigationControls(section) {
-    const nav = section.querySelector('.dp-ui-monthnav');
-    if (!nav) return [];
-    return [...nav.querySelectorAll('button,a,[role="button"],label,span')].filter((node) => monthKey(text(node), true));
-  }
-
-  function applyMonthSelection(duties, section, openSelected = false) {
+  function markMonths(duties) {
     duties.classList.add('dp-ui-months');
-    const cards = collectMonthCards(duties);
-    chooseInitialMonth(cards);
-
-    cards.forEach(({ card, key }) => {
-      const visible = key === selectedMonthKey;
-      card.classList.toggle('dp-ui-month-hidden', !visible);
-      card.hidden = !visible;
-      card.setAttribute('aria-hidden', visible ? 'false' : 'true');
-      if (visible) {
-        card.style.removeProperty('display');
-        if (openSelected) card.open = true;
-      } else {
-        card.style.setProperty('display', 'none', 'important');
-      }
-    });
-
-    navigationControls(section).forEach((control) => {
-      const key = monthKey(text(control), true);
-      control.dataset.dpMonthKey = key;
-      const active = key === selectedMonthKey;
-      control.classList.toggle('dp-ui-month-active', active);
-      control.setAttribute('aria-current', active ? 'true' : 'false');
+    duties.querySelectorAll(':scope > details.month-group').forEach((card) => {
+      card.classList.add('dp-ui-month-card');
+      const title = card.querySelector(':scope > summary');
+      if (title && MONTH_RE.test(text(title))) title.classList.add('dp-ui-month-title');
+      card.querySelectorAll('summary').forEach((summary) => {
+        if (/^KW\s+\d+/i.test(text(summary))) summary.classList.add('dp-ui-week-row');
+      });
+      card.classList.toggle('dp-ui-month-open', Boolean(card.open));
     });
   }
 
-  function install(openSelected = false) {
+  function install() {
     addGridStyle();
     const section = document.getElementById('tab-eingabe');
     const duties = document.getElementById('dutiesContainer');
     if (!section || !duties) return;
     section.classList.add('dp-overview-polished');
     markTopBlocks(section, duties);
-    applyMonthSelection(duties, section, openSelected);
+    markMonths(duties);
   }
 
-  function clickedMonthControl(event) {
-    const nav = event.target.closest?.('.dp-ui-monthnav');
-    if (!nav) return null;
-
-    for (const node of event.composedPath?.() || []) {
-      if (!(node instanceof Element)) continue;
-      if (node === nav) break;
-      const key = monthKey(text(node), true);
-      if (key) return { node, key };
-    }
-
-    let node = event.target;
-    while (node && node !== nav) {
-      const key = monthKey(text(node), true);
-      if (key) return { node, key };
-      node = node.parentElement;
-    }
-    return null;
-  }
-
-  [0, 150, 500, 1200, 2500].forEach((delay) => setTimeout(() => install(false), delay));
-
+  [0, 150, 500, 1200, 2500].forEach((delay) => setTimeout(install, delay));
   document.addEventListener('click', (event) => {
-    const selected = clickedMonthControl(event);
-    if (selected) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      rememberMonth(selected.key);
-      install(true);
-      [80, 220, 500, 1000].forEach((delay) => setTimeout(() => install(false), delay));
-      return;
-    }
-
     if (event.target.closest?.('.tab[data-tab="eingabe"],#loginButton,#tab-eingabe button,#tab-eingabe summary')) {
-      [0, 100, 300].forEach((delay) => setTimeout(() => install(false), delay));
+      [0, 100, 300].forEach((delay) => setTimeout(install, delay));
     }
   }, true);
-
   document.addEventListener('change', (event) => {
-    if (event.target?.id === 'monthPicker' && /^20\d{2}-\d{2}$/.test(event.target.value)) {
-      rememberMonth(event.target.value);
-      [120, 350, 800].forEach((delay, index) => setTimeout(() => install(index === 2), delay));
-      return;
-    }
-    if (event.target.closest?.('#tab-eingabe')) setTimeout(() => install(false), 100);
+    if (event.target.closest?.('#tab-eingabe')) setTimeout(install, 100);
   });
-
-  addEventListener('pageshow', () => install(false));
-  addEventListener('focus', () => install(false));
-  setInterval(() => install(false), 2500);
+  addEventListener('pageshow', install);
+  addEventListener('focus', install);
+  setInterval(install, 2500);
 })();
