@@ -27,8 +27,8 @@
 
   function hasAccess() {
     const role = currentRole();
-    return role === 'administrator'
-      || role === 'geschaftsleitung'
+    return role === 'geschaftsleitung'
+      || role === 'geschaeftsleitung'
       || role === 'disposition';
   }
 
@@ -40,6 +40,8 @@
       body.${DENIED_CLASS} #${TAB_ID},
       body.${DENIED_CLASS} #${SECTION_ID} {
         display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
       }
     `;
     document.head.appendChild(style);
@@ -48,6 +50,31 @@
   function openOverview() {
     const overview = document.querySelector('.tab[data-tab="eingabe"]');
     if (overview) overview.click();
+  }
+
+  function closeDeniedSection(section) {
+    if (!section) return;
+    section.classList.add('hidden');
+    section.setAttribute('aria-hidden', 'true');
+    section.hidden = true;
+    section.style.setProperty('display', 'none', 'important');
+    section.style.setProperty('visibility', 'hidden', 'important');
+    section.querySelectorAll('button,input,select,textarea,a').forEach((control) => {
+      if ('disabled' in control) control.disabled = true;
+      control.tabIndex = -1;
+    });
+  }
+
+  function openAllowedSection(section) {
+    if (!section) return;
+    section.hidden = false;
+    section.removeAttribute('aria-hidden');
+    section.style.removeProperty('display');
+    section.style.removeProperty('visibility');
+    section.querySelectorAll('button,input,select,textarea,a').forEach((control) => {
+      if ('disabled' in control) control.disabled = false;
+      control.removeAttribute('tabindex');
+    });
   }
 
   function applyAccess() {
@@ -63,25 +90,27 @@
       tab.setAttribute('aria-hidden', allowed ? 'false' : 'true');
       tab.tabIndex = allowed ? 0 : -1;
       tab.disabled = !allowed;
-      if (allowed) tab.style.removeProperty('display');
-      else tab.style.setProperty('display', 'none', 'important');
+      if (allowed) {
+        tab.style.removeProperty('display');
+        tab.style.removeProperty('visibility');
+      } else {
+        tab.classList.remove('active');
+        tab.style.setProperty('display', 'none', 'important');
+        tab.style.setProperty('visibility', 'hidden', 'important');
+      }
     }
 
-    if (!allowed && section) {
-      section.classList.add('hidden');
-      section.setAttribute('aria-hidden', 'true');
-      section.style.setProperty('display', 'none', 'important');
-    } else if (allowed && section) {
-      section.removeAttribute('aria-hidden');
-      section.style.removeProperty('display');
-    }
+    if (allowed) openAllowedSection(section);
+    else closeDeniedSection(section);
 
-    if (!allowed && tab?.classList.contains('active')) openOverview();
+    if (!allowed && (tab?.classList.contains('active') || !document.getElementById('tab-eingabe')?.classList.contains('hidden'))) {
+      openOverview();
+    }
     return allowed;
   }
 
   document.addEventListener('click', (event) => {
-    const target = event.target.closest?.(`#${TAB_ID}`);
+    const target = event.target.closest?.(`#${TAB_ID},#${SECTION_ID}`);
     if (!target || hasAccess()) return;
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -103,4 +132,5 @@
 
   [100, 350, 900, 1800].forEach((delay) => window.setTimeout(applyAccess, delay));
   window.addEventListener('pageshow', applyAccess);
+  window.addEventListener('focus', applyAccess);
 })();
