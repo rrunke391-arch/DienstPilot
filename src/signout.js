@@ -86,6 +86,7 @@
     const script = document.createElement('script');
     script.id = id;
     script.src = src;
+    script.async = false;
     document.head.appendChild(script);
   }
 
@@ -99,9 +100,11 @@
   }
 
   function loadUserModules() {
+    loadScript('dpPlanApiBridge', 'src/plan-api-bridge.js?v=20260712-1');
     loadScript('dpVacationPersistenceV3', 'src/vacation-persistence-v3.js?v=20260710-4');
     loadScript('dpDriverVacationAccess', 'src/driver-vacation-access.js?v=20260710-2');
     loadScript('dpDriverHomeScript', 'src/driver-home.js?v=20260712-2');
+    loadScript('dpDutyAssignment', 'src/duty-assignment.js?v=20260712-1');
     loadStylesheet('dpPasswordEyeSlash', 'src/password-eye-slash.css?v=20260711-1');
     loadStylesheet('dpCatalogFieldsHidden', 'src/catalog-fields-hidden.css?v=20260711-2');
     loadStylesheet('dpOverviewPolishCss', 'src/overview-polish.css?v=20260712-1');
