@@ -7,12 +7,37 @@
     return String(node?.textContent || '').replace(/\s+/g, ' ').trim();
   }
 
+  function markGroup(group) {
+    const value = text(group).toLowerCase();
+    group.classList.remove('dp-ui-profile', 'dp-ui-period', 'dp-ui-actions');
+    delete group.dataset.dpTitle;
+
+    if (value.includes('monat hinzufügen')) {
+      group.classList.add('dp-ui-period');
+      group.dataset.dpTitle = 'Monat und Zeitraum';
+    } else if (value.includes('runke laden') || value.includes('kollege') || value.includes('vorlage')) {
+      group.classList.add('dp-ui-profile');
+      group.dataset.dpTitle = 'Fahrer und Vorlage';
+    } else if (value.includes('alle löschen') || value.includes('jahresurlaub') || value.includes('dienstplan drucken') || value.includes('server speichern')) {
+      group.classList.add('dp-ui-actions');
+      group.dataset.dpTitle = 'Aktionen';
+    }
+  }
+
   function markTopBlocks(section, duties) {
+    section.querySelectorAll('.toolbar-group').forEach(markGroup);
+
     [...section.children].forEach((node) => {
       if (node === duties) return;
-      const value = text(node).toLowerCase();
-      node.classList.remove('dp-ui-profile', 'dp-ui-period', 'dp-ui-actions', 'dp-ui-monthnav');
+      node.classList.remove('dp-ui-profile', 'dp-ui-period', 'dp-ui-actions', 'dp-ui-monthnav', 'dp-ui-toolbar-grid');
 
+      const directGroups = node.matches('.toolbar') ? node.querySelectorAll(':scope > .toolbar-group') : [];
+      if (directGroups.length > 1) {
+        node.classList.add('dp-ui-toolbar-grid');
+        return;
+      }
+
+      const value = text(node).toLowerCase();
       if (value.includes('monate:')) {
         node.classList.add('dp-ui-monthnav');
         node.dataset.dpTitle = 'Monate auswählen';
@@ -26,13 +51,6 @@
         node.classList.add('dp-ui-period');
         node.dataset.dpTitle = 'Monat und Zeitraum';
       }
-    });
-
-    section.querySelectorAll('.toolbar-group').forEach((group) => {
-      const value = text(group).toLowerCase();
-      if (value.includes('monat hinzufügen')) group.classList.add('dp-ui-period');
-      if (value.includes('runke laden') || value.includes('kollege')) group.classList.add('dp-ui-profile');
-      if (value.includes('alle löschen') || value.includes('dienstplan drucken')) group.classList.add('dp-ui-actions');
     });
   }
 
