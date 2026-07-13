@@ -1,8 +1,6 @@
-const CACHE_VERSION = 'dienstpilot-60';
+const CACHE_VERSION = 'dienstpilot-61';
 
-self.addEventListener('install', () => {
-  self.skipWaiting();
-});
+self.addEventListener('install', () => self.skipWaiting());
 
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
@@ -18,7 +16,5 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    fetch(event.request, { cache: 'no-store' }).catch(() => caches.match(event.request))
-  );
+  event.respondWith(fetch(event.request, { cache: 'no-store' }).catch(() => caches.match(event.request)));
 });
