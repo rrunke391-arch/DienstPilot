@@ -39,7 +39,7 @@
     button.id = BUTTON_ID;
     button.className = 'dp-home-light-button';
     button.textContent = '📁 Jahresurlaub';
-    button.setAttribute('aria-label', 'Jahresurlaub öffnen');
+    button.setAttribute('aria-label', 'Jahresurlaub und Urlaubswünsche öffnen');
     actions.appendChild(button);
   }
 
@@ -51,11 +51,11 @@
 
   document.addEventListener('click', (event) => {
     if (event.target.closest?.('#loginButton,.tab[data-tab="eingabe"],#dpSignoutButton,[data-home-action],[data-week],[data-date]')) {
-      [0, 100, 350, 900].forEach((delay) => window.setTimeout(install, delay));
+      [0, 100, 350, 900, 1800].forEach((delay) => window.setTimeout(install, delay));
     }
   }, true);
 
-  [150, 500, 1200, 2500].forEach((delay) => window.setTimeout(install, delay));
+  [150, 500, 1200, 2500, 5000, 9000].forEach((delay) => window.setTimeout(install, delay));
   window.addEventListener('pageshow', install);
   window.addEventListener('focus', install);
 })();
