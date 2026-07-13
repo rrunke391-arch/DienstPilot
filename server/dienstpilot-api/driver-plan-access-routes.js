@@ -112,16 +112,51 @@ module.exports = function registerDriverPlanAccessRoutes(app) {
     return profiles;
   }
 
+  function authenticate(req, res) {
+    const token = bearerToken(req);
+    if (!token) {
+      res.status(401).json({ ok: false, error: 'Anmeldung erforderlich.' });
+      return null;
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (error) {
+      res.status(401).json({
+        ok: false,
+        error: error && error.name === 'TokenExpiredError'
+          ? 'Die Anmeldung ist abgelaufen. Bitte neu anmelden.'
+          : 'Die Anmeldung konnte nicht geprüft werden.'
+      });
+      return null;
+    }
+
+    let auth;
+    try {
+      auth = authenticatedUser(decoded);
+    } catch (error) {
+      res.status(500).json({ ok: false, error: error.message });
+      return null;
+    }
+    if (!auth.user) {
+      res.status(401).json({ ok: false, error: 'Benutzerkonto wurde nicht gefunden.' });
+      return null;
+    }
+    return auth;
+  }
+
   app.get('/api/driver-plan-access/status', (req, res) => {
     try {
       const schema = userSchema();
       return res.json({
         ok: true,
         active: true,
-        version: 1,
+        version: 2,
         usernameColumn: schema.username,
         roleColumn: schema.role,
-        protectedPrefix: 'plan_'
+        protectedPrefixes: ['plan_', 'vacation_'],
+        driverVacationWrite: true
       });
     } catch (error) {
       return res.status(500).json({ ok: false, active: false, error: error.message });
@@ -130,53 +165,54 @@ module.exports = function registerDriverPlanAccessRoutes(app) {
 
   app.use('/api/data/:key', (req, res, next) => {
     const key = String(req.params.key || '');
-    if (!key.startsWith('plan_')) return next();
+    const isPlan = key.startsWith('plan_');
+    const isVacation = key.startsWith('vacation_');
+    if (!isPlan && !isVacation) return next();
 
-    const token = bearerToken(req);
-    if (!token) return res.status(401).json({ ok: false, error: 'Anmeldung erforderlich.' });
-
-    let decoded;
-    try {
-      decoded = jwt.verify(token, JWT_SECRET);
-    } catch (error) {
-      return res.status(401).json({
-        ok: false,
-        error: error && error.name === 'TokenExpiredError'
-          ? 'Die Anmeldung ist abgelaufen. Bitte neu anmelden.'
-          : 'Die Anmeldung konnte nicht geprüft werden.'
-      });
-    }
-
-    let auth;
-    try {
-      auth = authenticatedUser(decoded);
-    } catch (error) {
-      return res.status(500).json({ ok: false, error: error.message });
-    }
-    if (!auth.user) return res.status(401).json({ ok: false, error: 'Benutzerkonto wurde nicht gefunden.' });
+    const auth = authenticate(req, res);
+    if (!auth) return;
 
     const role = roleName(auth.schema, auth.user);
-    const targetProfile = normalize(key.slice('plan_'.length));
+    const prefix = isPlan ? 'plan_' : 'vacation_';
+    const targetProfile = normalize(key.slice(prefix.length));
     const method = String(req.method || 'GET').toUpperCase();
+    const ownsTarget = role === 'fahrer' && ownProfiles(auth.schema, auth.user).has(targetProfile);
 
-    if (method === 'PUT') {
-      if (!mayManage(role)) {
+    if (isPlan) {
+      if (method === 'PUT') {
+        if (!mayManage(role)) {
+          return res.status(403).json({
+            ok: false,
+            error: 'Nur Administrator, Geschäftsleitung und Disposition dürfen Fahrerpläne ändern.'
+          });
+        }
+        return next();
+      }
+
+      if (method === 'GET') {
+        if (mayManage(role) || ownsTarget) return next();
         return res.status(403).json({
           ok: false,
-          error: 'Nur Administrator, Geschäftsleitung und Disposition dürfen Fahrerpläne ändern.'
+          error: 'Fahrer dürfen ausschließlich ihren eigenen Dienstplan ansehen.'
         });
       }
+
       return next();
     }
 
-    if (method === 'GET') {
-      if (mayManage(role)) return next();
-      if (role === 'fahrer' && ownProfiles(auth.schema, auth.user).has(targetProfile)) return next();
-      return res.status(403).json({ ok: false, error: 'Fahrer dürfen ausschließlich ihren eigenen Dienstplan ansehen.' });
+    if (isVacation) {
+      if (method === 'GET' || method === 'PUT') {
+        if (mayManage(role) || ownsTarget) return next();
+        return res.status(403).json({
+          ok: false,
+          error: 'Fahrer dürfen ausschließlich ihren eigenen Jahresurlaub bearbeiten.'
+        });
+      }
+      return res.status(405).json({ ok: false, error: 'Diese Aktion ist für Jahresurlaub nicht erlaubt.' });
     }
 
     return next();
   });
 
-  console.log('DienstPilot: Fahrerplan-Rechte aktiv (Version 1).');
+  console.log('DienstPilot: Fahrerplan- und Jahresurlaub-Rechte aktiv (Version 2).');
 };
