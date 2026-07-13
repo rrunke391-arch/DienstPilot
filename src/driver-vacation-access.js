@@ -183,3 +183,13 @@
     install();
   }
 })();
+
+(() => {
+  'use strict';
+  if (document.getElementById('dpVacationReviewDisponentScript')) return;
+  const script = document.createElement('script');
+  script.id = 'dpVacationReviewDisponentScript';
+  script.src = 'src/vacation-review-disponent.js?v=20260713-1';
+  script.async = false;
+  document.head.appendChild(script);
+})();
