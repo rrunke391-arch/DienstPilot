@@ -106,6 +106,7 @@
     loadScript('dpDriverHomeScript', 'src/driver-home.js?v=20260712-2');
     loadScript('dpDriverVacationButton', 'src/driver-vacation-button.js?v=20260713-1');
     loadScript('dpVacationRequestWorkflow', 'src/vacation-request-workflow.js?v=20260713-1');
+    loadScript('dpVacationReviewPanel', 'src/vacation-review-panel.js?v=20260713-1');
     loadScript('dpDutyAssignment', 'src/duty-assignment.js?v=20260712-2');
     loadStylesheet('dpPasswordEyeSlash', 'src/password-eye-slash.css?v=20260711-1');
     loadStylesheet('dpCatalogFieldsHidden', 'src/catalog-fields-hidden.css?v=20260711-2');
