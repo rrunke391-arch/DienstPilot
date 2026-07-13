@@ -148,11 +148,11 @@ module.exports = function registerDriverPlanAccessRoutes(app) {
   }
 
   function mayManagePlans(role) {
-    return ['administrator', 'geschaftsleitung', 'geschaeftsleitung', 'disposition'].includes(role);
+    return ['administrator', 'geschaftsleitung', 'geschaeftsleitung', 'disposition', 'disponent', 'disponentin'].includes(role);
   }
 
   function mayReviewVacation(role) {
-    return ['geschaftsleitung', 'geschaeftsleitung', 'disposition'].includes(role);
+    return ['geschaftsleitung', 'geschaeftsleitung', 'disposition', 'disponent', 'disponentin'].includes(role);
   }
 
   function mayReadAllVacation(role) {
@@ -207,12 +207,12 @@ module.exports = function registerDriverPlanAccessRoutes(app) {
       return res.json({
         ok: true,
         active: true,
-        version: 3,
+        version: 4,
         usernameColumn: schema.username,
         roleColumn: schema.role,
         protectedPrefix: 'plan_',
         vacationRequestWorkflow: true,
-        vacationReviewRoles: ['Geschäftsleitung', 'Disposition']
+        vacationReviewRoles: ['Geschäftsleitung', 'Disposition', 'Disponent']
       });
     } catch (error) {
       return res.status(500).json({ ok: false, active: false, error: error.message });
@@ -374,5 +374,5 @@ module.exports = function registerDriverPlanAccessRoutes(app) {
     });
   });
 
-  console.log('DienstPilot: Fahrerplan- und Urlaubswunsch-Rechte aktiv (Version 3).');
+  console.log('DienstPilot: Fahrerplan- und Urlaubswunsch-Rechte aktiv (Version 4).');
 };
