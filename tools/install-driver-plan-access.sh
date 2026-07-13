@@ -36,6 +36,32 @@ trap 'rm -f "$TEMP_MODULE_FILE" "$STATUS_BODY_FILE" "$TEST_BODY_FILE"' EXIT
 
 echo "Fahrerplan-Rechtemodul wird geladen ..."
 curl -fsSL "$MODULE_URL" -o "$TEMP_MODULE_FILE"
+
+# Die Benutzerverwaltung verwendet teilweise die Rollenbezeichnung "Disponent"
+# statt "Disposition". Beide Schreibweisen erhalten dieselben Rechte.
+python3 - "$TEMP_MODULE_FILE" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text(encoding="utf-8")
+text = text.replace(
+    "['administrator', 'geschaftsleitung', 'geschaeftsleitung', 'disposition']",
+    "['administrator', 'geschaftsleitung', 'geschaeftsleitung', 'disposition', 'disponent']"
+)
+text = text.replace(
+    "['geschaftsleitung', 'geschaeftsleitung', 'disposition']",
+    "['geschaftsleitung', 'geschaeftsleitung', 'disposition', 'disponent']"
+)
+text = text.replace(
+    "vacationReviewRoles: ['Geschäftsleitung', 'Disposition']",
+    "vacationReviewRoles: ['Geschäftsleitung', 'Disposition', 'Disponent']"
+)
+text = text.replace("version: 3,", "version: 4,")
+text = text.replace("Rechte aktiv (Version 3)", "Rechte aktiv (Version 4)")
+path.write_text(text, encoding="utf-8")
+PY
+
 node --check "$TEMP_MODULE_FILE"
 mv "$TEMP_MODULE_FILE" "$MODULE_FILE"
 chown --reference="$SERVER_FILE" "$MODULE_FILE" 2>/dev/null || true
@@ -128,6 +154,7 @@ fi
 
 echo
 echo "INSTALLATION ERFOLGREICH ABGESCHLOSSEN."
-echo "Administrator, Geschäftsleitung und Disposition dürfen Fahrerpläne ändern."
+echo "Administrator, Geschäftsleitung, Disposition und Disponent dürfen Fahrerpläne ändern."
+echo "Geschäftsleitung, Disposition und Disponent dürfen Urlaubswünsche entscheiden."
 echo "Fahrer dürfen ausschließlich ihren eigenen Plan lesen."
 echo "Sicherung server.js: $BACKUP_DIR/server-vor-fahrerplan-rechten-$stamp.js"
