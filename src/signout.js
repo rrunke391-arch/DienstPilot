@@ -104,6 +104,7 @@
     loadScript('dpVacationPersistenceV4', 'src/vacation-persistence-v4.js?v=20260713-2');
     loadScript('dpDriverVacationAccess', 'src/driver-vacation-access.js?v=20260713-1');
     loadScript('dpDriverHomeScript', 'src/driver-home.js?v=20260715-1');
+    loadScript('dpDriverCurrentWeekPrint', 'src/driver-current-week-print.js?v=20260715-1');
     loadScript('dpDriverVacationButton', 'src/driver-vacation-button.js?v=20260713-2');
     loadScript('dpVacationRequestWorkflow', 'src/vacation-request-workflow.js?v=20260713-1');
     loadScript('dpVacationReviewPanel', 'src/vacation-review-panel.js?v=20260713-1');
