@@ -9,6 +9,7 @@
   const ROLE_KEY = 'dienstpilot_role';
   const TOKEN_KEY = 'dienstpilot_api_token';
   const STATE_KEY = 'lenkRuhezeitenRunke20260413';
+  const PRINT_FRAME_ID = 'dpDriverCurrentWeekPrintFrame';
   const DAY_NAMES = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
   function normalize(value) {
@@ -191,27 +192,50 @@
     <tbody>${days.map((iso) => dayRowsHtml(duties, iso)).join('')}</tbody>
   </table>
   <div class="foot">Erstellt am ${escapeHtml(generated)}</div>
-  <script>window.addEventListener('load',()=>{setTimeout(()=>window.print(),180)});<\/script>
 </body>
 </html>`;
   }
 
   async function printCurrentWeek() {
-    const printWindow = window.open('', 'dienstpilotFahrerDruck');
-    if (!printWindow) {
-      window.alert('Die Druckvorschau wurde vom Browser blockiert. Bitte Pop-ups für DienstPilot erlauben.');
+    const duties = await loadDuties();
+    document.getElementById(PRINT_FRAME_ID)?.remove();
+
+    const frame = document.createElement('iframe');
+    frame.id = PRINT_FRAME_ID;
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.position = 'fixed';
+    frame.style.right = '0';
+    frame.style.bottom = '0';
+    frame.style.width = '1px';
+    frame.style.height = '1px';
+    frame.style.border = '0';
+    frame.style.opacity = '0';
+    frame.style.pointerEvents = 'none';
+    document.body.appendChild(frame);
+
+    const printDocument = frame.contentDocument || frame.contentWindow?.document;
+    if (!printDocument || !frame.contentWindow) {
+      frame.remove();
+      window.alert('Die Druckvorschau konnte nicht geöffnet werden.');
       return;
     }
 
-    printWindow.document.open();
-    printWindow.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Druck wird vorbereitet</title></head><body style="font-family:Arial;padding:30px">Aktuelle Woche wird geladen …</body></html>');
-    printWindow.document.close();
+    printDocument.open();
+    printDocument.write(printHtml(duties));
+    printDocument.close();
 
-    const duties = await loadDuties();
-    printWindow.document.open();
-    printWindow.document.write(printHtml(duties));
-    printWindow.document.close();
-    printWindow.focus();
+    const cleanup = () => frame.remove();
+    frame.contentWindow.addEventListener('afterprint', cleanup, { once: true });
+    window.setTimeout(() => {
+      try {
+        frame.contentWindow.focus();
+        frame.contentWindow.print();
+      } catch {
+        cleanup();
+        window.alert('Die Druckvorschau konnte nicht geöffnet werden.');
+      }
+    }, 250);
+    window.setTimeout(cleanup, 60000);
   }
 
   document.addEventListener('click', (event) => {
