@@ -29,6 +29,8 @@
     '3020', '3021', '3022', '3023', '3024', '3025'
   ]);
 
+  const SCHOOL_DUTY_OPTIONS = [...SCHOOL_DUTIES].map((duty) => ({ duty }));
+
   const HOLIDAY_DUTIES = [
     { duty: '3031', start: '05:03', end: '13:21', departure: '05:20', stop: 'Wellingholzhausen, Schule' },
     { duty: '3032', start: '04:45', end: '11:39', departure: '05:26', stop: 'Osnabrück, HBF' },
@@ -66,6 +68,13 @@
     return match ? { start: match[0], end: match[1], name: match[2] } : null;
   }
 
+  function dayMode(iso) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(iso || ''))) return 'school';
+    const day = new Date(`${iso}T12:00:00`).getDay();
+    if (day === 0 || day === 6) return 'weekend';
+    return holidayInfo(iso) ? 'holiday' : 'school';
+  }
+
   function selectedDailyDate() {
     return String(document.getElementById('dpDailyPlanDate')?.value || '');
   }
@@ -89,9 +98,11 @@
       #dpNiHolidayDutyStatus{padding:10px 12px;border-radius:12px;font-weight:900;line-height:1.35}
       #dpNiHolidayDutyStatus.school{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8}
       #dpNiHolidayDutyStatus.holiday{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534}
+      #dpNiHolidayDutyStatus.weekend{background:#f5f3ff;border:1px solid #ddd6fe;color:#6d28d9}
       #dpDutyAssignmentV2 .dp-ni-assignment-note{margin-top:10px;padding:9px 11px;border-radius:11px;font-size:12px;font-weight:900}
       #dpDutyAssignmentV2 .dp-ni-assignment-note.school{background:#eff6ff;color:#1d4ed8}
       #dpDutyAssignmentV2 .dp-ni-assignment-note.holiday{background:#f0fdf4;color:#166534}
+      #dpDutyAssignmentV2 .dp-ni-assignment-note.weekend{background:#f5f3ff;color:#6d28d9}
     `;
     document.head.appendChild(style);
   }
@@ -109,14 +120,18 @@
     }
 
     const date = selectedDailyDate();
+    const mode = dayMode(date);
     const holiday = holidayInfo(date);
     const insertButton = document.getElementById('dpDailyInsertDefaults');
-    if (holiday) {
-      banner.className = 'holiday';
+
+    banner.className = mode;
+    if (mode === 'holiday') {
       banner.textContent = `Niedersachsen ${holiday.name}: Ferien-Dienste 3031 bis 3045 verwenden. Schultagsdienste 3001 bis 3025 sind an diesem Tag nicht gültig.`;
       if (insertButton) insertButton.textContent = 'Ferien-Dienste einfügen';
+    } else if (mode === 'weekend') {
+      banner.textContent = 'Samstag oder Sonntag: Bitte den getrennten Wochenenddienstplan verwenden.';
+      if (insertButton) insertButton.textContent = 'Wochenenddienstplan verwenden';
     } else {
-      banner.className = 'school';
       banner.textContent = 'Schultag in Niedersachsen: Schultagsdienste 3001 bis 3025 verwenden. Reine Ferien-Dienste sind nicht gültig.';
       if (insertButton) insertButton.textContent = 'Schultagsdienste einfügen';
     }
@@ -136,11 +151,15 @@
       panel.querySelector('.dp-a-grid')?.insertAdjacentElement('afterend', note);
     }
 
-    const holiday = holidayInfo(selectedAssignmentDate());
-    note.className = `dp-ni-assignment-note ${holiday ? 'holiday' : 'school'}`;
-    note.textContent = holiday
+    const date = selectedAssignmentDate();
+    const mode = dayMode(date);
+    const holiday = holidayInfo(date);
+    note.className = `dp-ni-assignment-note ${mode}`;
+    note.textContent = mode === 'holiday'
       ? `Niedersachsen ${holiday.name}: Bitte einen Ferien-Dienst 3031 bis 3045 auswählen.`
-      : 'Schultag in Niedersachsen: Bitte einen Schultagsdienst auswählen.';
+      : mode === 'weekend'
+        ? 'Samstag oder Sonntag: Bitte einen passenden Wochenenddienst auswählen.'
+        : 'Schultag in Niedersachsen: Bitte einen Schultagsdienst auswählen.';
     updateDutyLists();
     return true;
   }
@@ -157,24 +176,26 @@
       const option = document.createElement('option');
       option.value = duty.duty;
       list.appendChild(option);
+      existing.add(duty.duty);
     });
   }
 
+  function listRules(mode) {
+    if (mode === 'holiday') {
+      return { allowed: (duty) => !SCHOOL_DUTIES.has(duty), additions: HOLIDAY_DUTIES };
+    }
+    if (mode === 'weekend') {
+      return { allowed: () => true, additions: [...SCHOOL_DUTY_OPTIONS, ...HOLIDAY_DUTIES] };
+    }
+    return { allowed: (duty) => !HOLIDAY_EXCLUSIVE.has(duty), additions: SCHOOL_DUTY_OPTIONS };
+  }
+
   function updateDutyLists() {
-    const dailyHoliday = Boolean(holidayInfo(selectedDailyDate()));
-    const assignmentHoliday = Boolean(holidayInfo(selectedAssignmentDate()));
+    const dailyRules = listRules(dayMode(selectedDailyDate()));
+    const assignmentRules = listRules(dayMode(selectedAssignmentDate()));
 
-    replaceOptions(
-      document.getElementById('dpDailyDutyList'),
-      (duty) => dailyHoliday ? !SCHOOL_DUTIES.has(duty) : !HOLIDAY_EXCLUSIVE.has(duty),
-      dailyHoliday ? HOLIDAY_DUTIES : []
-    );
-
-    replaceOptions(
-      document.getElementById('dpAssignDutiesV2'),
-      (duty) => assignmentHoliday ? !SCHOOL_DUTIES.has(duty) : !HOLIDAY_EXCLUSIVE.has(duty),
-      assignmentHoliday ? HOLIDAY_DUTIES : []
-    );
+    replaceOptions(document.getElementById('dpDailyDutyList'), dailyRules.allowed, dailyRules.additions);
+    replaceOptions(document.getElementById('dpAssignDutiesV2'), assignmentRules.allowed, assignmentRules.additions);
   }
 
   function rowDuty(row) {
@@ -254,7 +275,7 @@
 
   function fillAssignmentHolidayTimes() {
     const date = selectedAssignmentDate();
-    if (!holidayInfo(date)) return;
+    if (dayMode(date) !== 'holiday') return;
     const entry = holidayDuty(document.getElementById('dpAssignDutyV2')?.value);
     if (!entry) return;
     const start = document.getElementById('dpAssignStartV2');
@@ -266,13 +287,14 @@
   function validateDutyInput(input, date, context) {
     const duty = normalizeDuty(input.value);
     if (!duty) return true;
-    const holiday = Boolean(holidayInfo(date));
-    const invalid = holiday ? SCHOOL_DUTIES.has(duty) : HOLIDAY_EXCLUSIVE.has(duty);
+    const mode = dayMode(date);
+    if (mode === 'weekend') return true;
+    const invalid = mode === 'holiday' ? SCHOOL_DUTIES.has(duty) : HOLIDAY_EXCLUSIVE.has(duty);
     if (!invalid) return true;
 
     input.value = '';
     input.dispatchEvent(new Event('input', { bubbles: true }));
-    const text = holiday
+    const text = mode === 'holiday'
       ? `Dienst ${duty} ist in den niedersächsischen Ferien nicht gültig. Bitte einen Ferien-Dienst 3031 bis 3045 wählen.`
       : `Dienst ${duty} ist nur in den niedersächsischen Ferien gültig.`;
     if (context === 'daily') dailyStatus(text, true);
@@ -285,8 +307,10 @@
     if (insertButton && !forwardingSchoolInsert) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      if (holidayInfo(selectedDailyDate())) applyHolidayTemplate();
-      else applySchoolTemplate(insertButton);
+      const mode = dayMode(selectedDailyDate());
+      if (mode === 'holiday') applyHolidayTemplate();
+      else if (mode === 'school') applySchoolTemplate(insertButton);
+      else dailyStatus('Für Samstag und Sonntag bitte den getrennten Wochenenddienstplan verwenden.', true);
       return;
     }
 
