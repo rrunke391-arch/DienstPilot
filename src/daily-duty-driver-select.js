@@ -10,11 +10,20 @@
   const API_BASE = 'https://api.dienstpilot-runke.de';
   const STYLE_ID = 'dpDailyDutyDriverSelectStyle';
 
+  if (!document.getElementById('dpAdditionalDriverOptionsScript')) {
+    const script = document.createElement('script');
+    script.id = 'dpAdditionalDriverOptionsScript';
+    script.src = 'src/additional-driver-options.js?v=20260715-1';
+    script.async = false;
+    document.head.appendChild(script);
+  }
+
   const FALLBACK_DRIVERS = [
     'Yasar', 'Bumhoffer', 'Entrup', 'Schweppe', 'Janzen', 'Alomar', 'Al Sayek',
     'Szczepanik', 'Kocdemir', 'Wüllner', 'Wittwer', 'Biermann', 'Gerding',
     'Runke', 'Lommel', 'Malko', 'Murad', 'Kurta', 'Wiemann', 'Muth',
-    'Suleimani', 'Faber', 'Hergerdt'
+    'Suleimani', 'Faber', 'Hergerdt', 'A.Hergerdt', 'A.Hasan', 'D.Knigge',
+    'N.Awdullahi', 'K.Giotis', 'A.Alrobaie', 'A.Morzsa', 'C.Strotmann', 'M.Eggern'
   ];
 
   let remoteDrivers = [];
