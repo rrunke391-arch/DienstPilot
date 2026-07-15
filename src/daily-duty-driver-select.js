@@ -37,8 +37,11 @@
     return normalize(currentUser()?.role || sessionStorage.getItem(ROLE_KEY));
   }
 
-  function isDisposition() {
-    return ['disposition', 'disponent', 'disponentin'].includes(role());
+  function maySelectDrivers() {
+    return [
+      'disposition', 'disponent', 'disponentin',
+      'geschaftsleitung', 'geschaeftsleitung'
+    ].includes(role());
   }
 
   function addStyle() {
@@ -90,7 +93,7 @@
   }
 
   function installSelects() {
-    if (!isDisposition()) return false;
+    if (!maySelectDrivers()) return false;
     addStyle();
 
     const names = availableDrivers();
@@ -136,7 +139,7 @@
   }
 
   async function requestDrivers() {
-    if (remoteRequested || !isDisposition()) return;
+    if (remoteRequested || !maySelectDrivers()) return;
     remoteRequested = true;
     const token = sessionStorage.getItem(TOKEN_KEY) || '';
     if (!token) return;
