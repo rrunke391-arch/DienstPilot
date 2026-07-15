@@ -67,12 +67,16 @@
     return localIso(date);
   }
 
-  function displayedWeekMonday() {
-    const buttons = [...document.querySelectorAll('#dpDriverHome .dp-home-days [data-date]')];
-    const dates = buttons
+  function displayedWorkWeek() {
+    const dates = [...document.querySelectorAll('#dpDriverHome .dp-home-days [data-date]')]
       .map((button) => String(button.dataset.date || ''))
-      .filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(value));
-    return dates[0] || mondayOfCurrentWeek();
+      .filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date));
+
+    const uniqueDates = [...new Set(dates)];
+    if (uniqueDates.length >= 5) return uniqueDates.slice(0, 5);
+
+    const monday = mondayOfCurrentWeek();
+    return Array.from({ length: 5 }, (_, index) => addDays(monday, index));
   }
 
   function formatDate(iso) {
@@ -155,9 +159,9 @@
     }).join('');
   }
 
-  function printHtml(duties, monday) {
-    const sunday = addDays(monday, 6);
-    const days = Array.from({ length: 7 }, (_, index) => addDays(monday, index));
+  function printHtml(duties, days) {
+    const firstDay = days[0];
+    const lastDay = days[days.length - 1];
     const generated = new Date().toLocaleString('de-DE');
 
     return `<!doctype html>
@@ -190,8 +194,8 @@
       <div class="driver">Dienstplan ${escapeHtml(displayName())}</div>
     </div>
     <div class="range">
-      <strong>${escapeHtml(formatDate(monday))} – ${escapeHtml(formatDate(sunday))}</strong>
-      Montag bis Sonntag
+      <strong>${escapeHtml(formatDate(firstDay))} – ${escapeHtml(formatDate(lastDay))}</strong>
+      Montag bis Freitag
     </div>
   </header>
   <table>
@@ -204,7 +208,7 @@
   }
 
   async function printCurrentWeek() {
-    const monday = displayedWeekMonday();
+    const days = displayedWorkWeek();
     const duties = await loadDuties();
     document.getElementById(PRINT_FRAME_ID)?.remove();
 
@@ -229,7 +233,7 @@
     }
 
     printDocument.open();
-    printDocument.write(printHtml(duties, monday));
+    printDocument.write(printHtml(duties, days));
     printDocument.close();
 
     const cleanup = () => frame.remove();
