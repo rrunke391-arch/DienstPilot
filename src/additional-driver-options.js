@@ -6,6 +6,7 @@
 
   const USER_KEY = 'dienstpilot_user';
   const ROLE_KEY = 'dienstpilot_role';
+  const BLOCKED_DRIVERS = ['seidensticker'];
   const DRIVERS = [
     'A.Hergerdt',
     'A.Hasan',
@@ -30,6 +31,12 @@
     return normalize(value).replace(/[^a-z0-9_-]+/g, '_');
   }
 
+  function isBlocked(value) {
+    const normalized = normalize(value);
+    const profile = profileKey(value);
+    return BLOCKED_DRIVERS.some((name) => normalized === name || profile === profileKey(name));
+  }
+
   function currentRole() {
     try {
       const user = JSON.parse(sessionStorage.getItem(USER_KEY) || 'null');
@@ -49,6 +56,16 @@
     ].includes(currentRole());
   }
 
+  function removeBlockedOptions() {
+    document.querySelectorAll('#dpAssignDriversV2 option').forEach((option) => {
+      if (isBlocked(option.value) || isBlocked(option.label) || isBlocked(option.textContent)) option.remove();
+    });
+
+    document.querySelectorAll('#dpDailyPlanRows .dp-daily-driver-select option').forEach((option) => {
+      if (isBlocked(option.value) || isBlocked(option.textContent)) option.remove();
+    });
+  }
+
   function addAssignmentOptions() {
     const list = document.getElementById('dpAssignDriversV2');
     if (!list) return;
@@ -59,7 +76,7 @@
 
     DRIVERS.forEach((name) => {
       const value = profileKey(name);
-      if (!value || existing.has(value)) return;
+      if (!value || isBlocked(name) || existing.has(value)) return;
       const option = document.createElement('option');
       option.value = value;
       option.label = name;
@@ -77,7 +94,7 @@
 
       DRIVERS.forEach((name) => {
         const key = normalize(name);
-        if (!key || existing.has(key)) return;
+        if (!key || isBlocked(name) || existing.has(key)) return;
         const option = document.createElement('option');
         option.value = name;
         option.textContent = name;
@@ -89,12 +106,14 @@
 
   function install() {
     if (!permitted()) return;
+    removeBlockedOptions();
     addAssignmentOptions();
     addDailyPlanOptions();
+    removeBlockedOptions();
   }
 
   function scheduleInstall() {
-    [0, 100, 300, 800, 1600].forEach((delay) => window.setTimeout(install, delay));
+    [0, 100, 300, 800, 1600, 3200, 5200].forEach((delay) => window.setTimeout(install, delay));
   }
 
   document.addEventListener('click', (event) => {
