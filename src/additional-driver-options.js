@@ -4,6 +4,14 @@
   if (window.__dienstpilotAdditionalDriverOptions) return;
   window.__dienstpilotAdditionalDriverOptions = true;
 
+  if (!document.getElementById('dpNiedersachsenHolidayDutyPlanScript')) {
+    const script = document.createElement('script');
+    script.id = 'dpNiedersachsenHolidayDutyPlanScript';
+    script.src = 'src/niedersachsen-holiday-duty-plan.js?v=20260715-1';
+    script.async = false;
+    document.head.appendChild(script);
+  }
+
   const USER_KEY = 'dienstpilot_user';
   const ROLE_KEY = 'dienstpilot_role';
   const BLOCKED_DRIVERS = ['seidensticker'];
