@@ -34,7 +34,7 @@
   const HOLIDAY_DUTIES = [
     { duty: '3031', start: '05:03', end: '13:21', departure: '05:20', stop: 'Wellingholzhausen, Schule' },
     { duty: '3032', start: '04:45', end: '11:39', departure: '05:26', stop: 'Osnabrück, HBF' },
-    { duty: '3033', start: '05:43', end: '11:04', departure: '06:16', stop: 'Buer, Schulzentrum' },
+    { duty: '3033', start: '05:43', end: '12:21', departure: '06:16', stop: 'Buer, Schulzentrum' },
     { duty: '3034', start: '05:47', end: '15:39', departure: '06:12', stop: 'Neuenkirchen, Schulzentrum' },
     { duty: '3035', start: '05:51', end: '17:21', departure: '06:18', stop: 'Westerhausen, Vinkenaue' },
     { duty: '3036', start: '06:03', end: '18:04', departure: '06:27', stop: 'Gesmold, Schimmweg' },
