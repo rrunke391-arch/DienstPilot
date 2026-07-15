@@ -191,13 +191,13 @@
     <tbody>${days.map((iso) => dayRowsHtml(duties, iso)).join('')}</tbody>
   </table>
   <div class="foot">Erstellt am ${escapeHtml(generated)}</div>
-  <script>window.addEventListener('load',()=>{setTimeout(()=>window.print(),120)});<\/script>
+  <script>window.addEventListener('load',()=>{setTimeout(()=>window.print(),180)});<\/script>
 </body>
 </html>`;
   }
 
   async function printCurrentWeek() {
-    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+    const printWindow = window.open('', 'dienstpilotFahrerDruck');
     if (!printWindow) {
       window.alert('Die Druckvorschau wurde vom Browser blockiert. Bitte Pop-ups für DienstPilot erlauben.');
       return;
@@ -211,6 +211,7 @@
     printWindow.document.open();
     printWindow.document.write(printHtml(duties));
     printWindow.document.close();
+    printWindow.focus();
   }
 
   document.addEventListener('click', (event) => {
