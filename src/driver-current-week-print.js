@@ -67,6 +67,14 @@
     return localIso(date);
   }
 
+  function displayedWeekMonday() {
+    const buttons = [...document.querySelectorAll('#dpDriverHome .dp-home-days [data-date]')];
+    const dates = buttons
+      .map((button) => String(button.dataset.date || ''))
+      .filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(value));
+    return dates[0] || mondayOfCurrentWeek();
+  }
+
   function formatDate(iso) {
     const date = parseIso(iso);
     return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
@@ -147,8 +155,7 @@
     }).join('');
   }
 
-  function printHtml(duties) {
-    const monday = mondayOfCurrentWeek();
+  function printHtml(duties, monday) {
     const sunday = addDays(monday, 6);
     const days = Array.from({ length: 7 }, (_, index) => addDays(monday, index));
     const generated = new Date().toLocaleString('de-DE');
@@ -197,6 +204,7 @@
   }
 
   async function printCurrentWeek() {
+    const monday = displayedWeekMonday();
     const duties = await loadDuties();
     document.getElementById(PRINT_FRAME_ID)?.remove();
 
@@ -221,7 +229,7 @@
     }
 
     printDocument.open();
-    printDocument.write(printHtml(duties));
+    printDocument.write(printHtml(duties, monday));
     printDocument.close();
 
     const cleanup = () => frame.remove();
