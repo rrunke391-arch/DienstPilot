@@ -1,0 +1,120 @@
+(() => {
+  'use strict';
+
+  if (window.__dienstpilotAdditionalDriverOptions) return;
+  window.__dienstpilotAdditionalDriverOptions = true;
+
+  const USER_KEY = 'dienstpilot_user';
+  const ROLE_KEY = 'dienstpilot_role';
+  const DRIVERS = [
+    'A.Hergerdt',
+    'A.Hasan',
+    'D.Knigge',
+    'N.Awdullahi',
+    'K.Giotis',
+    'A.Alrobaie',
+    'A.Morzsa',
+    'C.Strotmann',
+    'M.Eggern'
+  ];
+
+  function normalize(value) {
+    return String(value || '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function profileKey(value) {
+    return normalize(value).replace(/[^a-z0-9_-]+/g, '_');
+  }
+
+  function currentRole() {
+    try {
+      const user = JSON.parse(sessionStorage.getItem(USER_KEY) || 'null');
+      return normalize(user?.role || sessionStorage.getItem(ROLE_KEY));
+    } catch {
+      return normalize(sessionStorage.getItem(ROLE_KEY));
+    }
+  }
+
+  function permitted() {
+    return [
+      'geschaftsleitung',
+      'geschaeftsleitung',
+      'disposition',
+      'disponent',
+      'disponentin'
+    ].includes(currentRole());
+  }
+
+  function addAssignmentOptions() {
+    const list = document.getElementById('dpAssignDriversV2');
+    if (!list) return;
+
+    const existing = new Set(
+      [...list.querySelectorAll('option')].map((option) => profileKey(option.value || option.label))
+    );
+
+    DRIVERS.forEach((name) => {
+      const value = profileKey(name);
+      if (!value || existing.has(value)) return;
+      const option = document.createElement('option');
+      option.value = value;
+      option.label = name;
+      option.textContent = name;
+      list.appendChild(option);
+      existing.add(value);
+    });
+  }
+
+  function addDailyPlanOptions() {
+    document.querySelectorAll('#dpDailyPlanRows .dp-daily-driver-select').forEach((select) => {
+      const existing = new Set(
+        [...select.options].map((option) => normalize(option.value || option.textContent))
+      );
+
+      DRIVERS.forEach((name) => {
+        const key = normalize(name);
+        if (!key || existing.has(key)) return;
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+        existing.add(key);
+      });
+    });
+  }
+
+  function install() {
+    if (!permitted()) return;
+    addAssignmentOptions();
+    addDailyPlanOptions();
+  }
+
+  function scheduleInstall() {
+    [0, 100, 300, 800, 1600].forEach((delay) => window.setTimeout(install, delay));
+  }
+
+  document.addEventListener('click', (event) => {
+    if (event.target.closest?.(
+      '#loginButton,#dpDailyDutyPlanTab,#dpDailyAddRow,#dpDailyInsertDefaults,#dpDailyPlanRows [data-action],#dpDutyAssignmentV2'
+    )) scheduleInstall();
+  }, true);
+
+  document.addEventListener('change', (event) => {
+    if (event.target.id === 'dpDailyPlanDate' || event.target.matches?.('#dpDailyPlanRows input[data-field="duty"]')) {
+      scheduleInstall();
+    }
+  }, true);
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', scheduleInstall, { once: true });
+  } else {
+    scheduleInstall();
+  }
+
+  window.addEventListener('pageshow', scheduleInstall);
+  window.addEventListener('focus', scheduleInstall);
+})();
