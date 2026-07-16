@@ -16,14 +16,35 @@
   ];
 
   const EXTRA_DUTIES = [
-    { duty: '1341', name: 'A.Morzsa / M.Al Dabbah', bus: 'OS-CL 916', start: '05:13', end: '23:38', departure: '', stop: '' },
-    { duty: '1743', name: 'M.Eggern / S.Yasatemur', bus: 'OS-AX 716', start: '06:05', end: '00:50', departure: '', stop: '' },
-    { duty: '1941', name: 'C.Strotmann / M.Entrup', bus: 'OS-MR 825 / OS-RE 224', start: '05:35', end: '21:16', departure: '15:24', stop: 'Bissendorf, Werries' },
-    { duty: 'Einsatzwagen', name: 'Einsatzwagen', bus: 'OS-QS 519', start: '', end: '', departure: '', stop: '' }
+    {
+      duty: '1341', legacyName: 'A.Morzsa / M.Al Dabbah',
+      bus: 'OS-CL 916', start: '05:13', end: '23:38', departure: '', stop: ''
+    },
+    {
+      duty: '1743', legacyName: 'M.Eggern / S.Yasatemur',
+      bus: 'OS-AX 716', start: '06:05', end: '00:50', departure: '', stop: ''
+    },
+    {
+      duty: '1941', legacyName: 'C.Strotmann / M.Entrup',
+      bus: 'OS-MR 825 / OS-RE 224', start: '05:35', end: '21:16',
+      departure: '15:24', stop: 'Bissendorf, Werries'
+    },
+    {
+      duty: 'Einsatzwagen', fixedName: 'Einsatzwagen',
+      bus: 'OS-QS 519', start: '', end: '', departure: '', stop: ''
+    }
   ];
 
   const EXTRA_VALUES = new Set(EXTRA_DUTIES.map((entry) => entry.duty));
   const autoReconciledDates = new Set();
+
+  function normalize(value) {
+    return String(value || '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
 
   function selectedDate(id) {
     return String(document.getElementById(id)?.value || '');
@@ -52,7 +73,9 @@
   }
 
   function currentDuties() {
-    return [...document.querySelectorAll('#dpDailyPlanRows tr[data-row-id]')].map(rowDuty).filter(Boolean);
+    return [...document.querySelectorAll('#dpDailyPlanRows tr[data-row-id]')]
+      .map(rowDuty)
+      .filter(Boolean);
   }
 
   function addOption(list, value) {
@@ -65,11 +88,15 @@
   function updateNotices(dailyHoliday, assignmentHoliday) {
     if (dailyHoliday) {
       const banner = document.getElementById('dpNiHolidayDutyStatus');
-      if (banner) banner.textContent = 'Niedersachsen-Ferien: Dienste 3031 bis 3045, 3095, 1341, 1743, 1941 und Einsatzwagen verwenden. Schultagsdienste sind nicht gültig.';
+      if (banner) {
+        banner.textContent = 'Niedersachsen-Ferien: Dienste 3031 bis 3045, 3095, 1341, 1743, 1941 und Einsatzwagen verwenden. Die Fahrer werden frei zugeteilt.';
+      }
     }
     if (assignmentHoliday) {
       const note = document.querySelector('#dpDutyAssignmentV2 .dp-ni-assignment-note');
-      if (note) note.textContent = 'Niedersachsen-Ferien: Ferien-Dienst 3031 bis 3045, 3095, 1341, 1743, 1941 oder Einsatzwagen auswählen.';
+      if (note) {
+        note.textContent = 'Niedersachsen-Ferien: Ferien-Dienst auswählen und einem beliebigen Fahrer zuweisen.';
+      }
     }
   }
 
@@ -90,10 +117,22 @@
     updateNotices(dailyHoliday, assignmentHoliday);
   }
 
+  function updateDriverField(row, entry) {
+    const input = row?.querySelector('input[data-field="name"]');
+    if (!input) return;
+
+    const current = String(input.value || '').trim();
+    if (entry.legacyName && normalize(current) === normalize(entry.legacyName)) {
+      setInput(row, 'name', '');
+      return;
+    }
+    if (entry.fixedName && !current) setInput(row, 'name', entry.fixedName);
+  }
+
   function writeEntryFields(rowId, entry) {
     const row = findRow(rowId);
     if (!row) return;
-    setInput(row, 'name', entry.name);
+    updateDriverField(row, entry);
     setInput(row, 'bus', entry.bus);
     setInput(row, 'start', entry.start);
     setInput(row, 'end', entry.end);
@@ -108,7 +147,9 @@
 
     if (rowDuty(row) !== entry.duty) {
       setInput(row, 'duty', entry.duty);
-      [80, 220, 450].forEach((delay) => window.setTimeout(() => writeEntryFields(rowId, entry), delay));
+      [80, 220, 450].forEach((delay) => {
+        window.setTimeout(() => writeEntryFields(rowId, entry), delay);
+      });
     } else {
       writeEntryFields(rowId, entry);
       window.setTimeout(() => writeEntryFields(rowId, entry), 160);
@@ -146,7 +187,7 @@
     autoReconciledDates.add(date);
     const status = document.getElementById('dpDailyPlanStatus');
     if (status) {
-      status.textContent = 'Ferien-Sonderdienste 1341, 1743, 1941 und Einsatzwagen wurden ergänzt.';
+      status.textContent = 'Ferien-Sonderdienste wurden ergänzt. Für 1341, 1743 und 1941 bitte einen Fahrer auswählen.';
       status.className = 'dp-daily-status ok';
     }
     window.dispatchEvent(new Event('focus'));
@@ -195,8 +236,11 @@
     if (event.target.closest?.('#dpDailyDutyPlanTab,#dpDutyAssignmentV2,#loginButton')) scheduleLists();
   }, true);
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scheduleLists, { once: true });
-  else scheduleLists();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', scheduleLists, { once: true });
+  } else {
+    scheduleLists();
+  }
   window.addEventListener('pageshow', scheduleLists);
   window.addEventListener('focus', scheduleLists);
 })();
