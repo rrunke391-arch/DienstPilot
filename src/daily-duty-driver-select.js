@@ -13,7 +13,7 @@
   if (!document.getElementById('dpAdditionalDriverOptionsScript')) {
     const script = document.createElement('script');
     script.id = 'dpAdditionalDriverOptionsScript';
-    script.src = 'src/additional-driver-options.js?v=20260716-2';
+    script.src = 'src/additional-driver-options.js?v=20260716-3';
     script.async = false;
     document.head.appendChild(script);
   }
@@ -23,7 +23,8 @@
     'Szczepanik', 'Kocdemir', 'Wüllner', 'Wittwer', 'Biermann', 'Gerding',
     'Runke', 'Lommel', 'Malko', 'Murad', 'Kurta', 'Wiemann', 'Muth',
     'Suleimani', 'Faber', 'L.Hergerdt', 'A.Hergerdt', 'A.Hasan', 'D.Knigge',
-    'N.Awdullahi', 'K.Giotis', 'A.Alrobaie', 'A.Morzsa', 'C.Strotmann', 'M.Eggern'
+    'N.Awdullahi', 'K.Giotis', 'K.Igelbrink', 'A.Alrobaie', 'A.Morzsa',
+    'C.Strotmann', 'M.Eggern'
   ];
 
   let remoteDrivers = [];
