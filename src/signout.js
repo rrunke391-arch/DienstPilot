@@ -127,12 +127,12 @@
     loadScript('dpXlsmExchange', 'src/xlsm-exchange.js?v=20260711-1');
     loadScript('dpDailyDutyPlan', 'src/daily-duty-plan.js?v=20260711-1');
     loadScript('dpDailyDutyDriverSelect', 'src/daily-duty-driver-select.js?v=20260715-2');
-    loadScript('dpDailyDutyDutySelect', 'src/daily-duty-duty-select.js?v=20260716-1');
+    loadScript('dpDailyDutyDutySelect', 'src/daily-duty-duty-select.js?v=20260716-2');
     loadScript('dpDailyDutyRoleAccess', 'src/daily-duty-role-access.js?v=20260712-2');
     loadScript('dpDailyDutyBusMove', 'src/daily-duty-plan-bus-move.js?v=20260711-1');
     loadScript('dpDailyDutyPhotoDefaults', 'src/daily-duty-plan-photo-defaults.js?v=20260711-2');
     loadScript('dpDailyDutyPhotoAuto', 'src/daily-duty-plan-photo-auto.js?v=20260711-2');
-    loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260711-1');
+    loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260716-2');
     loadScript('dpDailyDutySeparation', 'src/daily-duty-plan-separation.js?v=20260711-1');
     loadScript('dpDailyDutyPrintAnytime', 'src/daily-duty-plan-print-anytime.js?v=20260711-1');
     loadScript('dpDailyDutySeparationGuard', 'src/daily-duty-plan-separation-guard.js?v=20260711-2');
