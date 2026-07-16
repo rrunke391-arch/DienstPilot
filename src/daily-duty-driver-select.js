@@ -13,7 +13,7 @@
   if (!document.getElementById('dpAdditionalDriverOptionsScript')) {
     const script = document.createElement('script');
     script.id = 'dpAdditionalDriverOptionsScript';
-    script.src = 'src/additional-driver-options.js?v=20260715-1';
+    script.src = 'src/additional-driver-options.js?v=20260716-2';
     script.async = false;
     document.head.appendChild(script);
   }
@@ -22,7 +22,7 @@
     'Yasar', 'Bumhoffer', 'Entrup', 'Schweppe', 'Janzen', 'Alomar', 'Al Sayek',
     'Szczepanik', 'Kocdemir', 'Wüllner', 'Wittwer', 'Biermann', 'Gerding',
     'Runke', 'Lommel', 'Malko', 'Murad', 'Kurta', 'Wiemann', 'Muth',
-    'Suleimani', 'Faber', 'Hergerdt', 'A.Hergerdt', 'A.Hasan', 'D.Knigge',
+    'Suleimani', 'Faber', 'L.Hergerdt', 'A.Hergerdt', 'A.Hasan', 'D.Knigge',
     'N.Awdullahi', 'K.Giotis', 'A.Alrobaie', 'A.Morzsa', 'C.Strotmann', 'M.Eggern'
   ];
 
@@ -35,6 +35,11 @@
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function canonicalName(value) {
+    const name = String(value || '').trim();
+    return normalize(name) === 'hergerdt' ? 'L.Hergerdt' : name;
   }
 
   function currentUser() {
@@ -72,7 +77,7 @@
   }
 
   function addName(target, names) {
-    const value = String(target || '').trim();
+    const value = canonicalName(target);
     if (!value) return;
     if (!names.some((name) => normalize(name) === normalize(value))) names.push(value);
   }
@@ -113,9 +118,15 @@
       const cell = input.closest('td');
       if (!cell) return;
 
+      const correctedName = canonicalName(input.value);
+      if (correctedName !== String(input.value || '').trim()) {
+        input.value = correctedName;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
       const existing = cell.querySelector('.dp-daily-driver-select');
       if (existing) {
-        if (normalize(existing.value) !== normalize(input.value)) existing.value = input.value;
+        if (normalize(existing.value) !== normalize(correctedName)) existing.value = correctedName;
         return;
       }
 
@@ -128,16 +139,16 @@
       blank.textContent = 'Fahrer auswählen';
       select.appendChild(blank);
 
-      addName(input.value, names);
-      names.forEach((name) => select.appendChild(optionHtml(name, input.value)));
-      select.value = input.value;
+      addName(correctedName, names);
+      names.forEach((name) => select.appendChild(optionHtml(name, correctedName)));
+      select.value = correctedName;
 
       input.classList.add('dp-daily-driver-source');
       input.setAttribute('aria-hidden', 'true');
       input.tabIndex = -1;
 
       select.addEventListener('change', () => {
-        input.value = select.value;
+        input.value = canonicalName(select.value);
         input.dispatchEvent(new Event('input', { bubbles: true }));
       });
 
@@ -163,7 +174,7 @@
       const users = Array.isArray(data) ? data : (Array.isArray(data?.users) ? data.users : []);
       remoteDrivers = users
         .filter((user) => normalize(user?.role) === 'fahrer' || user?.driverProfile)
-        .map((user) => String(user.displayName || user.driverProfile || user.username || '').trim())
+        .map((user) => canonicalName(user.displayName || user.driverProfile || user.username || ''))
         .filter(Boolean);
       installSelects();
     } catch {}
