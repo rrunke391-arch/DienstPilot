@@ -1,14 +1,15 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotHolidayPhotoTemplateV1) return;
-  window.__dienstpilotHolidayPhotoTemplateV1 = true;
+  if (window.__dienstpilotHolidayPhotoTemplateV2) return;
+  window.__dienstpilotHolidayPhotoTemplateV2 = true;
 
   const TABLE_ID = 'dpDailyPlanRows';
   const DATE_ID = 'dpDailyPlanDate';
   const ADD_ID = 'dpDailyAddRow';
   const SECTION_ID = 'tab-daily-duty-plan';
-  const MARKER_KEY = 'dienstpilot_holiday_photo_template_21_v1';
+  const MARKER_KEY = 'dienstpilot_holiday_photo_template_21_v2';
+  const GENERAL_MARKER_KEY = 'dienstpilot_photo_bus_defaults_v3';
 
   const HOLIDAY_PERIODS = [
     ['2025-10-13', '2025-10-25'], ['2025-12-22', '2026-01-05'],
@@ -21,7 +22,7 @@
     ['2027-10-16', '2027-10-30'], ['2027-12-23', '2028-01-08']
   ];
 
-  // Exakt die 21 Zeilen der übermittelten Ferien-Dienstplanvorlage.
+  // Exakt die 21 Zeilen und Kennzeichen der übermittelten Ferien-Dienstplanvorlage.
   const PHOTO_ROWS = [
     { name: 'A.Gerding', duty: '3031', bus: 'OS-LF 223', start: '05:03', end: '13:21', departure: '05:20', stop: 'Wellingholzhausen, Schule' },
     { name: 'D.Knigge', duty: '3032', bus: 'OS-VH 721', start: '04:45', end: '12:04', departure: '05:26', stop: 'Osnabrück, HBF' },
@@ -73,49 +74,28 @@
     return [...document.querySelectorAll(`#${TABLE_ID} tr[data-row-id]`)];
   }
 
-  function dutyValue(row) {
-    return String(row?.querySelector('input[data-field="duty"]')?.value || '').trim();
+  function fieldValue(row, field) {
+    return String(row?.querySelector(`input[data-field="${field}"]`)?.value || '').trim();
   }
 
-  function readMarkers() {
+  function readObject(key) {
     try {
-      const value = JSON.parse(localStorage.getItem(MARKER_KEY) || '{}');
+      const value = JSON.parse(localStorage.getItem(key) || '{}');
       return value && typeof value === 'object' ? value : {};
     } catch {
       return {};
     }
   }
 
+  function markDate(key, date) {
+    if (!date) return;
+    const values = readObject(key);
+    values[date] = true;
+    localStorage.setItem(key, JSON.stringify(values));
+  }
+
   function marked(date) {
-    return Boolean(readMarkers()[date]);
-  }
-
-  function mark(date) {
-    const markers = readMarkers();
-    markers[date] = true;
-    localStorage.setItem(MARKER_KEY, JSON.stringify(markers));
-  }
-
-  function expectedCounts() {
-    const counts = new Map();
-    PHOTO_ROWS.forEach((row) => counts.set(row.duty, (counts.get(row.duty) || 0) + 1));
-    return counts;
-  }
-
-  function structureMatches() {
-    const current = rows();
-    if (current.length !== PHOTO_ROWS.length) return false;
-    const counts = new Map();
-    current.forEach((row) => {
-      const duty = dutyValue(row);
-      counts.set(duty, (counts.get(duty) || 0) + 1);
-    });
-    const expected = expectedCounts();
-    if (counts.size !== expected.size) return false;
-    for (const [duty, count] of expected) {
-      if (counts.get(duty) !== count) return false;
-    }
-    return true;
+    return Boolean(readObject(MARKER_KEY)[date]);
   }
 
   function setStatus(text, kind = '') {
@@ -125,94 +105,168 @@
     status.className = 'dp-daily-status' + (kind ? ` ${kind}` : '');
   }
 
-  function dispatchValue(input) {
+  function dispatchInput(input) {
     if (!input) return;
     input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function escapeSelector(value) {
+    if (window.CSS && typeof CSS.escape === 'function') return CSS.escape(String(value || ''));
+    return String(value || '').replace(/["\\]/g, '\\$&');
+  }
+
+  function rowById(rowId) {
+    if (!rowId) return null;
+    return document.querySelector(`#${TABLE_ID} tr[data-row-id="${escapeSelector(rowId)}"]`);
+  }
+
+  function currentQuality() {
+    const current = rows();
+    return {
+      count: current.length,
+      names: current.filter((row) => fieldValue(row, 'name')).length,
+      duties: current.filter((row) => fieldValue(row, 'duty')).length,
+      buses: current.filter((row) => {
+        const bus = fieldValue(row, 'bus');
+        return bus && bus !== 'OS-XX 123';
+      }).length
+    };
+  }
+
+  function expectedStructureMatches() {
+    const current = rows();
+    if (current.length !== PHOTO_ROWS.length) return false;
+
+    for (let index = 0; index < PHOTO_ROWS.length; index += 1) {
+      const row = current[index];
+      const expected = PHOTO_ROWS[index];
+      if (fieldValue(row, 'duty') !== expected.duty) return false;
+      if (fieldValue(row, 'bus') !== expected.bus) return false;
+    }
+    return true;
+  }
+
+  function needsRepair(date) {
+    if (!isHolidayWeekday(date)) return false;
+    if (expectedStructureMatches()) return false;
+
+    const quality = currentQuality();
+    if (!marked(date)) return true;
+    return quality.count !== PHOTO_ROWS.length || quality.duties < 18 || quality.buses < 18 || quality.names < 18;
   }
 
   async function clearAllRows() {
     let guard = 0;
-    while (rows().length && guard < 120) {
+    while (rows().length && guard < 140) {
       const button = rows()[0]?.querySelector('[data-action="delete"]');
       if (!button || button.disabled) break;
       button.click();
       guard += 1;
-      await wait(20);
+      await wait(24);
     }
+  }
+
+  async function writeFields(rowId, data) {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const row = rowById(rowId);
+      if (!row) {
+        await wait(70);
+        continue;
+      }
+
+      for (const field of ['name', 'bus', 'start', 'end', 'departure', 'stop']) {
+        const input = row.querySelector(`input[data-field="${field}"]`);
+        if (!input || input.disabled) continue;
+        input.value = data[field] || '';
+        dispatchInput(input);
+      }
+
+      const resolved = rowById(rowId);
+      if (resolved && fieldValue(resolved, 'bus') === data.bus && fieldValue(resolved, 'name') === data.name) return true;
+      await wait(80);
+    }
+    return false;
   }
 
   async function createPhotoRow(data) {
     const addButton = document.getElementById(ADD_ID);
     if (!addButton || addButton.disabled) return false;
 
-    const before = new Set(rows());
+    const beforeIds = new Set(rows().map((row) => String(row.dataset.rowId || '')));
     addButton.click();
-    await wait(45);
-    let row = rows().find((item) => !before.has(item)) || rows().at(-1);
+    await wait(65);
+
+    let row = rows().find((item) => !beforeIds.has(String(item.dataset.rowId || ''))) || rows().at(-1);
     if (!row) return false;
 
     const rowId = String(row.dataset.rowId || '');
     const dutyInput = row.querySelector('input[data-field="duty"]');
-    if (!dutyInput) return false;
+    if (!rowId || !dutyInput || dutyInput.disabled) return false;
+
     dutyInput.dataset.dpDutyCommit = '1';
     dutyInput.value = data.duty;
-    dispatchValue(dutyInput);
+    dispatchInput(dutyInput);
     delete dutyInput.dataset.dpDutyCommit;
-    await wait(70);
+    await wait(100);
 
-    if (rowId) {
-      const escaped = window.CSS && typeof CSS.escape === 'function' ? CSS.escape(rowId) : rowId;
-      row = document.querySelector(`#${TABLE_ID} tr[data-row-id="${escaped}"]`) || row;
-    }
-
-    for (const field of ['name', 'bus', 'start', 'end', 'departure', 'stop']) {
-      const input = row.querySelector(`input[data-field="${field}"]`);
-      if (!input) continue;
-      input.value = data[field] || '';
-      dispatchValue(input);
-    }
-    await wait(25);
-    return true;
+    return writeFields(rowId, data);
   }
 
-  async function rebuild() {
-    const date = currentDate();
-    if (running || !sectionVisible() || !isHolidayWeekday(date) || marked(date)) return;
-    if (!rows().length) return;
+  async function buildTemplate() {
+    await clearAllRows();
+    if (rows().length) return false;
 
-    if (structureMatches()) {
-      mark(date);
-      return;
+    for (const data of PHOTO_ROWS) {
+      const ok = await createPhotoRow(data);
+      if (!ok) return false;
     }
+    await wait(250);
+    return expectedStructureMatches();
+  }
+
+  async function repair() {
+    const date = currentDate();
+    if (running || !sectionVisible() || !isHolidayWeekday(date) || !rows().length || !needsRepair(date)) return;
 
     running = true;
-    setStatus(`Der Ferienplan wird auf die ${PHOTO_ROWS.length} benötigten Zeilen der Vorlage begrenzt …`);
+    window.__dienstpilotHolidayPhotoRebuilding = true;
+    markDate(GENERAL_MARKER_KEY, date);
+    setStatus(`Kennzeichen und Ferien-Dienste werden in den ${PHOTO_ROWS.length} benötigten Zeilen wiederhergestellt …`);
+
     try {
-      await clearAllRows();
-      for (const data of PHOTO_ROWS) await createPhotoRow(data);
-      mark(date);
-      setStatus(`Der Ferienplan enthält jetzt genau ${PHOTO_ROWS.length} Zeilen wie auf der Vorlage. Bitte einmal speichern.`, 'ok');
-      window.dispatchEvent(new Event('focus'));
+      let ok = await buildTemplate();
+      if (!ok) {
+        await wait(400);
+        ok = await buildTemplate();
+      }
+
+      if (ok) {
+        markDate(MARKER_KEY, date);
+        markDate(GENERAL_MARKER_KEY, date);
+        setStatus(`Alle ${PHOTO_ROWS.length} Ferien-Dienstzeilen und Kennzeichen wurden wieder eingefügt. Bitte einmal speichern.`, 'ok');
+      } else {
+        setStatus('Die Kennzeichen konnten noch nicht vollständig aufgebaut werden. Bitte die Seite einmal neu laden.', 'error');
+      }
     } finally {
+      window.__dienstpilotHolidayPhotoRebuilding = false;
       running = false;
     }
   }
 
-  function schedule(delay = 1800) {
+  function schedule(delay = 2200) {
     window.clearTimeout(timer);
-    timer = window.setTimeout(() => void rebuild(), delay);
+    timer = window.setTimeout(() => void repair(), delay);
   }
 
   document.addEventListener('click', (event) => {
-    if (event.target.closest?.('#dpDailyDutyPlanTab,#dpDailyInsertDefaults,#loginButton')) schedule(1800);
+    if (event.target.closest?.('#dpDailyDutyPlanTab,#dpDailyInsertDefaults,#loginButton')) schedule(2400);
   }, true);
 
   document.addEventListener('change', (event) => {
-    if (event.target?.id === DATE_ID) schedule(1800);
+    if (event.target?.id === DATE_ID) schedule(2400);
   });
 
-  [1800, 3800, 6500].forEach((delay) => window.setTimeout(() => schedule(0), delay));
-  window.addEventListener('pageshow', () => schedule(1800));
-  window.addEventListener('focus', () => schedule(1800));
+  [2200, 4800, 8200].forEach((delay) => window.setTimeout(() => schedule(0), delay));
+  window.addEventListener('pageshow', () => schedule(2400));
+  window.addEventListener('focus', () => schedule(2400));
 })();
