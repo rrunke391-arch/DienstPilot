@@ -4,17 +4,41 @@
   const TABLE_ID = 'dpDailyPlanRows';
   const HELP_ID = 'dpDailyBusMoveHelp';
   const STYLE_ID = 'dpDailyBusMoveStyle';
-  let selectedRowId = '';
-  let draggedRowId = '';
+  let selectedRef = null;
+  let draggedRef = null;
   let dragEndedAt = 0;
+  let observer = null;
+  let refreshTimer = 0;
 
-  function escapeSelector(value) {
-    if (window.CSS && typeof CSS.escape === 'function') return CSS.escape(String(value || ''));
-    return String(value || '').replace(/["\\]/g, '\\$&');
+  function rows() {
+    return [...document.querySelectorAll(`#${TABLE_ID} tr[data-row-id]`)];
   }
 
-  function rowById(rowId) {
-    return document.querySelector(`#${TABLE_ID} tr[data-row-id="${escapeSelector(rowId)}"]`);
+  function makeRowRef(row) {
+    if (!row) return null;
+    const allRows = rows();
+    const index = allRows.indexOf(row);
+    const rowId = String(row.dataset.rowId || '');
+    const sameId = rowId ? allRows.filter((item) => String(item.dataset.rowId || '') === rowId) : [];
+    return {
+      element: row,
+      index,
+      rowId,
+      occurrence: rowId ? sameId.indexOf(row) : -1
+    };
+  }
+
+  function resolveRow(ref) {
+    if (!ref) return null;
+    if (ref.element?.isConnected) return ref.element;
+
+    const allRows = rows();
+    if (ref.rowId) {
+      const sameId = allRows.filter((row) => String(row.dataset.rowId || '') === ref.rowId);
+      if (ref.occurrence >= 0 && sameId[ref.occurrence]) return sameId[ref.occurrence];
+    }
+
+    return ref.index >= 0 ? allRows[ref.index] || null : null;
   }
 
   function busInput(row) {
@@ -22,7 +46,9 @@
   }
 
   function driverName(row) {
-    return String(row?.querySelector('input[data-field="name"]')?.value || 'den gewählten Fahrer').trim() || 'den gewählten Fahrer';
+    const select = row?.querySelector('.dp-daily-driver-select');
+    const input = row?.querySelector('input[data-field="name"]');
+    return String(select?.value || input?.value || 'den gewählten Fahrer').trim() || 'den gewählten Fahrer';
   }
 
   function setStatus(text, kind = '') {
@@ -37,29 +63,45 @@
   }
 
   function clearDropMarks() {
-    document.querySelectorAll(`#${TABLE_ID} .dp-bus-drop-target`).forEach((cell) => cell.classList.remove('dp-bus-drop-target'));
+    document.querySelectorAll(`#${TABLE_ID} .dp-bus-drop-target`).forEach((element) => {
+      element.classList.remove('dp-bus-drop-target');
+    });
+  }
+
+  function markDropRow(row) {
+    clearDropMarks();
+    row?.querySelector('td.dp-bus-cell')?.classList.add('dp-bus-drop-target');
   }
 
   function showSelectedRow() {
-    document.querySelectorAll(`#${TABLE_ID} tr.dp-bus-selected`).forEach((row) => row.classList.remove('dp-bus-selected'));
-    if (!selectedRowId) return;
-    rowById(selectedRowId)?.classList.add('dp-bus-selected');
+    document.querySelectorAll(`#${TABLE_ID} tr.dp-bus-selected`).forEach((row) => {
+      row.classList.remove('dp-bus-selected');
+    });
+
+    const row = resolveRow(selectedRef);
+    if (!row) {
+      selectedRef = null;
+      return;
+    }
+    selectedRef = makeRowRef(row);
+    row.classList.add('dp-bus-selected');
   }
 
   function clearSelection() {
-    selectedRowId = '';
+    selectedRef = null;
     showSelectedRow();
     clearDropMarks();
   }
 
-  function moveBus(sourceRowId, targetRowId) {
-    if (!sourceRowId || !targetRowId || sourceRowId === targetRowId) {
+  function moveBus(source, target) {
+    const sourceRow = source?.nodeType === 1 ? source : resolveRow(source);
+    const targetRow = target?.nodeType === 1 ? target : resolveRow(target);
+
+    if (!sourceRow || !targetRow || sourceRow === targetRow) {
       clearSelection();
       return false;
     }
 
-    const sourceRow = rowById(sourceRowId);
-    const targetRow = rowById(targetRowId);
     const sourceInput = busInput(sourceRow);
     const targetInput = busInput(targetRow);
     if (!sourceInput || !targetInput || sourceInput.disabled || targetInput.disabled) {
@@ -88,6 +130,7 @@
     } else {
       setStatus(`${sourceBus} wurde zu ${targetName} verschoben.`, 'ok');
     }
+
     clearSelection();
     return true;
   }
@@ -99,7 +142,7 @@
     style.textContent = `
       .dp-bus-move-help{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff;color:#1e3a8a;font-weight:800}
       .dp-bus-move-help strong{white-space:nowrap}.dp-bus-assign{display:grid;grid-template-columns:38px minmax(0,1fr);gap:6px;align-items:center}
-      .dp-bus-drag-handle{width:38px;height:38px;border:1px solid #93c5fd;border-radius:9px;background:#dbeafe;color:#1d4ed8;font-size:21px;font-weight:900;cursor:grab;touch-action:manipulation}
+      .dp-bus-drag-handle{width:38px;height:38px;border:1px solid #93c5fd;border-radius:9px;background:#dbeafe;color:#1d4ed8;font-size:21px;font-weight:900;cursor:grab;touch-action:manipulation;user-select:none}
       .dp-bus-drag-handle:active{cursor:grabbing}.dp-bus-drag-handle:disabled{display:none}
       #${TABLE_ID} td.dp-bus-cell{transition:background-color .15s,box-shadow .15s}
       #${TABLE_ID} td.dp-bus-drop-target{background:#dcfce7;box-shadow:inset 0 0 0 2px #16a34a}
@@ -117,13 +160,12 @@
     const help = document.createElement('div');
     help.id = HELP_ID;
     help.className = 'dp-bus-move-help dp-daily-edit-only';
-    help.innerHTML = '<strong>Bus verschieben:</strong><span>Das ⇄-Symbol am Kennzeichen zum gewünschten Fahrer ziehen. Auf Handy oder Tablet zuerst ⇄ am Bus antippen und danach die Kennzeichen-Spalte des gewünschten Fahrers antippen. Ein vorhandenes Kennzeichen wird automatisch getauscht.</span>';
+    help.innerHTML = '<strong>Bus verschieben:</strong><span>Das ⇄-Symbol am Kennzeichen zum gewünschten Fahrer ziehen. Die gesamte Zielzeile kann verwendet werden. Auf Handy oder Tablet zuerst ⇄ am Bus antippen und danach die Zeile des gewünschten Fahrers antippen. Ein vorhandenes Kennzeichen wird automatisch getauscht.</span>';
     tableWrap.insertAdjacentElement('beforebegin', help);
   }
 
   function enhanceRows() {
-    const rows = document.querySelectorAll(`#${TABLE_ID} tr[data-row-id]`);
-    rows.forEach((row) => {
+    rows().forEach((row) => {
       const input = busInput(row);
       if (!input) return;
       const cell = input.closest('td');
@@ -148,17 +190,31 @@
         handle.setAttribute('aria-label', 'Buskennzeichen zu einem anderen Fahrer verschieben');
         wrapper.insertBefore(handle, input);
       }
-      handle.dataset.rowId = row.dataset.rowId || '';
       handle.draggable = !input.disabled;
       handle.disabled = input.disabled;
     });
     showSelectedRow();
   }
 
+  function installObserver() {
+    const body = document.getElementById(TABLE_ID);
+    if (!body || observer) return;
+    observer = new MutationObserver(() => {
+      window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(refresh, 0);
+    });
+    observer.observe(body, { childList: true, subtree: true });
+  }
+
   function refresh() {
     addStyle();
     installHelp();
     enhanceRows();
+    installObserver();
+  }
+
+  function eventRow(event) {
+    return event.target.closest?.(`#${TABLE_ID} tr[data-row-id]`) || null;
   }
 
   document.addEventListener('dragstart', (event) => {
@@ -171,41 +227,42 @@
       setStatus('Bitte zuerst ein Buskennzeichen in dieser Zeile eintragen.', 'error');
       return;
     }
-    draggedRowId = row.dataset.rowId || '';
+
+    draggedRef = makeRowRef(row);
+    selectedRef = null;
     event.dataTransfer.effectAllowed = 'move';
-    event.dataTransfer.setData('text/plain', draggedRowId);
-    event.dataTransfer.setData('application/x-dienstpilot-bus-row', draggedRowId);
+    event.dataTransfer.setData('text/plain', String(row.dataset.rowId || 'dienstpilot-bus'));
     row.classList.add('dp-bus-selected');
   }, true);
 
   document.addEventListener('dragover', (event) => {
-    if (!draggedRowId) return;
-    const cell = event.target.closest?.(`#${TABLE_ID} td.dp-bus-cell`);
-    if (!cell) return;
+    if (!draggedRef) return;
+    const targetRow = eventRow(event);
+    const sourceRow = resolveRow(draggedRef);
+    const targetInput = busInput(targetRow);
+    if (!targetRow || targetRow === sourceRow || !targetInput || targetInput.disabled) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
-    clearDropMarks();
-    cell.classList.add('dp-bus-drop-target');
+    markDropRow(targetRow);
   });
 
   document.addEventListener('dragleave', (event) => {
-    const cell = event.target.closest?.(`#${TABLE_ID} td.dp-bus-cell`);
-    if (cell && !cell.contains(event.relatedTarget)) cell.classList.remove('dp-bus-drop-target');
+    const targetRow = eventRow(event);
+    if (targetRow && !targetRow.contains(event.relatedTarget)) clearDropMarks();
   });
 
   document.addEventListener('drop', (event) => {
-    const cell = event.target.closest?.(`#${TABLE_ID} td.dp-bus-cell`);
-    if (!cell) return;
+    if (!draggedRef) return;
+    const targetRow = eventRow(event);
+    if (!targetRow) return;
     event.preventDefault();
-    const targetRow = cell.closest('tr[data-row-id]');
-    const sourceId = event.dataTransfer.getData('application/x-dienstpilot-bus-row') || event.dataTransfer.getData('text/plain') || draggedRowId;
-    moveBus(sourceId, targetRow?.dataset.rowId || '');
-    draggedRowId = '';
+    moveBus(draggedRef, targetRow);
+    draggedRef = null;
     dragEndedAt = Date.now();
   });
 
   document.addEventListener('dragend', () => {
-    draggedRowId = '';
+    draggedRef = null;
     dragEndedAt = Date.now();
     clearDropMarks();
     document.querySelectorAll(`#${TABLE_ID} tr.dp-bus-selected`).forEach((row) => row.classList.remove('dp-bus-selected'));
@@ -213,46 +270,52 @@
 
   document.addEventListener('click', (event) => {
     const handle = event.target.closest?.('.dp-bus-drag-handle');
-    const targetCell = event.target.closest?.(`#${TABLE_ID} td.dp-bus-cell`);
+    const targetRow = eventRow(event);
 
     if (handle) {
-      if (Date.now() - dragEndedAt < 300) return;
+      if (Date.now() - dragEndedAt < 350) return;
       const row = handle.closest('tr[data-row-id]');
       const input = busInput(row);
       if (!row || !input || input.disabled) return;
-      const rowId = row.dataset.rowId || '';
       if (!String(input.value || '').trim()) {
         setStatus('Bitte zuerst ein Buskennzeichen in dieser Zeile eintragen.', 'error');
         return;
       }
-      if (selectedRowId === rowId) {
+
+      const selectedRow = resolveRow(selectedRef);
+      if (selectedRow === row) {
         clearSelection();
         setStatus('Busverschiebung abgebrochen.');
         return;
       }
-      if (selectedRowId) {
-        moveBus(selectedRowId, rowId);
+      if (selectedRow) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        moveBus(selectedRef, row);
         return;
       }
-      selectedRowId = rowId;
+
+      selectedRef = makeRowRef(row);
       showSelectedRow();
-      setStatus(`${input.value.trim()} ist ausgewählt. Jetzt beim gewünschten Fahrer in die Kennzeichen-Spalte tippen.`);
+      setStatus(`${input.value.trim()} ist ausgewählt. Jetzt die Zeile des gewünschten Fahrers antippen.`);
       return;
     }
 
-    if (selectedRowId && targetCell) {
-      const targetRow = targetCell.closest('tr[data-row-id]');
-      moveBus(selectedRowId, targetRow?.dataset.rowId || '');
+    const sourceRow = resolveRow(selectedRef);
+    if (sourceRow && targetRow && targetRow !== sourceRow) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      moveBus(selectedRef, targetRow);
       return;
     }
 
-    if (event.target.closest?.('#dpDailyDutyPlanTab,#dpDailyAddRow,#dpDailyInsertDefaults')) {
+    if (event.target.closest?.('#dpDailyDutyPlanTab,#dpDailyAddRow,#dpDailyInsertDefaults,#dpDailyPlanRows [data-action]')) {
       [0, 80, 250].forEach((delay) => window.setTimeout(refresh, delay));
     }
   }, true);
 
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && selectedRowId) {
+    if (event.key === 'Escape' && selectedRef) {
       clearSelection();
       setStatus('Busverschiebung abgebrochen.');
     }
@@ -262,7 +325,7 @@
     if (event.target.closest?.(`#${TABLE_ID} input[data-field="bus"]`)) window.setTimeout(refresh, 0);
   });
 
-  [0, 200, 600, 1200, 2500].forEach((delay) => window.setTimeout(refresh, delay));
+  [0, 150, 400, 900, 1800].forEach((delay) => window.setTimeout(refresh, delay));
   window.addEventListener('focus', refresh);
   window.addEventListener('pageshow', refresh);
   window.setInterval(refresh, 1500);
