@@ -16,6 +16,7 @@
   const ROLE_KEY = 'dienstpilot_role';
   const BLOCKED_DRIVERS = ['seidensticker'];
   const DRIVERS = [
+    'L.Hergerdt',
     'A.Hergerdt',
     'A.Hasan',
     'D.Knigge',
@@ -35,8 +36,15 @@
       .replace(/[\u0300-\u036f]/g, '');
   }
 
+  function canonicalName(value) {
+    const name = String(value || '').trim();
+    return normalize(name) === 'hergerdt' ? 'L.Hergerdt' : name;
+  }
+
   function profileKey(value) {
-    return normalize(value).replace(/[^a-z0-9_-]+/g, '_');
+    const normalized = normalize(value);
+    if (normalized === 'hergerdt' || normalized === 'l.hergerdt' || normalized === 'l_hergerdt') return 'hergerdt';
+    return normalized.replace(/[^a-z0-9_-]+/g, '_');
   }
 
   function isBlocked(value) {
@@ -64,6 +72,35 @@
     ].includes(currentRole());
   }
 
+  function correctHergerdtNames() {
+    document.querySelectorAll('#kollegeSelect option').forEach((option) => {
+      const shown = option.textContent || option.label || option.value;
+      if (normalize(shown) === 'hergerdt') option.textContent = 'L.Hergerdt';
+    });
+
+    document.querySelectorAll('#dpAssignDriversV2 option').forEach((option) => {
+      const shown = option.label || option.textContent || option.value;
+      if (normalize(shown) === 'hergerdt' || profileKey(option.value) === 'hergerdt') {
+        option.value = 'hergerdt';
+        option.label = 'L.Hergerdt';
+        option.textContent = 'L.Hergerdt';
+      }
+    });
+
+    document.querySelectorAll('#dpDailyPlanRows .dp-daily-driver-select option').forEach((option) => {
+      if (normalize(option.value || option.textContent) === 'hergerdt') {
+        option.value = 'L.Hergerdt';
+        option.textContent = 'L.Hergerdt';
+      }
+    });
+
+    document.querySelectorAll('#dpDailyPlanRows input[data-field="name"]').forEach((input) => {
+      if (normalize(input.value) !== 'hergerdt') return;
+      input.value = 'L.Hergerdt';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+
   function removeBlockedOptions() {
     document.querySelectorAll('#dpAssignDriversV2 option').forEach((option) => {
       if (isBlocked(option.value) || isBlocked(option.label) || isBlocked(option.textContent)) option.remove();
@@ -82,7 +119,8 @@
       [...list.querySelectorAll('option')].map((option) => profileKey(option.value || option.label))
     );
 
-    DRIVERS.forEach((name) => {
+    DRIVERS.forEach((rawName) => {
+      const name = canonicalName(rawName);
       const value = profileKey(name);
       if (!value || isBlocked(name) || existing.has(value)) return;
       const option = document.createElement('option');
@@ -100,7 +138,8 @@
         [...select.options].map((option) => normalize(option.value || option.textContent))
       );
 
-      DRIVERS.forEach((name) => {
+      DRIVERS.forEach((rawName) => {
+        const name = canonicalName(rawName);
         const key = normalize(name);
         if (!key || isBlocked(name) || existing.has(key)) return;
         const option = document.createElement('option');
@@ -114,9 +153,11 @@
 
   function install() {
     if (!permitted()) return;
+    correctHergerdtNames();
     removeBlockedOptions();
     addAssignmentOptions();
     addDailyPlanOptions();
+    correctHergerdtNames();
     removeBlockedOptions();
   }
 
