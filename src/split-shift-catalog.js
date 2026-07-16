@@ -1,15 +1,15 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotSplitShiftCatalogV1) return;
-  window.__dienstpilotSplitShiftCatalogV1 = true;
+  if (window.__dienstpilotSplitShiftCatalogV2) return;
+  window.__dienstpilotSplitShiftCatalogV2 = true;
 
   const API = 'https://api.dienstpilot-runke.de/api/data/catalog_custom';
   const TOKEN_KEY = 'dienstpilot_api_token';
   const MAIN_KEY = 'lenkRuhezeitenRunke20260413';
   const STYLE_ID = 'dpSplitShiftCatalogStyle';
   const INFO_CLASS = 'dp-split-catalog-times';
-  const VERSION_KEY = 'dienstpilot_split_shift_catalog_saved_v1';
+  const VERSION_KEY = 'dienstpilot_split_shift_catalog_saved_v2';
 
   const DEFINITIONS = {
     '1341': {
@@ -73,9 +73,7 @@
     localStorage.setItem(MAIN_KEY, JSON.stringify({ ...main, customCatalog: merged }));
 
     try {
-      if (typeof customCatalog !== 'undefined') {
-        customCatalog = mergeDefinitions(customCatalog || {});
-      }
+      if (typeof customCatalog !== 'undefined') customCatalog = mergeDefinitions(customCatalog || {});
     } catch {}
 
     return merged;
@@ -127,7 +125,9 @@
     style.id = STYLE_ID;
     style.textContent = `
       .${INFO_CLASS}{margin:10px 0 0;padding:9px 10px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff;color:#1e3a8a;font-size:12px;line-height:1.45;font-weight:850}
-      #dpSplitAssignmentTimes{margin-top:9px;padding:9px 11px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff;color:#1e3a8a;font-weight:850;line-height:1.45}
+      #dpSplitAssignmentTimes{margin-top:9px;padding:10px 11px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff;color:#1e3a8a;font-weight:850;line-height:1.45}
+      #dpSplitAssignmentTimes label{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:7px}
+      #dpSplitAssignmentShift{padding:7px 9px;border:1px solid #93c5fd;border-radius:8px;background:#fff;font:inherit;font-weight:850}
     `;
     document.head.appendChild(style);
   }
@@ -138,6 +138,16 @@
     return definition.splitShifts
       .map((shift) => `${shift.label}: ${shift.start}–${shift.end}`)
       .join(' · ');
+  }
+
+  function setAssignmentTimes(number, index) {
+    const definition = DEFINITIONS[number];
+    const shift = definition?.splitShifts?.[Number(index) || 0];
+    if (!shift) return;
+    const start = document.getElementById('dpAssignStartV2');
+    const end = document.getElementById('dpAssignEndV2');
+    if (start) start.value = shift.start;
+    if (end) end.value = shift.end;
   }
 
   function decorateCatalog() {
@@ -157,12 +167,13 @@
 
   function decorateAssignment() {
     const panel = document.getElementById('dpDutyAssignmentV2');
-    const select = document.getElementById('dpAssignDutyV2');
-    if (!panel || !select) return;
+    const dutySelect = document.getElementById('dpAssignDutyV2');
+    if (!panel || !dutySelect) return;
 
     let info = document.getElementById('dpSplitAssignmentTimes');
-    const number = String(select.value || '').trim();
-    if (!DEFINITIONS[number]) {
+    const number = String(dutySelect.value || '').trim();
+    const definition = DEFINITIONS[number];
+    if (!definition) {
       info?.remove();
       return;
     }
@@ -172,7 +183,13 @@
       info.id = 'dpSplitAssignmentTimes';
       panel.querySelector('.dp-a-grid')?.insertAdjacentElement('afterend', info);
     }
-    info.textContent = `Dienst ${number}: ${shiftText(number)}. Früh- und Spätschicht werden getrennt den beiden Fahrern zugeordnet.`;
+
+    const previous = info.querySelector('#dpSplitAssignmentShift')?.value || '0';
+    info.innerHTML = `<div>Dienst ${number}: ${shiftText(number)}.</div><label>Schicht auswählen <select id="dpSplitAssignmentShift"><option value="0">Frühschicht</option><option value="1">Spätschicht</option></select></label>`;
+    const shiftSelect = info.querySelector('#dpSplitAssignmentShift');
+    shiftSelect.value = previous === '1' ? '1' : '0';
+    shiftSelect.addEventListener('change', () => setAssignmentTimes(number, shiftSelect.value));
+    setAssignmentTimes(number, shiftSelect.value);
   }
 
   function refresh() {
