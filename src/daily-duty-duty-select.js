@@ -7,6 +7,7 @@
   const USER_KEY = 'dienstpilot_user';
   const ROLE_KEY = 'dienstpilot_role';
   const STYLE_ID = 'dpDailyDutyDutySelectStyle';
+  const FREE_VALUE = 'Frei';
 
   const HOLIDAY_PERIODS = [
     ['2025-10-13', '2025-10-25'],
@@ -60,6 +61,10 @@
       .replace(/[\u0300-\u036f]/g, '');
   }
 
+  function isFree(value) {
+    return normalize(value) === 'frei';
+  }
+
   function currentRole() {
     try {
       const user = JSON.parse(sessionStorage.getItem(USER_KEY) || 'null');
@@ -107,22 +112,29 @@
         border-color:#dc2626;background:#fff7f7;color:#991b1b;
       }
       #dpDailyPlanRows .dp-daily-duty-source{display:none!important}
+      #dpDailyPlanPreview .dp-preview-free-summary{
+        border-top:2px solid #111;margin-top:10px;padding-top:10px;min-height:46px;
+      }
     `;
     document.head.appendChild(style);
   }
 
   function optionsForMode(mode) {
-    if (mode === 'holiday') return HOLIDAY_DUTIES.map((entry) => entry.duty);
-    if (mode === 'school') return [...SCHOOL_DUTIES];
+    if (mode === 'holiday') return [FREE_VALUE, ...HOLIDAY_DUTIES.map((entry) => entry.duty)];
+    if (mode === 'school') return [FREE_VALUE, ...SCHOOL_DUTIES];
 
-    const values = new Set();
+    const values = new Set([FREE_VALUE]);
     document.querySelectorAll('#dpDailyDutyList option').forEach((option) => {
       const value = String(option.value || '').trim();
       if (value) values.add(value);
     });
     SCHOOL_DUTIES.forEach((value) => values.add(value));
     HOLIDAY_DUTIES.forEach((entry) => values.add(entry.duty));
-    return [...values].sort((a, b) => a.localeCompare(b, 'de', { numeric: true }));
+    return [...values].sort((a, b) => {
+      if (isFree(a)) return -1;
+      if (isFree(b)) return 1;
+      return a.localeCompare(b, 'de', { numeric: true });
+    });
   }
 
   function dutyInputs() {
@@ -133,7 +145,7 @@
     const counts = new Map();
     dutyInputs().forEach((input) => {
       const duty = String(input.value || '').trim();
-      if (!duty) return;
+      if (!duty || isFree(duty)) return;
       counts.set(duty, (counts.get(duty) || 0) + 1);
     });
     return counts;
@@ -148,7 +160,7 @@
     dutyInputs().forEach((other) => {
       if (other === input) return;
       const duty = String(other.value || '').trim();
-      if (duty) used.add(duty);
+      if (duty && !isFree(duty)) used.add(duty);
     });
     return used;
   }
@@ -158,6 +170,15 @@
     if (!input) return;
     input.value = value || '';
     input.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  function clearFreeFields(rowId) {
+    window.setTimeout(() => {
+      const row = document.querySelector(`#dpDailyPlanRows tr[data-row-id="${CSS.escape(rowId)}"]`);
+      if (!row) return;
+      ['bus', 'start', 'end', 'departure', 'stop'].forEach((field) => setField(row, field, ''));
+      scheduleFreeSummary();
+    }, 80);
   }
 
   function fillHolidayTimes(rowId, dutyNumber) {
@@ -181,14 +202,66 @@
     node.className = `dp-daily-status ${error ? 'error' : 'ok'}`;
   }
 
+  function freeDriverNames() {
+    return dutyInputs()
+      .filter((input) => isFree(input.value))
+      .map((input) => input.closest('tr[data-row-id]')?.querySelector('input[data-field="name"]')?.value.trim() || '')
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
+  }
+
+  function renderFreeSummary() {
+    const preview = document.getElementById('dpDailyPlanPreview');
+    if (!preview) return false;
+
+    preview.querySelector('.dp-preview-free-summary')?.remove();
+    const previewRows = [...preview.querySelectorAll('.dp-preview-row:not(.dp-preview-free-summary)')];
+    const inputs = dutyInputs();
+
+    inputs.forEach((input, index) => {
+      if (isFree(input.value)) previewRows[index]?.remove();
+    });
+
+    const names = freeDriverNames();
+    if (!names.length) return true;
+
+    const summary = document.createElement('div');
+    summary.className = 'dp-preview-row dp-preview-free-summary';
+    summary.style.borderTop = '2px solid #111';
+    summary.style.marginTop = '3mm';
+    summary.style.paddingTop = '3mm';
+    summary.style.minHeight = '10mm';
+    summary.innerHTML = `
+      <div class="dp-preview-left"><strong>Frei</strong><span>Diese Fahrer haben frei:</span></div>
+      <div class="dp-preview-middle" style="grid-column:2 / 4"><strong>${names.map(escapeHtml).join(', ')}</strong></div>
+      <div class="dp-preview-right" style="display:none"></div>
+    `;
+    preview.appendChild(summary);
+    return true;
+  }
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function scheduleFreeSummary() {
+    [0, 60, 180].forEach((delay) => window.setTimeout(renderFreeSummary, delay));
+  }
+
   function markDuplicates() {
     const duplicates = new Set(duplicateDuties());
     dutyInputs().forEach((input) => {
       const duty = String(input.value || '').trim();
       const select = input.closest('td')?.querySelector('.dp-daily-duty-select');
       if (!select) return;
-      select.classList.toggle('duplicate', Boolean(duty && duplicates.has(duty)));
-      if (duty && duplicates.has(duty)) {
+      const duplicated = Boolean(duty && !isFree(duty) && duplicates.has(duty));
+      select.classList.toggle('duplicate', duplicated);
+      if (duplicated) {
         select.title = `Dienst ${duty} ist mehrfach vergeben und muss geändert werden.`;
       } else {
         select.removeAttribute('title');
@@ -204,9 +277,10 @@
 
     const current = String(input.value || '').trim();
     const allowed = optionsForMode(mode);
-    const isAllowed = !current || allowed.includes(current);
+    const currentValue = isFree(current) ? FREE_VALUE : current;
+    const isAllowed = !current || isFree(current) || allowed.includes(current);
     const usedElsewhere = usedByOtherRows(input);
-    const available = allowed.filter((duty) => duty === current || !usedElsewhere.has(duty));
+    const available = allowed.filter((duty) => isFree(duty) || duty === currentValue || !usedElsewhere.has(duty));
 
     const existing = cell.querySelector('.dp-daily-duty-select');
     if (existing) existing.remove();
@@ -214,25 +288,25 @@
     const select = document.createElement('select');
     select.className = `dp-daily-duty-select${isAllowed ? '' : ' invalid'}`;
     select.dataset.mode = mode;
-    select.setAttribute('aria-label', 'Dienst auswählen');
+    select.setAttribute('aria-label', 'Dienst oder Frei auswählen');
 
     const placeholder = document.createElement('option');
     placeholder.value = '';
     placeholder.textContent = mode === 'holiday'
-      ? (current && !isAllowed ? `Schultagsdienst ${current} ungültig – Feriendienst wählen` : 'Feriendienst auswählen')
+      ? (current && !isAllowed ? `Schultagsdienst ${current} ungültig – Feriendienst oder Frei wählen` : 'Feriendienst oder Frei auswählen')
       : mode === 'school'
-        ? (current && !isAllowed ? `Feriendienst ${current} ungültig – Schultagsdienst wählen` : 'Schultagsdienst auswählen')
-        : 'Dienst auswählen';
+        ? (current && !isAllowed ? `Feriendienst ${current} ungültig – Schultagsdienst oder Frei wählen` : 'Schultagsdienst oder Frei auswählen')
+        : 'Dienst oder Frei auswählen';
     select.appendChild(placeholder);
 
     available.forEach((duty) => {
       const option = document.createElement('option');
       option.value = duty;
-      option.textContent = `Dienst ${duty}`;
+      option.textContent = isFree(duty) ? 'Frei' : `Dienst ${duty}`;
       select.appendChild(option);
     });
 
-    select.value = isAllowed ? current : '';
+    select.value = isAllowed ? currentValue : '';
 
     input.classList.add('dp-daily-duty-source');
     input.setAttribute('aria-hidden', 'true');
@@ -242,21 +316,28 @@
       const selected = select.value;
       if (!selected) return;
 
-      const duplicateInput = dutyInputs().find((other) => other !== input && String(other.value || '').trim() === selected);
-      if (duplicateInput) {
-        const otherRow = duplicateInput.closest('tr[data-row-id]');
-        const otherName = otherRow?.querySelector('input[data-field="name"]')?.value.trim();
-        select.value = isAllowed ? current : '';
-        status(`Dienst ${selected} ist bereits${otherName ? ` an ${otherName}` : ''} vergeben. Ein Dienst darf pro Tag nur einmal vergeben werden.`, true);
-        markDuplicates();
-        return;
+      if (!isFree(selected)) {
+        const duplicateInput = dutyInputs().find((other) =>
+          other !== input && !isFree(other.value) && String(other.value || '').trim() === selected
+        );
+        if (duplicateInput) {
+          const otherRow = duplicateInput.closest('tr[data-row-id]');
+          const otherName = otherRow?.querySelector('input[data-field="name"]')?.value.trim();
+          select.value = isAllowed ? currentValue : '';
+          status(`Dienst ${selected} ist bereits${otherName ? ` an ${otherName}` : ''} vergeben. Ein Dienst darf pro Tag nur einmal vergeben werden.`, true);
+          markDuplicates();
+          return;
+        }
       }
 
       const rowId = row.dataset.rowId || '';
-      input.value = selected;
+      input.value = isFree(selected) ? FREE_VALUE : selected;
       input.dispatchEvent(new Event('input', { bubbles: true }));
 
-      if (mode === 'holiday') {
+      if (isFree(selected)) {
+        clearFreeFields(rowId);
+        status('Frei wurde eingetragen. Der Fahrer erscheint im gedruckten Dienstplan unten in der Freiliste.');
+      } else if (mode === 'holiday') {
         fillHolidayTimes(rowId, selected);
         status(`Ferien-Dienst ${selected} wurde übernommen. Zeiten und Haltestelle wurden angepasst.`);
       } else {
@@ -264,6 +345,7 @@
       }
 
       [0, 80, 250].forEach((delay) => window.setTimeout(install, delay));
+      scheduleFreeSummary();
     });
 
     cell.insertBefore(select, input);
@@ -280,6 +362,7 @@
     if (duplicates.length) {
       status(`Doppelvergabe erkannt: Dienst ${duplicates.join(', ')}. Bitte vor dem Speichern korrigieren.`, true);
     }
+    renderFreeSummary();
     return true;
   }
 
@@ -299,9 +382,17 @@
       }
     }
 
+    if (event.target.closest?.('#dpDailyPrint,#dpDailyPrintA4')) renderFreeSummary();
+
     if (event.target.closest?.(
       '#loginButton,#dpDailyDutyPlanTab,#dpDailyAddRow,#dpDailyInsertDefaults,#dpDailyPlanRows [data-action]'
     )) scheduleInstall();
+  }, true);
+
+  document.addEventListener('input', (event) => {
+    if (event.target.matches?.('#dpDailyPlanRows input[data-field="name"],#dpDailyPlanRows input[data-field="duty"]')) {
+      scheduleFreeSummary();
+    }
   }, true);
 
   document.addEventListener('change', (event) => {
