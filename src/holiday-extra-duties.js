@@ -23,6 +23,7 @@
   ];
 
   const EXTRA_VALUES = new Set(EXTRA_DUTIES.map((entry) => entry.duty));
+  const autoReconciledDates = new Set();
 
   function selectedDate(id) {
     return String(document.getElementById(id)?.value || '');
@@ -50,6 +51,10 @@
     return String(row?.querySelector('input[data-field="duty"]')?.value || '').trim();
   }
 
+  function currentDuties() {
+    return [...document.querySelectorAll('#dpDailyPlanRows tr[data-row-id]')].map(rowDuty).filter(Boolean);
+  }
+
   function addOption(list, value) {
     if (!list || [...list.options].some((option) => option.value === value)) return;
     const option = document.createElement('option');
@@ -60,9 +65,7 @@
   function updateNotices(dailyHoliday, assignmentHoliday) {
     if (dailyHoliday) {
       const banner = document.getElementById('dpNiHolidayDutyStatus');
-      if (banner) {
-        banner.textContent = 'Niedersachsen-Ferien: Dienste 3031 bis 3045, 3095, 1341, 1743, 1941 und Einsatzwagen verwenden. Schultagsdienste sind nicht gültig.';
-      }
+      if (banner) banner.textContent = 'Niedersachsen-Ferien: Dienste 3031 bis 3045, 3095, 1341, 1743, 1941 und Einsatzwagen verwenden. Schultagsdienste sind nicht gültig.';
     }
     if (assignmentHoliday) {
       const note = document.querySelector('#dpDutyAssignmentV2 .dp-ni-assignment-note');
@@ -129,7 +132,8 @@
   }
 
   function reconcileHolidayRows() {
-    if (!isHoliday(selectedDate('dpDailyPlanDate'))) return;
+    const date = selectedDate('dpDailyPlanDate');
+    if (!isHoliday(date)) return;
 
     removeObsoleteHolidayRows();
     EXTRA_DUTIES.forEach((entry) => {
@@ -139,12 +143,21 @@
       else createRow(entry);
     });
 
+    autoReconciledDates.add(date);
     const status = document.getElementById('dpDailyPlanStatus');
     if (status) {
       status.textContent = 'Ferien-Sonderdienste 1341, 1743, 1941 und Einsatzwagen wurden ergänzt.';
       status.className = 'dp-daily-status ok';
     }
     window.dispatchEvent(new Event('focus'));
+  }
+
+  function maybeReconcileExistingPlan() {
+    const date = selectedDate('dpDailyPlanDate');
+    if (!isHoliday(date) || autoReconciledDates.has(date)) return;
+    const duties = currentDuties();
+    const hasHolidayPlan = duties.some((duty) => /^30(?:3[1-9]|4[0-5])$/.test(duty) || duty === '3095');
+    if (hasHolidayPlan) reconcileHolidayRows();
   }
 
   function fillAssignmentTimes() {
@@ -160,6 +173,7 @@
 
   function scheduleLists() {
     [0, 120, 350, 900].forEach((delay) => window.setTimeout(updateLists, delay));
+    window.setTimeout(maybeReconcileExistingPlan, 1100);
   }
 
   window.addEventListener('click', (event) => {
