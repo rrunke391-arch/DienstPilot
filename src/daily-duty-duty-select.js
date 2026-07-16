@@ -102,7 +102,8 @@
       #dpDailyPlanRows .dp-daily-duty-select:focus{
         outline:2px solid #2563eb;outline-offset:1px;
       }
-      #dpDailyPlanRows .dp-daily-duty-select.invalid{
+      #dpDailyPlanRows .dp-daily-duty-select.invalid,
+      #dpDailyPlanRows .dp-daily-duty-select.duplicate{
         border-color:#dc2626;background:#fff7f7;color:#991b1b;
       }
       #dpDailyPlanRows .dp-daily-duty-source{display:none!important}
@@ -122,6 +123,34 @@
     SCHOOL_DUTIES.forEach((value) => values.add(value));
     HOLIDAY_DUTIES.forEach((entry) => values.add(entry.duty));
     return [...values].sort((a, b) => a.localeCompare(b, 'de', { numeric: true }));
+  }
+
+  function dutyInputs() {
+    return [...document.querySelectorAll('#dpDailyPlanRows input[data-field="duty"]')];
+  }
+
+  function dutyCounts() {
+    const counts = new Map();
+    dutyInputs().forEach((input) => {
+      const duty = String(input.value || '').trim();
+      if (!duty) return;
+      counts.set(duty, (counts.get(duty) || 0) + 1);
+    });
+    return counts;
+  }
+
+  function duplicateDuties() {
+    return [...dutyCounts()].filter(([, count]) => count > 1).map(([duty]) => duty);
+  }
+
+  function usedByOtherRows(input) {
+    const used = new Set();
+    dutyInputs().forEach((other) => {
+      if (other === input) return;
+      const duty = String(other.value || '').trim();
+      if (duty) used.add(duty);
+    });
+    return used;
   }
 
   function setField(row, field, value) {
@@ -152,6 +181,22 @@
     node.className = `dp-daily-status ${error ? 'error' : 'ok'}`;
   }
 
+  function markDuplicates() {
+    const duplicates = new Set(duplicateDuties());
+    dutyInputs().forEach((input) => {
+      const duty = String(input.value || '').trim();
+      const select = input.closest('td')?.querySelector('.dp-daily-duty-select');
+      if (!select) return;
+      select.classList.toggle('duplicate', Boolean(duty && duplicates.has(duty)));
+      if (duty && duplicates.has(duty)) {
+        select.title = `Dienst ${duty} ist mehrfach vergeben und muss geändert werden.`;
+      } else {
+        select.removeAttribute('title');
+      }
+    });
+    return [...duplicates];
+  }
+
   function createSelect(input, mode) {
     const cell = input.closest('td');
     const row = input.closest('tr[data-row-id]');
@@ -160,6 +205,8 @@
     const current = String(input.value || '').trim();
     const allowed = optionsForMode(mode);
     const isAllowed = !current || allowed.includes(current);
+    const usedElsewhere = usedByOtherRows(input);
+    const available = allowed.filter((duty) => duty === current || !usedElsewhere.has(duty));
 
     const existing = cell.querySelector('.dp-daily-duty-select');
     if (existing) existing.remove();
@@ -178,7 +225,7 @@
         : 'Dienst auswählen';
     select.appendChild(placeholder);
 
-    allowed.forEach((duty) => {
+    available.forEach((duty) => {
       const option = document.createElement('option');
       option.value = duty;
       option.textContent = `Dienst ${duty}`;
@@ -194,6 +241,17 @@
     select.addEventListener('change', () => {
       const selected = select.value;
       if (!selected) return;
+
+      const duplicateInput = dutyInputs().find((other) => other !== input && String(other.value || '').trim() === selected);
+      if (duplicateInput) {
+        const otherRow = duplicateInput.closest('tr[data-row-id]');
+        const otherName = otherRow?.querySelector('input[data-field="name"]')?.value.trim();
+        select.value = isAllowed ? current : '';
+        status(`Dienst ${selected} ist bereits${otherName ? ` an ${otherName}` : ''} vergeben. Ein Dienst darf pro Tag nur einmal vergeben werden.`, true);
+        markDuplicates();
+        return;
+      }
+
       const rowId = row.dataset.rowId || '';
       input.value = selected;
       input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -215,9 +273,13 @@
     if (!permitted()) return false;
     addStyle();
     const mode = dayMode(selectedDate());
-    const inputs = [...document.querySelectorAll('#dpDailyPlanRows input[data-field="duty"]')];
+    const inputs = dutyInputs();
     if (!inputs.length) return false;
     inputs.forEach((input) => createSelect(input, mode));
+    const duplicates = markDuplicates();
+    if (duplicates.length) {
+      status(`Doppelvergabe erkannt: Dienst ${duplicates.join(', ')}. Bitte vor dem Speichern korrigieren.`, true);
+    }
     return true;
   }
 
@@ -226,6 +288,17 @@
   }
 
   document.addEventListener('click', (event) => {
+    if (event.target.closest?.('#dpDailySave')) {
+      const duplicates = duplicateDuties();
+      if (duplicates.length) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        status(`Speichern nicht möglich: Dienst ${duplicates.join(', ')} ist mehrfach vergeben.`, true);
+        markDuplicates();
+        return;
+      }
+    }
+
     if (event.target.closest?.(
       '#loginButton,#dpDailyDutyPlanTab,#dpDailyAddRow,#dpDailyInsertDefaults,#dpDailyPlanRows [data-action]'
     )) scheduleInstall();
