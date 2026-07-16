@@ -16,42 +16,10 @@
   ];
 
   const EXTRA_DUTIES = [
-    {
-      duty: '1341',
-      name: 'A.Morzsa / M.Al Dabbah',
-      bus: 'OS-CL 916',
-      start: '05:13',
-      end: '23:38',
-      departure: '',
-      stop: ''
-    },
-    {
-      duty: '1743',
-      name: 'M.Eggern / S.Yasatemur',
-      bus: 'OS-AX 716',
-      start: '06:05',
-      end: '00:50',
-      departure: '',
-      stop: ''
-    },
-    {
-      duty: '1941',
-      name: 'C.Strotmann / M.Entrup',
-      bus: 'OS-MR 825 / OS-RE 224',
-      start: '05:35',
-      end: '21:16',
-      departure: '15:24',
-      stop: 'Bissendorf, Werries'
-    },
-    {
-      duty: 'Einsatzwagen',
-      name: 'Einsatzwagen',
-      bus: 'OS-QS 519',
-      start: '',
-      end: '',
-      departure: '',
-      stop: ''
-    }
+    { duty: '1341', name: 'A.Morzsa / M.Al Dabbah', bus: 'OS-CL 916', start: '05:13', end: '23:38', departure: '', stop: '' },
+    { duty: '1743', name: 'M.Eggern / S.Yasatemur', bus: 'OS-AX 716', start: '06:05', end: '00:50', departure: '', stop: '' },
+    { duty: '1941', name: 'C.Strotmann / M.Entrup', bus: 'OS-MR 825 / OS-RE 224', start: '05:35', end: '21:16', departure: '15:24', stop: 'Bissendorf, Werries' },
+    { duty: 'Einsatzwagen', name: 'Einsatzwagen', bus: 'OS-QS 519', start: '', end: '', departure: '', stop: '' }
   ];
 
   const EXTRA_VALUES = new Set(EXTRA_DUTIES.map((entry) => entry.duty));
@@ -74,6 +42,10 @@
     input.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
+  function findRow(rowId) {
+    return document.querySelector(`#dpDailyPlanRows tr[data-row-id="${CSS.escape(rowId)}"]`);
+  }
+
   function rowDuty(row) {
     return String(row?.querySelector('input[data-field="duty"]')?.value || '').trim();
   }
@@ -85,10 +57,22 @@
     list.appendChild(option);
   }
 
+  function updateNotices(dailyHoliday, assignmentHoliday) {
+    if (dailyHoliday) {
+      const banner = document.getElementById('dpNiHolidayDutyStatus');
+      if (banner) {
+        banner.textContent = 'Niedersachsen-Ferien: Dienste 3031 bis 3045, 3095, 1341, 1743, 1941 und Einsatzwagen verwenden. Schultagsdienste sind nicht gültig.';
+      }
+    }
+    if (assignmentHoliday) {
+      const note = document.querySelector('#dpDutyAssignmentV2 .dp-ni-assignment-note');
+      if (note) note.textContent = 'Niedersachsen-Ferien: Ferien-Dienst 3031 bis 3045, 3095, 1341, 1743, 1941 oder Einsatzwagen auswählen.';
+    }
+  }
+
   function updateLists() {
     const dailyHoliday = isHoliday(selectedDate('dpDailyPlanDate'));
     const assignmentHoliday = isHoliday(selectedDate('dpAssignDateV2'));
-
     const dailyList = document.getElementById('dpDailyDutyList');
     const assignmentList = document.getElementById('dpAssignDutiesV2');
 
@@ -100,36 +84,48 @@
       });
       if (allowExtras) EXTRA_DUTIES.forEach((entry) => addOption(list, entry.duty));
     });
+    updateNotices(dailyHoliday, assignmentHoliday);
+  }
+
+  function writeEntryFields(rowId, entry) {
+    const row = findRow(rowId);
+    if (!row) return;
+    setInput(row, 'name', entry.name);
+    setInput(row, 'bus', entry.bus);
+    setInput(row, 'start', entry.start);
+    setInput(row, 'end', entry.end);
+    setInput(row, 'departure', entry.departure);
+    setInput(row, 'stop', entry.stop);
+  }
+
+  function applyEntry(row, entry) {
+    if (!row) return;
+    const rowId = row.dataset.rowId || '';
+    if (!rowId) return;
+
+    if (rowDuty(row) !== entry.duty) {
+      setInput(row, 'duty', entry.duty);
+      [80, 220, 450].forEach((delay) => window.setTimeout(() => writeEntryFields(rowId, entry), delay));
+    } else {
+      writeEntryFields(rowId, entry);
+      window.setTimeout(() => writeEntryFields(rowId, entry), 160);
+    }
   }
 
   function createRow(entry) {
     document.getElementById('dpDailyAddRow')?.click();
     const row = [...document.querySelectorAll('#dpDailyPlanRows tr[data-row-id]')].at(-1);
-    if (!row) return;
-    setInput(row, 'name', entry.name);
-    setInput(row, 'duty', entry.duty);
-    setInput(row, 'bus', entry.bus);
-    setInput(row, 'start', entry.start);
-    setInput(row, 'end', entry.end);
-    setInput(row, 'departure', entry.departure);
-    setInput(row, 'stop', entry.stop);
-  }
-
-  function updateRow(row, entry) {
-    setInput(row, 'name', entry.name);
-    setInput(row, 'duty', entry.duty);
-    setInput(row, 'bus', entry.bus);
-    setInput(row, 'start', entry.start);
-    setInput(row, 'end', entry.end);
-    setInput(row, 'departure', entry.departure);
-    setInput(row, 'stop', entry.stop);
+    applyEntry(row, entry);
   }
 
   function removeObsoleteHolidayRows() {
-    [...document.querySelectorAll('#dpDailyPlanRows tr[data-row-id]')].forEach((row) => {
-      if (rowDuty(row) !== '3002') return;
+    let row = [...document.querySelectorAll('#dpDailyPlanRows tr[data-row-id]')]
+      .find((candidate) => rowDuty(candidate) === '3002');
+    while (row) {
       row.querySelector('[data-action="delete"]')?.click();
-    });
+      row = [...document.querySelectorAll('#dpDailyPlanRows tr[data-row-id]')]
+        .find((candidate) => rowDuty(candidate) === '3002');
+    }
   }
 
   function reconcileHolidayRows() {
@@ -139,7 +135,7 @@
     EXTRA_DUTIES.forEach((entry) => {
       const row = [...document.querySelectorAll('#dpDailyPlanRows tr[data-row-id]')]
         .find((candidate) => rowDuty(candidate) === entry.duty);
-      if (row) updateRow(row, entry);
+      if (row) applyEntry(row, entry);
       else createRow(entry);
     });
 
@@ -168,7 +164,7 @@
 
   window.addEventListener('click', (event) => {
     if (event.target.closest?.('#dpDailyInsertDefaults') && isHoliday(selectedDate('dpDailyPlanDate'))) {
-      [80, 250, 700].forEach((delay) => window.setTimeout(reconcileHolidayRows, delay));
+      [100, 350, 900].forEach((delay) => window.setTimeout(reconcileHolidayRows, delay));
     }
   }, true);
 
@@ -185,11 +181,8 @@
     if (event.target.closest?.('#dpDailyDutyPlanTab,#dpDutyAssignmentV2,#loginButton')) scheduleLists();
   }, true);
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', scheduleLists, { once: true });
-  } else {
-    scheduleLists();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scheduleLists, { once: true });
+  else scheduleLists();
   window.addEventListener('pageshow', scheduleLists);
   window.addEventListener('focus', scheduleLists);
 })();
