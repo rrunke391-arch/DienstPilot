@@ -1,16 +1,18 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotSplitShiftDutiesV1) return;
-  window.__dienstpilotSplitShiftDutiesV1 = true;
+  if (window.__dienstpilotSplitShiftDutiesV2) return;
+  window.__dienstpilotSplitShiftDutiesV2 = true;
 
   const TABLE_ID = 'dpDailyPlanRows';
   const DATE_ID = 'dpDailyPlanDate';
   const ADD_ID = 'dpDailyAddRow';
   const SECTION_ID = 'tab-daily-duty-plan';
-  const STYLE_ID = 'dpSplitShiftDutyStyle';
-  const INITIAL_KEY = 'dienstpilot_split_shift_initial_v1';
-  const OVERRIDE_KEY = 'dienstpilot_split_shift_override_v1';
+  const STYLE_ID = 'dpSplitShiftDutyStyleV2';
+  const INITIAL_KEY = 'dienstpilot_split_shift_initial_v2';
+  const OVERRIDE_KEY = 'dienstpilot_split_shift_override_v2';
+  const VIEW_KEY = 'dienstpilot_split_shift_view_v2';
+  const ROW_SHIFT_KEY = 'dienstpilot_split_shift_row_v2';
   const BASE_MONDAY = new Date(2026, 6, 13, 12, 0, 0);
 
   const SPECIALS = {
@@ -18,21 +20,27 @@
       combined: true,
       bus: 'OS-CL 916',
       pair: ['A.Morzsa', 'M.Al Dabbah'],
-      early: { start: '05:13', end: '14:21', departure: '', stop: '' },
-      late: { start: '14:04', end: '23:38', departure: '', stop: '' }
+      shifts: [
+        { label: 'Frühschicht', start: '05:13', end: '14:21', departure: '', stop: '' },
+        { label: 'Spätschicht', start: '14:04', end: '23:38', departure: '', stop: '' }
+      ]
     },
     '1941': {
       combined: false,
       pair: ['C.Strotmann', 'M.Entrup'],
-      early: { bus: 'OS-MR 825', start: '05:35', end: '15:00', departure: '', stop: '' },
-      late: { bus: 'OS-RE 224', start: '14:49', end: '21:16', departure: '15:24', stop: 'Bissendorf, Werries' }
+      shifts: [
+        { label: 'Frühschicht', bus: 'OS-MR 825', start: '05:35', end: '15:00', departure: '', stop: '' },
+        { label: 'Spätschicht', bus: 'OS-RE 224', start: '14:49', end: '21:16', departure: '15:24', stop: 'Bissendorf, Werries' }
+      ]
     },
     '1743': {
       combined: true,
       bus: 'OS-AX 716',
       pair: ['M.Eggern', 'S.Yasatemur'],
-      early: { start: '06:05', end: '15:17', departure: '', stop: '' },
-      late: { start: '14:57', end: '00:50', departure: '', stop: '' }
+      shifts: [
+        { label: 'Frühschicht', start: '06:05', end: '15:17', departure: '', stop: '' },
+        { label: 'Spätschicht', start: '14:57', end: '00:50', departure: '', stop: '' }
+      ]
     }
   };
 
@@ -52,6 +60,19 @@
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function readMap(key) {
+    try {
+      const value = JSON.parse(localStorage.getItem(key) || '{}');
+      return value && typeof value === 'object' ? value : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function writeMap(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
   }
 
   function rows() {
@@ -85,59 +106,6 @@
     return rows().filter((row) => fieldValue(row, 'duty') === duty);
   }
 
-  function readMap(key) {
-    try {
-      const value = JSON.parse(localStorage.getItem(key) || '{}');
-      return value && typeof value === 'object' ? value : {};
-    } catch {
-      return {};
-    }
-  }
-
-  function writeMap(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
-  }
-
-  function initialApplied(date) {
-    return Boolean(readMap(INITIAL_KEY)[date]);
-  }
-
-  function markInitial(date) {
-    const map = readMap(INITIAL_KEY);
-    map[date] = true;
-    writeMap(INITIAL_KEY, map);
-  }
-
-  function overrideActive(date, duty) {
-    return Boolean(readMap(OVERRIDE_KEY)[`${date}|${duty}`]);
-  }
-
-  function toggleOverride(date, duty) {
-    const map = readMap(OVERRIDE_KEY);
-    const key = `${date}|${duty}`;
-    map[key] = !map[key];
-    writeMap(OVERRIDE_KEY, map);
-  }
-
-  function mondayFor(date) {
-    const value = new Date(`${date}T12:00:00`);
-    const day = value.getDay() || 7;
-    value.setDate(value.getDate() - day + 1);
-    return value;
-  }
-
-  function weeklySwap(date) {
-    const monday = mondayFor(date);
-    const difference = Math.round((monday - BASE_MONDAY) / 604800000);
-    return ((difference % 2) + 2) % 2 === 1;
-  }
-
-  function assignedDrivers(duty, date) {
-    const config = SPECIALS[duty];
-    const swapped = weeklySwap(date) !== overrideActive(date, duty);
-    return swapped ? [config.pair[1], config.pair[0]] : [...config.pair];
-  }
-
   function setStatus(text, kind = '') {
     const status = document.getElementById('dpDailyPlanStatus');
     if (!status) return;
@@ -161,19 +129,19 @@
     select.value = value;
   }
 
-  function setField(row, field, value, force = true) {
+  function setField(row, field, value, overwrite = true) {
     const input = fieldInput(row, field);
-    if (!input || input.disabled) return false;
+    if (!input || input.disabled) return;
     const next = String(value || '');
-    if (!force && String(input.value || '').trim() && String(input.value || '').trim() !== 'OS-XX 123') return false;
+    const current = String(input.value || '').trim();
+    if (!overwrite && current && current !== 'OS-XX 123') return;
     if (input.value === next) {
       if (field === 'name') ensureDriverOption(row, next);
-      return false;
+      return;
     }
     input.value = next;
     if (field === 'name') ensureDriverOption(row, next);
     dispatchInput(input);
-    return true;
   }
 
   function escapeSelector(value) {
@@ -186,9 +154,72 @@
     return document.querySelector(`#${TABLE_ID} tr[data-row-id="${escapeSelector(rowId)}"]`);
   }
 
+  function initialApplied(date) {
+    return Boolean(readMap(INITIAL_KEY)[date]);
+  }
+
+  function markInitial(date) {
+    const map = readMap(INITIAL_KEY);
+    map[date] = true;
+    writeMap(INITIAL_KEY, map);
+  }
+
+  function mondayFor(date) {
+    const value = new Date(`${date}T12:00:00`);
+    const day = value.getDay() || 7;
+    value.setDate(value.getDate() - day + 1);
+    return value;
+  }
+
+  function weeklySwap(date) {
+    const monday = mondayFor(date);
+    const difference = Math.round((monday - BASE_MONDAY) / 604800000);
+    return ((difference % 2) + 2) % 2 === 1;
+  }
+
+  function overrideActive(date, duty) {
+    return Boolean(readMap(OVERRIDE_KEY)[`${date}|${duty}`]);
+  }
+
+  function toggleOverride(date, duty) {
+    const map = readMap(OVERRIDE_KEY);
+    const key = `${date}|${duty}`;
+    map[key] = !map[key];
+    writeMap(OVERRIDE_KEY, map);
+  }
+
+  function assignedDrivers(duty, date) {
+    const config = SPECIALS[duty];
+    const swapped = weeklySwap(date) !== overrideActive(date, duty);
+    return swapped ? [config.pair[1], config.pair[0]] : [...config.pair];
+  }
+
+  function combinedView(date, duty) {
+    return Number(readMap(VIEW_KEY)[`${date}|${duty}`]) === 1 ? 1 : 0;
+  }
+
+  function setCombinedView(date, duty, index) {
+    const map = readMap(VIEW_KEY);
+    map[`${date}|${duty}`] = Number(index) === 1 ? 1 : 0;
+    writeMap(VIEW_KEY, map);
+  }
+
+  function rowShift(date, row, fallback) {
+    const rowId = String(row?.dataset.rowId || '');
+    const value = readMap(ROW_SHIFT_KEY)[`${date}|${rowId}`];
+    return value === 1 || value === '1' ? 1 : value === 0 || value === '0' ? 0 : fallback;
+  }
+
+  function setRowShift(date, row, index) {
+    const rowId = String(row?.dataset.rowId || '');
+    if (!rowId) return;
+    const map = readMap(ROW_SHIFT_KEY);
+    map[`${date}|${rowId}`] = Number(index) === 1 ? 1 : 0;
+    writeMap(ROW_SHIFT_KEY, map);
+  }
+
   async function changeDuty(row, duty) {
-    if (!row) return null;
-    const rowId = String(row.dataset.rowId || '');
+    const rowId = String(row?.dataset.rowId || '');
     const input = fieldInput(row, 'duty');
     if (!rowId || !input || input.disabled) return null;
     input.dataset.dpDutyCommit = '1';
@@ -207,17 +238,16 @@
     await wait(80);
     let row = rows().find((item) => !before.has(String(item.dataset.rowId || ''))) || rows().at(-1);
     if (!row) return null;
-    row = await changeDuty(row, duty);
-    return row;
+    return changeDuty(row, duty);
   }
 
-  function looksLikeLegacy1743(row) {
+  function looksLike1743(row) {
     const name = normalize(fieldValue(row, 'name'));
     const bus = normalize(fieldValue(row, 'bus'));
     return bus === normalize('OS-AX 716') || name.includes('yasatemur') || name.includes('eggern');
   }
 
-  function looksLikeLegacyEarly1941(row) {
+  function looksLikeEarly1941(row) {
     const name = normalize(fieldValue(row, 'name'));
     const bus = normalize(fieldValue(row, 'bus'));
     return bus === normalize('OS-MR 825') || name.includes('strotmann');
@@ -225,12 +255,12 @@
 
   async function prepareStructure() {
     if (!dutyRows('1743').length) {
-      const legacy = dutyRows('1941').find(looksLikeLegacy1743);
+      const legacy = dutyRows('1941').find(looksLike1743);
       if (legacy) await changeDuty(legacy, '1743');
     }
 
     if (dutyRows('1941').length < 2) {
-      const old3002 = dutyRows('3002').find(looksLikeLegacyEarly1941) || dutyRows('3002')[0];
+      const old3002 = dutyRows('3002').find(looksLikeEarly1941) || dutyRows('3002')[0];
       if (old3002) await changeDuty(old3002, '1941');
     }
 
@@ -242,57 +272,55 @@
     }
   }
 
-  function identify1941Rows() {
-    const candidates = dutyRows('1941');
-    if (candidates.length < 2) return { early: candidates[0] || null, late: candidates[1] || null };
-
-    let early = candidates.find((row) => fieldValue(row, 'start') === SPECIALS['1941'].early.start)
-      || candidates.find((row) => normalize(fieldValue(row, 'bus')) === normalize(SPECIALS['1941'].early.bus))
-      || candidates[0];
-    let late = candidates.find((row) => row !== early && fieldValue(row, 'start') === SPECIALS['1941'].late.start)
-      || candidates.find((row) => row !== early && normalize(fieldValue(row, 'bus')) === normalize(SPECIALS['1941'].late.bus))
-      || candidates.find((row) => row !== early)
-      || null;
-    return { early, late };
-  }
-
   function applyCombinedDuty(duty, row, date, forceBus) {
     if (!row) return;
     const config = SPECIALS[duty];
     const [earlyDriver, lateDriver] = assignedDrivers(duty, date);
+    const shiftIndex = combinedView(date, duty);
+    const shift = config.shifts[shiftIndex];
+
     setField(row, 'name', `${earlyDriver} / ${lateDriver}`);
     setField(row, 'bus', config.bus, forceBus);
-    setField(row, 'start', config.early.start);
-    setField(row, 'end', config.late.end);
-    setField(row, 'departure', '');
-    setField(row, 'stop', '');
+    setField(row, 'start', shift.start);
+    setField(row, 'end', shift.end);
+    setField(row, 'departure', shift.departure);
+    setField(row, 'stop', shift.stop);
     row.dataset.dpSplitDuty = duty;
+    row.dataset.dpSplitShift = String(shiftIndex);
+  }
+
+  function infer1941Shift(row, index) {
+    const start = fieldValue(row, 'start');
+    const bus = normalize(fieldValue(row, 'bus'));
+    if (start === SPECIALS['1941'].shifts[1].start || bus === normalize(SPECIALS['1941'].shifts[1].bus)) return 1;
+    if (start === SPECIALS['1941'].shifts[0].start || bus === normalize(SPECIALS['1941'].shifts[0].bus)) return 0;
+    return index === 1 ? 1 : 0;
   }
 
   function apply1941(date, forceBus) {
     const config = SPECIALS['1941'];
-    const [earlyDriver, lateDriver] = assignedDrivers('1941', date);
-    const pair = identify1941Rows();
+    const pair = dutyRows('1941').slice(0, 2);
+    if (!pair.length) return;
 
-    if (pair.early) {
-      setField(pair.early, 'name', earlyDriver);
-      setField(pair.early, 'bus', config.early.bus, forceBus);
-      setField(pair.early, 'start', config.early.start);
-      setField(pair.early, 'end', config.early.end);
-      setField(pair.early, 'departure', config.early.departure);
-      setField(pair.early, 'stop', config.early.stop);
-      pair.early.dataset.dpSplitDuty = '1941-early';
-    }
+    let firstShift = rowShift(date, pair[0], infer1941Shift(pair[0], 0));
+    let secondShift = pair[1] ? rowShift(date, pair[1], infer1941Shift(pair[1], 1)) : 1;
+    if (pair[1] && firstShift === secondShift) secondShift = firstShift === 0 ? 1 : 0;
+    setRowShift(date, pair[0], firstShift);
+    if (pair[1]) setRowShift(date, pair[1], secondShift);
 
-    if (pair.late) {
-      setField(pair.late, 'name', lateDriver);
-      setField(pair.late, 'bus', config.late.bus, forceBus);
-      setField(pair.late, 'start', config.late.start);
-      setField(pair.late, 'end', config.late.end);
-      setField(pair.late, 'departure', config.late.departure);
-      setField(pair.late, 'stop', config.late.stop);
-      pair.late.dataset.dpSplitDuty = '1941-late';
-    }
+    const drivers = assignedDrivers('1941', date);
+    pair.forEach((row, index) => {
+      const shiftIndex = index === 0 ? firstShift : secondShift;
+      const shift = config.shifts[shiftIndex];
+      setField(row, 'name', drivers[shiftIndex]);
+      setField(row, 'bus', shift.bus, forceBus);
+      setField(row, 'start', shift.start);
+      setField(row, 'end', shift.end);
+      setField(row, 'departure', shift.departure);
+      setField(row, 'stop', shift.stop);
+      row.dataset.dpSplitDuty = '1941';
+      row.dataset.dpSplitShift = String(shiftIndex);
+    });
   }
 
   function assignmentCount(duty, skipRow = null) {
@@ -332,53 +360,68 @@
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
+      .dp-split-shift-box{margin-top:6px;padding:7px 8px;border:1px solid #93c5fd;border-radius:9px;background:#eff6ff;color:#1e3a8a;font-size:11px;font-weight:900;line-height:1.35}
+      .dp-split-shift-box label{display:grid;gap:4px}
+      .dp-split-shift-select{width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #2563eb;border-radius:8px;background:#fff;color:#0f172a;font:inherit;font-weight:900;cursor:pointer}
       .dp-split-duty-note{margin-top:5px;padding:6px 7px;border:1px solid #bfdbfe;border-radius:8px;background:#eff6ff;color:#1e3a8a;font-size:11px;line-height:1.35;font-weight:800}
-      .dp-split-duty-note button{margin-top:5px;padding:4px 7px;border:1px solid #93c5fd;border-radius:7px;background:#fff;color:#1d4ed8;font:inherit;font-weight:900;cursor:pointer}
-      .dp-split-shift-badge{display:inline-block;margin-top:5px;padding:4px 7px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:11px;font-weight:900}
-      .dp-split-preview-row{min-height:94px}
-      .dp-split-preview-second{margin-top:8px}
-      @media print{.dp-split-duty-note,.dp-split-shift-badge{display:none!important}}
+      .dp-split-swap{margin-top:5px;padding:4px 7px;border:1px solid #93c5fd;border-radius:7px;background:#fff;color:#1d4ed8;font-size:11px;font-weight:900;cursor:pointer}
+      .dp-split-preview-row{min-height:94px}.dp-split-preview-second{margin-top:8px}
+      @media print{.dp-split-shift-box,.dp-split-duty-note,.dp-split-swap{display:none!important}}
     `;
     document.head.appendChild(style);
   }
 
-  function noteHtml(duty, date) {
+  function shiftSummary(duty, date) {
     const config = SPECIALS[duty];
-    const [earlyDriver, lateDriver] = assignedDrivers(duty, date);
-    return `<div><strong>Früh:</strong> ${earlyDriver} · ${config.early.start}–${config.early.end}</div><div><strong>Spät:</strong> ${lateDriver} · ${config.late.start}–${config.late.end}</div><button type="button" class="dp-split-swap" data-duty="${duty}">Früh-/Spätschicht tauschen</button>`;
+    const drivers = assignedDrivers(duty, date);
+    return `<div><strong>Früh:</strong> ${drivers[0]} · ${config.shifts[0].start}–${config.shifts[0].end}</div><div><strong>Spät:</strong> ${drivers[1]} · ${config.shifts[1].start}–${config.shifts[1].end}</div>`;
+  }
+
+  function installShiftSelector(row, duty, date) {
+    const dutyCell = fieldInput(row, 'duty')?.closest('td');
+    if (!dutyCell) return;
+    dutyCell.querySelector('.dp-split-shift-box')?.remove();
+
+    const config = SPECIALS[duty];
+    const currentShift = duty === '1941'
+      ? Number(row.dataset.dpSplitShift || 0)
+      : combinedView(date, duty);
+
+    const box = document.createElement('div');
+    box.className = 'dp-split-shift-box';
+    box.innerHTML = `<label>Schicht auswählen<select class="dp-split-shift-select" data-duty="${duty}"><option value="0">Frühschicht ${config.shifts[0].start}–${config.shifts[0].end}</option><option value="1">Spätschicht ${config.shifts[1].start}–${config.shifts[1].end}</option></select></label>`;
+    const select = box.querySelector('.dp-split-shift-select');
+    select.value = String(currentShift);
+    dutyCell.appendChild(box);
   }
 
   function decorateRows(date) {
     rows().forEach((row) => {
-      row.querySelectorAll('.dp-split-duty-note,.dp-split-shift-badge').forEach((element) => element.remove());
+      row.querySelectorAll('.dp-split-duty-note,.dp-split-swap').forEach((element) => element.remove());
       const duty = fieldValue(row, 'duty');
+      if (!SPECIALS[duty]) {
+        row.querySelector('.dp-split-shift-box')?.remove();
+        return;
+      }
+
+      installShiftSelector(row, duty, date);
       const nameCell = row.cells?.[0];
       if (!nameCell) return;
 
       if (duty === '1341' || duty === '1743') {
         const note = document.createElement('div');
         note.className = 'dp-split-duty-note';
-        note.innerHTML = noteHtml(duty, date);
+        note.innerHTML = shiftSummary(duty, date);
         nameCell.appendChild(note);
-        return;
       }
 
-      if (duty === '1941') {
-        const isLate = fieldValue(row, 'start') === SPECIALS['1941'].late.start;
-        const badge = document.createElement('div');
-        badge.className = 'dp-split-shift-badge';
-        badge.textContent = isLate ? 'Spätschicht 14:49–21:16' : 'Frühschicht 05:35–15:00';
-        nameCell.appendChild(badge);
-
-        if (!isLate) {
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.className = 'dp-split-swap';
-          button.dataset.duty = '1941';
-          button.textContent = 'Früh-/Spätschicht tauschen';
-          button.style.cssText = 'display:block;margin-top:5px;padding:4px 7px;border:1px solid #93c5fd;border-radius:7px;background:#fff;color:#1d4ed8;font-size:11px;font-weight:900;cursor:pointer';
-          nameCell.appendChild(button);
-        }
+      if ((duty === '1341' || duty === '1743') || (duty === '1941' && Number(row.dataset.dpSplitShift || 0) === 0)) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'dp-split-swap';
+        button.dataset.duty = duty;
+        button.textContent = 'Fahrer Früh/Spät tauschen';
+        nameCell.appendChild(button);
       }
     });
   }
@@ -404,7 +447,7 @@
       const target = previewRows[index];
       if (!target) return;
       const config = SPECIALS[duty];
-      const [earlyDriver, lateDriver] = assignedDrivers(duty, date);
+      const drivers = assignedDrivers(duty, date);
       const bus = fieldValue(row, 'bus') || config.bus;
       const left = target.querySelector('.dp-preview-left');
       const middle = target.querySelector('.dp-preview-middle');
@@ -412,8 +455,8 @@
       if (!left || !middle) return;
 
       target.classList.add('dp-split-preview-row');
-      left.innerHTML = `<strong>${escapeHtml(earlyDriver)}</strong><span>Dienst ${duty} · Früh</span><strong class="dp-split-preview-second">${escapeHtml(lateDriver)}</strong><span>Dienst ${duty} · Spät</span>`;
-      middle.innerHTML = `<strong>/ ${escapeHtml(bus)}</strong><span>/ ${config.early.start} - ${config.early.end} Uhr</span><strong class="dp-split-preview-second">&nbsp;</strong><span>/ ${config.late.start} - ${config.late.end} Uhr</span>`;
+      left.innerHTML = `<strong>${escapeHtml(drivers[0])}</strong><span>Dienst ${duty} · Früh</span><strong class="dp-split-preview-second">${escapeHtml(drivers[1])}</strong><span>Dienst ${duty} · Spät</span>`;
+      middle.innerHTML = `<strong>/ ${escapeHtml(bus)}</strong><span>/ ${config.shifts[0].start} - ${config.shifts[0].end} Uhr</span><strong class="dp-split-preview-second">&nbsp;</strong><span>/ ${config.shifts[1].start} - ${config.shifts[1].end} Uhr</span>`;
       if (right) right.innerHTML = '&nbsp;';
     });
   }
@@ -421,8 +464,8 @@
   function updateBanner() {
     const banner = document.getElementById('dpNiHolidayDutyStatus');
     if (!banner) return;
-    if (!banner.textContent.includes('1341, 1941 und 1743')) {
-      banner.textContent += ' Die geteilten Dienste 1341, 1941 und 1743 sind ebenfalls gültig.';
+    if (!banner.textContent.includes('Schicht auswählen')) {
+      banner.textContent += ' Bei 1341, 1941 und 1743 kann direkt in der Zeile Früh- oder Spätschicht gewählt werden.';
     }
   }
 
@@ -446,7 +489,7 @@
       decorateRows(date);
       window.setTimeout(() => decoratePreview(date), 80);
       updateBanner();
-      setStatus('Die Dienste 1341, 1941 und 1743 sind gültig. Früh- und Spätschichten werden wochenweise zwischen den Fahrern gewechselt.', 'ok');
+      setStatus('Schichtauswahl sichtbar: Bei 1341, 1941 und 1743 kann jetzt direkt Früh- oder Spätschicht gewählt werden.', 'ok');
     } finally {
       running = false;
     }
@@ -459,8 +502,7 @@
 
   function installObserver() {
     const body = document.getElementById(TABLE_ID);
-    if (!body) return;
-    if (observer && observedBody === body) return;
+    if (!body || (observer && observedBody === body)) return;
     observer?.disconnect();
     observedBody = body;
     observer = new MutationObserver(() => schedule(300));
@@ -468,12 +510,35 @@
   }
 
   document.addEventListener('change', (event) => {
-    const select = event.target.closest?.('#dpDailyPlanRows .dp-daily-duty-select');
-    if (select && SPECIALS[select.value]) {
+    const shiftSelect = event.target.closest?.('.dp-split-shift-select');
+    if (shiftSelect) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      const row = select.closest('tr[data-row-id]');
-      const duty = select.value;
+      const row = shiftSelect.closest('tr[data-row-id]');
+      const duty = String(shiftSelect.dataset.duty || '');
+      const shiftIndex = Number(shiftSelect.value) === 1 ? 1 : 0;
+      const date = selectedDate();
+
+      if (duty === '1941') {
+        const pair = dutyRows('1941').slice(0, 2);
+        const other = pair.find((item) => item !== row);
+        setRowShift(date, row, shiftIndex);
+        if (other) setRowShift(date, other, shiftIndex === 0 ? 1 : 0);
+      } else if (SPECIALS[duty]) {
+        setCombinedView(date, duty, shiftIndex);
+      }
+
+      setStatus(`${SPECIALS[duty].shifts[shiftIndex].label} für Dienst ${duty} wurde ausgewählt.`, 'ok');
+      schedule(80);
+      return;
+    }
+
+    const dutySelect = event.target.closest?.('#dpDailyPlanRows .dp-daily-duty-select');
+    if (dutySelect && SPECIALS[dutySelect.value]) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const row = dutySelect.closest('tr[data-row-id]');
+      const duty = dutySelect.value;
       if (assignmentCount(duty, row) >= MAX_ASSIGNMENTS[duty]) {
         setStatus(`Dienst ${duty} ist bereits in der zulässigen Anzahl eingetragen.`, 'error');
         schedule(100);
@@ -486,7 +551,7 @@
         dispatchInput(input);
         delete input.dataset.dpDutyCommit;
       }
-      setStatus(`Dienst ${duty} wurde als gültiger geteilter Dienst übernommen.`, 'ok');
+      setStatus(`Dienst ${duty} wurde übernommen. Die Schichtauswahl erscheint direkt darunter.`, 'ok');
       schedule(250);
       return;
     }
@@ -502,7 +567,7 @@
       const duty = String(swap.dataset.duty || '');
       if (!SPECIALS[duty]) return;
       toggleOverride(selectedDate(), duty);
-      setStatus(`Die Früh- und Spätschicht von Dienst ${duty} wurde für dieses Datum getauscht.`, 'ok');
+      setStatus(`Die Fahrer von Dienst ${duty} wurden zwischen Früh- und Spätschicht getauscht.`, 'ok');
       schedule(80);
       return;
     }
@@ -518,9 +583,7 @@
   }, true);
 
   document.addEventListener('input', (event) => {
-    if (event.target.matches?.('#dpDailyPlanRows input[data-field="duty"],#dpDailyPlanRows input[data-field="name"]')) {
-      schedule(500);
-    }
+    if (event.target.matches?.('#dpDailyPlanRows input[data-field="duty"],#dpDailyPlanRows input[data-field="name"]')) schedule(500);
   }, true);
 
   function start() {
