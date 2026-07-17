@@ -69,7 +69,7 @@
   function loadCatalogModules() {
     loadScript('dpMonthSelectorFinalV7', 'src/month-selector-final.js?v=20260712-7');
     loadScript('dpCatalogEditor', 'src/catalog-editor.js?v=20260711-3');
-    loadScript('dpSplitShiftCatalog', 'src/split-shift-catalog.js?v=20260716-1');
+    loadScript('dpSplitShiftCatalog', 'src/split-shift-catalog.js?v=20260717-2');
     loadScript('dpCatalogTimeScale', 'src/catalog-time-scale.js?v=20260711-4');
     loadScript('dpCatalogEditorSimplify', 'src/catalog-editor-simplify.js?v=20260711-3');
     loadScript('dpCatalogAddDutyStable', 'src/catalog-add-duty-stable.js?v=20260711-2');
@@ -78,7 +78,8 @@
     loadScript('dpDailyDutyPhotoDefaults', 'src/daily-duty-plan-photo-defaults.js?v=20260711-2');
     loadScript('dpDailyDutyPhotoAuto', 'src/daily-duty-plan-photo-auto.js?v=20260711-2');
     loadScript('dpDailyDutyHolidayPhotoTemplate', 'src/daily-duty-plan-holiday-photo-template.js?v=20260716-1');
-    loadScript('dpSplitShiftDuties', 'src/split-shift-duties.js?v=20260716-1');
+    loadScript('dpSplitShiftDuties', 'src/split-shift-duties.js?v=20260717-3');
+    loadScript('dpStableSplitShiftSelector', 'src/split-shift-selector-fix.js?v=20260717-1');
     loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260711-1');
     loadScript('dpDailyDutySeparation', 'src/daily-duty-plan-separation.js?v=20260711-1');
     loadScript('dpDailyDutyPrintAnytime', 'src/daily-duty-plan-print-anytime.js?v=20260711-2');
