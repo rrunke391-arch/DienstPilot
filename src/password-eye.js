@@ -83,6 +83,7 @@
     loadScript('dpDailyDutyPhotoDefaults', 'src/daily-duty-plan-photo-defaults.js?v=20260711-2');
     loadScript('dpDailyDutyPhotoAuto', 'src/daily-duty-plan-photo-auto.js?v=20260711-2');
     loadScript('dpSplitShiftDutiesV5NewTimes', 'src/split-shift-duties-v5.js?v=20260717-2');
+    loadScript('dpWorkshopVehicles', 'src/workshop-vehicles.js?v=20260717-1');
     loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260717-3');
     loadScript('dpDailyDutySeparation', 'src/daily-duty-plan-separation.js?v=20260711-1');
     loadScript('dpDailyDutyPrintAnytime', 'src/daily-duty-plan-print-anytime.js?v=20260711-2');
@@ -124,7 +125,7 @@
   else start();
 
   document.addEventListener('click', (event) => {
-    if (event.target.closest?.('#loginButton,.tab[data-tab="katalog"],.tab[data-tab="eingabe"],#dpDailyDutyPlanTab')) {
+    if (event.target.closest?.('#loginButton,.tab[data-tab="katalog"],.tab[data-tab="eingabe"],.tab[data-tab="einstellungen"],#dpDailyDutyPlanTab')) {
       [0, 200, 700].forEach((delay) => window.setTimeout(loadCatalogModules, delay));
     }
   }, true);
