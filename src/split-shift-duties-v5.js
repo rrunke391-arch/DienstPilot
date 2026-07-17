@@ -34,8 +34,8 @@
     },
     '1941': {
       defaultPair: ['M.Entrup', 'C.Strotmann'],
-      early: { label: 'Frühschicht', start: '05:35', end: '15:00', bus: 'OS-MR 825', departure: '', stop: '' },
-      late: { label: 'Spätschicht', start: '14:49', end: '21:16', bus: 'OS-RE 224', departure: '15:24', stop: 'Bissendorf, Werries' }
+      early: { label: 'Frühschicht', start: '05:35', end: '14:29', bus: 'OS-MR 825', departure: '', stop: '' },
+      late: { label: 'Spätschicht', start: '14:09', end: '21:49', bus: 'OS-RE 224', departure: '15:24', stop: 'Bissendorf, Werries' }
     },
     '1743': {
       defaultPair: ['M.Eggern', 'S.Yasatemur'],
@@ -279,8 +279,8 @@
           { name: d1341.late, label: 'Spätschicht', start: '14:04', end: '23:38' }
         ]
       },
-      { name: d1941.early, duty: '1941', bus: 'OS-MR 825', start: '05:35', end: '15:00', departure: '', stop: '', shiftLabel: 'Frühschicht' },
-      { name: d1941.late, duty: '1941', bus: 'OS-RE 224', start: '14:49', end: '21:16', departure: '15:24', stop: 'Bissendorf, Werries', shiftLabel: 'Spätschicht' },
+      { name: d1941.early, duty: '1941', bus: 'OS-MR 825', start: '05:35', end: '14:29', departure: '', stop: '', shiftLabel: 'Frühschicht' },
+      { name: d1941.late, duty: '1941', bus: 'OS-RE 224', start: '14:09', end: '21:49', departure: '15:24', stop: 'Bissendorf, Werries', shiftLabel: 'Spätschicht' },
       {
         name: `${d1743.early} / ${d1743.late}`,
         duty: '1743', bus: DUTIES['1743'].bus, start: '06:05', end: '00:50', departure: '', stop: '',
