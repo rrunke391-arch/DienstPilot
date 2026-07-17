@@ -131,7 +131,7 @@
     loadScript('dpDailyDutyDriverSelectV2', 'src/daily-duty-driver-select.js?v=20260717-4');
     loadScript('dpDailyDutyDutySelect', 'src/daily-duty-duty-select.js?v=20260716-5');
     loadScript('dpDailyDutyRoleAccess', 'src/daily-duty-role-access.js?v=20260712-2');
-    loadScript('dpVehiclePlateOptions', 'src/vehicle-plate-options.js?v=20260717-1');
+    loadScript('dpVehiclePlateOptions', 'src/vehicle-plate-options.js?v=20260717-2');
     loadScript('dpDailyDutyBusMove', 'src/daily-duty-plan-bus-move.js?v=20260711-1');
     loadScript('dpDailyDutyPhotoDefaults', 'src/daily-duty-plan-photo-defaults.js?v=20260711-2');
     loadScript('dpDailyDutyPhotoAuto', 'src/daily-duty-plan-photo-auto.js?v=20260711-2');
