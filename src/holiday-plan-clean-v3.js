@@ -12,6 +12,7 @@
   const DATE = 'dpDailyPlanDate';
   const ADD = 'dpDailyAddRow';
   const INSERT = 'dpDailyInsertDefaults';
+  const HOLIDAY_INSERT = 'dpHolidayInsert18';
   const SECTION = 'tab-daily-duty-plan';
   const GENERAL_MARKER = 'dienstpilot_photo_bus_defaults_v3';
   const MIGRATION = 'dienstpilot_holiday_plan_18_v4';
@@ -117,8 +118,18 @@
       document.getElementById('dpDailyPlanStatus')?.insertAdjacentElement('afterend', node);
     }
     node.textContent = 'Niedersachsen-Ferien: genau 18 Dienste – 3031 bis 3045 sowie 1341, 1941 und 1743. Der Einsatzwagen wird separat geführt. Schultagsdienste und 3095 sind nicht zulässig.';
-    const button = document.getElementById(INSERT);
-    if (button) button.textContent = '18 Ferien-Dienste einfügen';
+    const button = document.getElementById(INSERT) || document.getElementById(HOLIDAY_INSERT);
+    if (button) {
+      button.id = HOLIDAY_INSERT;
+      button.textContent = '18 Ferien-Dienste einfügen';
+    }
+  }
+
+  function restoreSchoolButton() {
+    const button = document.getElementById(HOLIDAY_INSERT);
+    if (!button) return;
+    button.id = INSERT;
+    button.textContent = 'Standarddienste einfügen';
   }
 
   const currentDuties = () => rows().map((row) => value(row, 'duty'));
@@ -303,7 +314,10 @@
 
   function refresh() {
     const date = selectedDate();
-    if (!holiday(date)) return;
+    if (!holiday(date)) {
+      restoreSchoolButton();
+      return;
+    }
     mark(GENERAL_MARKER, date);
     banner();
     installOptions();
@@ -325,7 +339,7 @@
   }
 
   document.addEventListener('click', (event) => {
-    if (event.target.closest?.(`#${INSERT}`) && holiday(selectedDate())) {
+    if (event.target.closest?.(`#${HOLIDAY_INSERT},#${INSERT}`) && holiday(selectedDate())) {
       event.preventDefault();
       event.stopImmediatePropagation();
       void rebuild();
@@ -339,13 +353,14 @@
   document.addEventListener('change', (event) => {
     if (event.target?.id !== DATE) return;
     if (holiday(selectedDate())) mark(GENERAL_MARKER, selectedDate());
-    [300,800,1500].forEach((delay) => setTimeout(refresh, delay));
+    else restoreSchoolButton();
+    [0,300,800,1500].forEach((delay) => setTimeout(refresh, delay));
   }, true);
 
   function start() {
     observe();
     if (holiday(selectedDate())) mark(GENERAL_MARKER, selectedDate());
-    [300,900,1800,3600].forEach((delay) => setTimeout(refresh, delay));
+    [0,300,900,1800,3600].forEach((delay) => setTimeout(refresh, delay));
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true });
