@@ -135,7 +135,7 @@
     loadScript('dpDailyDutyPhotoDefaults', 'src/daily-duty-plan-photo-defaults.js?v=20260711-2');
     loadScript('dpDailyDutyPhotoAuto', 'src/daily-duty-plan-photo-auto.js?v=20260711-2');
     loadScript('dpDailyDutyHolidayPhotoTemplate', 'src/daily-duty-plan-holiday-photo-template.js?v=20260716-1');
-    loadScript('dpSplitShiftDutiesV3', 'src/split-shift-duties-v3.js?v=20260717-1');
+    loadScript('dpSplitShiftDutiesV4', 'src/split-shift-duties-v4.js?v=20260717-1');
     loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260716-2');
     loadScript('dpDailyDutySeparation', 'src/daily-duty-plan-separation.js?v=20260711-1');
     loadScript('dpDailyDutyPrintAnytime', 'src/daily-duty-plan-print-anytime.js?v=20260711-1');
