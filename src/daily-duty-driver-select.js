@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotDailyDutyDriverSelectV2) return;
-  window.__dienstpilotDailyDutyDriverSelectV2 = true;
+  if (window.__dienstpilotDailyDutyDriverSelectV3) return;
+  window.__dienstpilotDailyDutyDriverSelectV3 = true;
 
   const USER_KEY = 'dienstpilot_user';
   const ROLE_KEY = 'dienstpilot_role';
@@ -20,13 +20,29 @@
   }
 
   const FALLBACK_DRIVERS = [
-    'Y.Yasar', 'Bumhoffer', 'M.Entrup', 'M.Schweppe', 'I.Janzen', 'Alomar', 'H.Al Sayek',
-    'A.Szczepanik', 'Kocdemir', 'W.Wüllner', 'S.Wittwer', 'Biermann', 'A.Gerding',
-    'R.Runke', 'P.Lhommel', 'M.Malko', 'N.Murad', 'S.Kurta', 'T.Wiemann', 'A.Muth',
+    'Y.Yasar', 'Bumhoffer', 'M.Entrup', 'M.Schweppe', 'I.Janzen', 'K.Alomar', 'H.AI Sayek',
+    'A.Szczepanik', 'A.Kocdemir', 'W.Wüllner', 'S.Wittwer', 'F.Biermann', 'A.Gerding',
+    'R.Runke', 'P.Lommel', 'M.Malko', 'N.Murad', 'S.Kurta', 'T.Wiemann', 'A.Muth',
     'S.Suleimani', 'J.Faber', 'L.Hergerdt', 'A.Hergerdt', 'A.Hasan', 'D.Knigge',
     'N.Awdullahi', 'K.Giotis', 'K.Igelbrink', 'A.Alrobaie', 'A.Morzsa', 'M.Al Dabbah',
-    'C.Strotmann', 'M.Eggern', 'S.Yasatemur', 'N.Ghulami'
+    'C.Strotmann', 'M.Eggern', 'S.Yasatemur', 'N.Ghulami', 'M.Alsaba'
   ];
+
+  const NAME_ALIASES = new Map([
+    ['alomar', 'K.Alomar'], ['kalomar', 'K.Alomar'],
+    ['sayek', 'H.AI Sayek'], ['halsayek', 'H.AI Sayek'], ['haisayek', 'H.AI Sayek'],
+    ['wiemann', 'T.Wiemann'], ['twiemann', 'T.Wiemann'],
+    ['murad', 'N.Murad'], ['nmurad', 'N.Murad'],
+    ['biermann', 'F.Biermann'], ['fbiermann', 'F.Biermann'],
+    ['schweppe', 'M.Schweppe'], ['mschweppe', 'M.Schweppe'],
+    ['wullner', 'W.Wüllner'], ['wwullner', 'W.Wüllner'],
+    ['szczepanik', 'A.Szczepanik'], ['aszczepanik', 'A.Szczepanik'],
+    ['lommel', 'P.Lommel'], ['lhommel', 'P.Lommel'], ['plommel', 'P.Lommel'], ['plhommel', 'P.Lommel'],
+    ['entrup', 'M.Entrup'], ['mentrup', 'M.Entrup'],
+    ['gerding', 'A.Gerding'], ['agerding', 'A.Gerding'],
+    ['kocdemir', 'A.Kocdemir'], ['akocdemir', 'A.Kocdemir'],
+    ['kurta', 'S.Kurta'], ['skurta', 'S.Kurta']
+  ]);
 
   let remoteDrivers = [];
   let remoteRequested = false;
@@ -42,9 +58,28 @@
       .replace(/[\u0300-\u036f]/g, '');
   }
 
+  function compact(value) {
+    return normalize(value).replace(/[^a-z0-9]+/g, '');
+  }
+
+  function canonicalSingle(value) {
+    const name = String(value || '').trim();
+    if (!name) return '';
+    if (normalize(name) === 'hergerdt') return 'L.Hergerdt';
+    return NAME_ALIASES.get(compact(name)) || name;
+  }
+
   function canonicalName(value) {
     const name = String(value || '').trim();
-    return normalize(name) === 'hergerdt' ? 'L.Hergerdt' : name;
+    if (!name) return '';
+    if (!name.includes('/')) return canonicalSingle(name);
+
+    const names = [];
+    name.split('/').forEach((part) => {
+      const corrected = canonicalSingle(part);
+      if (corrected && !names.some((entry) => normalize(entry) === normalize(corrected))) names.push(corrected);
+    });
+    return names.join(' / ');
   }
 
   function currentUser() {
@@ -101,7 +136,7 @@
     remoteDrivers.forEach((name) => addName(name, names));
 
     document.querySelectorAll('#kollegeSelect option').forEach((option) => {
-      addName(option.value || option.textContent, names);
+      addName(option.textContent || option.label || option.value, names);
     });
 
     document.querySelectorAll(`#${TABLE_ID} input[data-field="name"]`).forEach((input) => {
@@ -136,7 +171,8 @@
       select.appendChild(option);
     });
 
-    select.value = current;
+    const selectedName = values.find((name) => normalize(name) === normalize(current));
+    select.value = selectedName || '';
   }
 
   function syncSelect(input, select) {
@@ -147,7 +183,8 @@
       option.textContent = current;
       select.appendChild(option);
     }
-    if (normalize(select.value) !== normalize(current)) select.value = current;
+    const match = [...select.options].find((option) => normalize(option.value) === normalize(current));
+    if (match && select.value !== match.value) select.value = match.value;
   }
 
   function installSelects() {
@@ -189,8 +226,8 @@
       input.tabIndex = -1;
       input.style.setProperty('display', 'none', 'important');
 
-      if (!input.dataset.dpDriverSyncV2) {
-        input.dataset.dpDriverSyncV2 = '1';
+      if (!input.dataset.dpDriverSyncV3) {
+        input.dataset.dpDriverSyncV3 = '1';
         input.addEventListener('input', () => syncSelect(input, select));
         input.addEventListener('change', () => syncSelect(input, select));
       }
