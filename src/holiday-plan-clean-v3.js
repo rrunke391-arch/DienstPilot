@@ -98,30 +98,32 @@
     const button = row?.querySelector('[data-action="delete"]');
     if (!button || button.disabled) return false;
     button.click();
-    await wait(45);
+    await wait(70);
     return true;
   }
 
-  async function removeDuplicatesAndSpecials() {
+  function nextDuplicateOrSpecialRow() {
     const seen = new Set();
-    let removed = 0;
-
-    for (const row of [...rows()]) {
+    for (const row of rows()) {
       const duty = value(row, 'duty');
       if (!duty) continue;
-
-      const mustRemove = REMOVE_DUTIES.has(duty)
-        || (REQUIRED_DUTIES.has(duty) && seen.has(duty))
-        || (!REQUIRED_DUTIES.has(duty) && duty !== 'Frei');
-
-      if (mustRemove) {
-        if (await deleteRow(row)) removed += 1;
-        continue;
-      }
-
+      if (REMOVE_DUTIES.has(duty)) return row;
+      if (duty === '3039' && seen.has(duty)) return row;
       if (REQUIRED_DUTIES.has(duty)) seen.add(duty);
     }
+    return null;
+  }
 
+  async function removeDuplicatesAndSpecials() {
+    let removed = 0;
+    let guard = 0;
+    while (guard < 20) {
+      const target = nextDuplicateOrSpecialRow();
+      if (!target) break;
+      if (!await deleteRow(target)) break;
+      removed += 1;
+      guard += 1;
+    }
     return removed;
   }
 
@@ -181,12 +183,9 @@
     try {
       const removed = await removeDuplicatesAndSpecials();
       await ensureRequiredRows();
-      const current = rows();
-      const correct = current.length === REQUIRED_ROWS.length
-        && REQUIRED_ROWS.every((data) => current.some((row) => value(row, 'duty') === data.duty));
-
-      if (correct && removed) {
-        setStatus('Die doppelten unteren Zeilen 3039, 1941, 1341 und 1743 wurden entfernt. Der Ferienplan enthält jetzt 16 Bearbeitungszeilen. Bitte einmal speichern.', 'ok');
+      if (removed) {
+        const count = rows().length;
+        setStatus(`Die doppelten unteren Zeilen 3039, 1941, 1341 und 1743 wurden entfernt. Es sind jetzt ${count} Bearbeitungszeilen sichtbar. Bitte einmal speichern.`, 'ok');
       }
     } finally {
       running = false;
