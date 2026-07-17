@@ -74,7 +74,7 @@
     loadScript('dpCatalogEditorSimplify', 'src/catalog-editor-simplify.js?v=20260711-3');
     loadScript('dpCatalogAddDutyStable', 'src/catalog-add-duty-stable.js?v=20260711-2');
     loadScript('dpDailyDutyPlan', 'src/daily-duty-plan.js?v=20260711-1');
-    loadScript('dpHolidayPlan18V4', 'src/holiday-plan-clean-v3.js?v=20260717-4');
+    loadScript('dpHolidayPlan18V5', 'src/holiday-plan-clean-v3.js?v=20260717-5');
     loadScript('dpDailyDutyDriverSelectV2', 'src/daily-duty-driver-select.js?v=20260717-4');
     loadScript('dpDriverMAlsaba', 'src/driver-m-alsaba.js?v=20260717-1');
     loadScript('dpDriverNameCorrections', 'src/driver-name-corrections.js?v=20260717-1');
