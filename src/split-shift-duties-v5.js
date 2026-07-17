@@ -57,8 +57,6 @@
   let timer = 0;
   let remoteRequested = false;
   let remoteDrivers = [];
-  let previewObserver = null;
-  let observedPreview = null;
 
   function normalize(value) {
     return String(value || '')
@@ -336,21 +334,11 @@
     [...holder.children].forEach((row) => preview.insertBefore(row, before));
   }
 
-  function observePreview() {
-    const preview = document.getElementById('dpDailyPlanPreview');
-    if (!preview || preview === observedPreview) return;
-    previewObserver?.disconnect();
-    observedPreview = preview;
-    previewObserver = new MutationObserver(() => schedule(80));
-    previewObserver.observe(preview, { childList: true });
-  }
-
   function refresh() {
     const date = selectedDate();
     addStyle();
     renderPanel(date);
     decoratePreview(date);
-    observePreview();
     void requestRemoteDrivers();
   }
 
@@ -377,6 +365,10 @@
       return;
     }
     if (event.target?.id === DATE_ID) schedule(900);
+  }, true);
+
+  document.addEventListener('input', (event) => {
+    if (event.target.matches?.(`#${TABLE_ID} input,#${TABLE_ID} select`)) schedule(350);
   }, true);
 
   document.addEventListener('click', (event) => {
