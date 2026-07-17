@@ -80,9 +80,9 @@
     loadScript('dpDailyDutyBusMove', 'src/daily-duty-plan-bus-move.js?v=20260711-1');
     loadScript('dpDailyDutyPhotoDefaults', 'src/daily-duty-plan-photo-defaults.js?v=20260711-2');
     loadScript('dpDailyDutyPhotoAuto', 'src/daily-duty-plan-photo-auto.js?v=20260711-2');
-    loadScript('dpDailyDutyHolidayPhotoTemplate', 'src/daily-duty-plan-holiday-photo-template.js?v=20260716-1');
-    loadScript('dpSplitShiftDutiesV4', 'src/split-shift-duties-v4.js?v=20260717-1');
-    loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260711-1');
+    loadScript('dpHolidayPlanCleanV3', 'src/holiday-plan-clean-v3.js?v=20260717-1');
+    loadScript('dpSplitShiftDutiesV5', 'src/split-shift-duties-v5.js?v=20260717-1');
+    loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260717-3');
     loadScript('dpDailyDutySeparation', 'src/daily-duty-plan-separation.js?v=20260711-1');
     loadScript('dpDailyDutyPrintAnytime', 'src/daily-duty-plan-print-anytime.js?v=20260711-2');
     loadScript('dpDailyDutyWeekendPhoto', 'src/daily-duty-plan-weekend-photo.js?v=20260711-1');
