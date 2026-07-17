@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotHolidayExtraDutiesV2) return;
-  window.__dienstpilotHolidayExtraDutiesV2 = true;
+  if (window.__dienstpilotHolidayExtraDutiesV3) return;
+  window.__dienstpilotHolidayExtraDutiesV3 = true;
 
   const HOLIDAY_PERIODS = [
     ['2025-10-13', '2025-10-25'], ['2025-12-22', '2026-01-05'],
@@ -34,10 +34,10 @@
     },
     {
       duty: '1941', legacyName: 'C.Strotmann / M.Entrup', bus: 'OS-MR 825 / OS-RE 224',
-      start: '05:35', end: '21:16', departure: '15:24', stop: 'Bissendorf, Werries',
+      start: '05:35', end: '21:49', departure: '15:24', stop: 'Bissendorf, Werries',
       splitShifts: [
-        { label: 'Früh', start: '05:35', end: '15:00', bus: 'OS-MR 825' },
-        { label: 'Spät', start: '14:49', end: '21:16', bus: 'OS-RE 224', departure: '15:24', stop: 'Bissendorf, Werries' }
+        { label: 'Früh', start: '05:35', end: '14:29', bus: 'OS-MR 825' },
+        { label: 'Spät', start: '14:09', end: '21:49', bus: 'OS-RE 224', departure: '15:24', stop: 'Bissendorf, Werries' }
       ]
     },
     {
