@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'dienstpilot-101';
+const CACHE_VERSION = 'dienstpilot-102';
 
 self.addEventListener('install', () => self.skipWaiting());
 
