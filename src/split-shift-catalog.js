@@ -1,15 +1,15 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotSplitShiftCatalogV2) return;
-  window.__dienstpilotSplitShiftCatalogV2 = true;
+  if (window.__dienstpilotSplitShiftCatalogV3) return;
+  window.__dienstpilotSplitShiftCatalogV3 = true;
 
   const API = 'https://api.dienstpilot-runke.de/api/data/catalog_custom';
   const TOKEN_KEY = 'dienstpilot_api_token';
   const MAIN_KEY = 'lenkRuhezeitenRunke20260413';
   const STYLE_ID = 'dpSplitShiftCatalogStyle';
   const INFO_CLASS = 'dp-split-catalog-times';
-  const VERSION_KEY = 'dienstpilot_split_shift_catalog_saved_v2';
+  const VERSION_KEY = 'dienstpilot_split_shift_catalog_saved_v3';
 
   const DEFINITIONS = {
     '1341': {
@@ -25,11 +25,11 @@
     '1941': {
       days: 'Mo-Fr',
       start: '05:35',
-      end: '21:16',
+      end: '21:49',
       splitShift: true,
       splitShifts: [
-        { label: 'Früh', start: '05:35', end: '15:00' },
-        { label: 'Spät', start: '14:49', end: '21:16' }
+        { label: 'Früh', start: '05:35', end: '14:29' },
+        { label: 'Spät', start: '14:09', end: '21:49' }
       ]
     },
     '1743': {
