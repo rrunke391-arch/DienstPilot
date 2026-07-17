@@ -1,12 +1,13 @@
 (() => {
   'use strict';
-  if (window.__dienstpilotHolidayPlan18V4) return;
-  window.__dienstpilotHolidayPlan18V4 = true;
+  if (window.__dienstpilotHolidayPlan18V5) return;
+  window.__dienstpilotHolidayPlan18V5 = true;
 
-  // Diese alten Bausteine würden sonst weitere Ferienzeilen erzeugen.
+  // Alte Ferien-Bausteine dürfen keine zusätzlichen Zeilen mehr erzeugen.
   window.__dienstpilotNiedersachsenHolidayDutyPlan = true;
   window.__dienstpilotHolidayExtraDutiesV3 = true;
   window.__dienstpilotHolidayPhotoTemplateV2 = true;
+  window.__dienstpilotHolidayPlanCleanV3 = true;
 
   const TABLE = 'dpDailyPlanRows';
   const DATE = 'dpDailyPlanDate';
@@ -14,9 +15,10 @@
   const INSERT = 'dpDailyInsertDefaults';
   const HOLIDAY_INSERT = 'dpHolidayInsert18';
   const SECTION = 'tab-daily-duty-plan';
+  const CONTROL_ID = 'dpHolidayFreeControlRow';
   const GENERAL_MARKER = 'dienstpilot_photo_bus_defaults_v3';
-  const MIGRATION = 'dienstpilot_holiday_plan_18_v4';
-  const VERSION = '18-dienste-v4';
+  const MIGRATION = 'dienstpilot_holiday_plan_18_v5';
+  const VERSION = '18-dienste-frei-v5';
 
   const PERIODS = [
     ['2025-10-13','2025-10-25'],['2025-12-22','2026-01-05'],
@@ -29,8 +31,8 @@
     ['2027-10-16','2027-10-30'],['2027-12-23','2028-01-08']
   ];
 
-  // 15 normale Feriendienste + Einsatzwagen. 1341, 1941 und 1743 stehen nur
-  // im blauen Schichtbereich. Damit gibt es genau 18 Dienste, ohne Doppelzeilen.
+  // 15 normale Feriendienste + Einsatzwagen. Die geteilten Dienste 1341,
+  // 1941 und 1743 werden im blauen Schichtbereich verwaltet.
   const TEMPLATE = [
     ['3031','A.Gerding','OS-LF 223','05:03','13:21','05:20','Wellingholzhausen, Schule'],
     ['3032','D.Knigge','OS-VH 721','04:45','12:04','05:26','Osnabrück, HBF'],
@@ -60,6 +62,7 @@
   ]);
 
   let running = false;
+  let addingFree = false;
   let timer = 0;
   let observer = null;
   let observedBody = null;
@@ -103,12 +106,35 @@
     node.className = 'dp-daily-status' + (kind ? ` ${kind}` : '');
   }
 
+  function restoreSchoolButton() {
+    const button = document.getElementById(HOLIDAY_INSERT);
+    if (!button) return;
+    button.id = INSERT;
+    button.textContent = 'Standarddienste einfügen';
+  }
+
+  function setHolidayUi(active) {
+    const generalAdd = document.getElementById(ADD);
+    if (generalAdd) generalAdd.style.display = active ? 'none' : '';
+    if (!active) {
+      document.getElementById(CONTROL_ID)?.remove();
+      restoreSchoolButton();
+    }
+  }
+
   function banner() {
     if (!holiday(selectedDate())) return;
     if (!document.getElementById('dpHoliday18BannerStyle')) {
       const style = document.createElement('style');
       style.id = 'dpHoliday18BannerStyle';
-      style.textContent = '#dpNiHolidayDutyStatus{padding:10px 12px;border:1px solid #bbf7d0;border-radius:12px;background:#f0fdf4;color:#166534;font-weight:900;line-height:1.35}';
+      style.textContent = `
+        #dpNiHolidayDutyStatus{padding:10px 12px;border:1px solid #bbf7d0;border-radius:12px;background:#f0fdf4;color:#166534;font-weight:900;line-height:1.35}
+        #${CONTROL_ID} td{padding:9px!important;background:#f8fafc;border-top:2px solid #cbd5e1!important}
+        #${CONTROL_ID} .dp-free-control{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+        #${CONTROL_ID} .dp-free-button{padding:9px 16px;border:1px solid #16a34a;border-radius:10px;background:#f0fdf4;color:#166534;font:inherit;font-weight:950;cursor:pointer}
+        #${CONTROL_ID} .dp-free-button:hover{background:#dcfce7}
+        #${CONTROL_ID} .dp-free-help{font-size:12px;font-weight:800;color:#475569}
+      `;
       document.head.appendChild(style);
     }
     let node = document.getElementById('dpNiHolidayDutyStatus');
@@ -117,49 +143,51 @@
       node.id = 'dpNiHolidayDutyStatus';
       document.getElementById('dpDailyPlanStatus')?.insertAdjacentElement('afterend', node);
     }
-    node.textContent = 'Niedersachsen-Ferien: genau 18 Dienste – 3031 bis 3045 sowie 1341, 1941 und 1743. Der Einsatzwagen wird separat geführt. Schultagsdienste und 3095 sind nicht zulässig.';
+    node.textContent = 'Niedersachsen-Ferien: 18 Dienste – 3031 bis 3045 sowie 1341, 1941 und 1743. Der Einsatzwagen wird separat geführt. Über „＋ Frei“ können beliebig viele freie Fahrer ergänzt werden.';
     const button = document.getElementById(INSERT) || document.getElementById(HOLIDAY_INSERT);
     if (button) {
       button.id = HOLIDAY_INSERT;
       button.textContent = '18 Ferien-Dienste einfügen';
     }
-  }
-
-  function restoreSchoolButton() {
-    const button = document.getElementById(HOLIDAY_INSERT);
-    if (!button) return;
-    button.id = INSERT;
-    button.textContent = 'Standarddienste einfügen';
+    setHolidayUi(true);
   }
 
   const currentDuties = () => rows().map((row) => value(row, 'duty'));
 
   function exact() {
-    const current = currentDuties();
-    return current.length === DUTIES.length && current.every((duty,index) => duty === DUTIES[index]);
+    const all = currentDuties();
+    const services = all.filter((duty) => duty !== 'Frei');
+    return services.length === DUTIES.length
+      && services.every((duty,index) => duty === DUTIES[index])
+      && all.every((duty) => duty === 'Frei' || DUTY_SET.has(duty));
   }
 
   function acceptable() {
-    const current = currentDuties();
-    if (current.length !== DUTIES.length || current.some((duty) => !duty || !ALLOWED.has(duty))) return false;
+    const all = currentDuties();
+    const services = all.filter((duty) => duty && duty !== 'Frei');
+    if (services.length !== DUTIES.length || services.some((duty) => !DUTY_SET.has(duty))) return false;
     const seen = new Set();
-    for (const duty of current) {
-      if (duty === 'Frei') continue;
+    for (const duty of services) {
       if (seen.has(duty)) return false;
       seen.add(duty);
     }
-    return true;
+    return all.every((duty) => !duty || ALLOWED.has(duty));
   }
 
   function corrupted() {
-    const current = currentDuties();
-    return current.length > DUTIES.length
-      || current.some((duty) => BLOCKED.has(duty))
-      || current.filter((duty) => duty === 'Einsatzwagen').length > 1;
+    const all = currentDuties();
+    const services = all.filter((duty) => duty && duty !== 'Frei');
+    const seen = new Set();
+    if (services.length > DUTIES.length) return true;
+    for (const duty of services) {
+      if (BLOCKED.has(duty) || !DUTY_SET.has(duty) || seen.has(duty)) return true;
+      seen.add(duty);
+    }
+    return services.filter((duty) => duty === 'Einsatzwagen').length > 1;
   }
 
   function needsRebuild(date) {
-    if (!holiday(date) || !visible() || running || window.__dienstpilotHolidayPhotoRebuilding) return false;
+    if (!holiday(date) || !visible() || running || addingFree || window.__dienstpilotHolidayPhotoRebuilding) return false;
     const migrated = read(MIGRATION)[date] === VERSION;
     if (!migrated) {
       if (exact() || acceptable()) {
@@ -172,18 +200,23 @@
   }
 
   function snapshot() {
-    const result = new Map();
+    const services = new Map();
+    const free = [];
     rows().forEach((row) => {
       const duty = value(row, 'duty');
-      if (!DUTY_SET.has(duty) || result.has(duty)) return;
-      result.set(duty, { name: value(row,'name'), bus: value(row,'bus') });
+      if (duty === 'Frei') {
+        free.push({ name: value(row,'name'), duty:'Frei', bus:'', start:'', end:'', departure:'', stop:'' });
+        return;
+      }
+      if (!DUTY_SET.has(duty) || services.has(duty)) return;
+      services.set(duty, { name: value(row,'name'), bus: value(row,'bus') });
     });
-    return result;
+    return { services, free };
   }
 
   async function clearRows() {
     let guard = 0;
-    while (rows().length && guard < 100) {
+    while (rows().length && guard < 120) {
       const button = rows()[0]?.querySelector('[data-action="delete"]');
       if (!button || button.disabled) break;
       button.click();
@@ -207,7 +240,7 @@
     if (!button || button.disabled) return false;
     const before = new Set(rows().map((row) => clean(row.dataset.rowId)));
     button.click();
-    await wait(65);
+    await wait(70);
     let row = rows().find((candidate) => !before.has(clean(candidate.dataset.rowId))) || rows().at(-1);
     const id = clean(row?.dataset.rowId);
     const dutyInput = input(row, 'duty');
@@ -216,7 +249,7 @@
     dutyInput.value = data.duty;
     fire(dutyInput);
     delete dutyInput.dataset.dpDutyCommit;
-    await wait(90);
+    await wait(100);
     row = byId(id);
     if (!row) return false;
     for (const field of ['name','bus','start','end','departure','stop']) {
@@ -235,11 +268,11 @@
     window.__dienstpilotHolidayPhotoRebuilding = true;
     mark(GENERAL_MARKER, date);
     const old = snapshot();
-    status('Der Ferienplan wird auf genau 18 Dienste bereinigt …');
+    status('Der Ferienplan wird auf 18 Dienste bereinigt …');
     try {
       if (!await clearRows()) throw new Error('Alte Zeilen konnten nicht vollständig entfernt werden.');
       for (const template of TEMPLATE) {
-        const previous = old.get(template.duty) || {};
+        const previous = old.services.get(template.duty) || {};
         const data = {
           ...template,
           name: previous.name || template.name,
@@ -247,12 +280,16 @@
         };
         if (!await addRow(data)) throw new Error(`Dienst ${template.duty} konnte nicht eingefügt werden.`);
       }
+      for (const freeRow of old.free) {
+        if (!await addRow(freeRow)) throw new Error('Ein vorhandener Frei-Eintrag konnte nicht wiederhergestellt werden.');
+      }
       if (!exact()) throw new Error('Die Dienstfolge 3031 bis 3045 ist noch nicht vollständig.');
       mark(MIGRATION, date, VERSION);
       mark(GENERAL_MARKER, date);
       installOptions();
+      installFreeControl();
       banner();
-      status('Korrekt: 15 Feriendienste 3031–3045 plus 1341, 1941 und 1743 ergeben 18 Dienste. Der Einsatzwagen steht separat. Sichtbar sind genau 16 Bearbeitungszeilen.', 'ok');
+      status(`Korrekt: 18 Feriendienste. Zusätzlich sind ${old.free.length} Frei-Einträge vorhanden.`, 'ok');
       setTimeout(() => document.getElementById('dpDailySave')?.click(), 350);
       return true;
     } catch (error) {
@@ -268,6 +305,15 @@
   function usedElsewhere(duty, ownInput) {
     return duty && duty !== 'Frei' && [...document.querySelectorAll(`#${TABLE} input[data-field="duty"]`)]
       .some((candidate) => candidate !== ownInput && clean(candidate.value) === duty);
+  }
+
+  function clearFreeFields(row) {
+    ['bus','start','end','departure','stop'].forEach((field) => {
+      const fieldInput = input(row, field);
+      if (!fieldInput || fieldInput.disabled || !fieldInput.value) return;
+      fieldInput.value = '';
+      fire(fieldInput);
+    });
   }
 
   function installOptions() {
@@ -295,6 +341,7 @@
       select.value = ALLOWED.has(current) ? current : '';
       select.classList.toggle('invalid', Boolean(current && !ALLOWED.has(current)));
       select.classList.remove('duplicate');
+      if (current === 'Frei') clearFreeFields(row);
       if (!select.dataset.dpHoliday18Bound) {
         select.dataset.dpHoliday18Bound = '1';
         select.addEventListener('change', (event) => {
@@ -306,21 +353,64 @@
             status(`Dienst ${nextDuty} ist bereits vergeben. Jeder Feriendienst darf nur einmal erscheinen.`, 'error');
             return;
           }
-          setTimeout(() => schedule(0), 100);
+          if (nextDuty === 'Frei') setTimeout(() => clearFreeFields(row), 80);
+          setTimeout(() => schedule(0), 120);
         }, true);
       }
     });
   }
 
+  async function addFreeRow() {
+    if (addingFree || running || !holiday(selectedDate())) return;
+    addingFree = true;
+    try {
+      const ok = await addRow({ name:'', duty:'Frei', bus:'', start:'', end:'', departure:'', stop:'' });
+      if (!ok) throw new Error('Die Frei-Zeile konnte nicht angelegt werden.');
+      installOptions();
+      installFreeControl();
+      const freeRows = rows().filter((row) => value(row,'duty') === 'Frei');
+      const newest = freeRows.at(-1);
+      const driverSelect = newest?.querySelector('.dp-daily-driver-select');
+      if (driverSelect) driverSelect.focus({ preventScroll:true });
+      status('Frei wurde hinzugefügt. Bitte den Fahrer auswählen und anschließend speichern.', 'ok');
+    } catch (error) {
+      status(error.message, 'error');
+    } finally {
+      addingFree = false;
+      schedule(400);
+    }
+  }
+
+  function installFreeControl() {
+    if (!holiday(selectedDate()) || !visible()) return;
+    const body = document.getElementById(TABLE);
+    if (!body) return;
+    document.getElementById(CONTROL_ID)?.remove();
+
+    const control = document.createElement('tr');
+    control.id = CONTROL_ID;
+    const cell = document.createElement('td');
+    cell.colSpan = 8;
+    const count = rows().filter((row) => value(row,'duty') === 'Frei').length;
+    cell.innerHTML = `<div class="dp-free-control"><button type="button" class="dp-free-button">＋ Frei</button><span class="dp-free-help">Fahrer ohne Dienst hinzufügen${count ? ` · aktuell ${count} Fahrer frei` : ''}</span></div>`;
+    control.appendChild(cell);
+    control.querySelector('.dp-free-button')?.addEventListener('click', addFreeRow);
+
+    const firstFree = rows().find((row) => value(row,'duty') === 'Frei');
+    if (firstFree) body.insertBefore(control, firstFree);
+    else body.appendChild(control);
+  }
+
   function refresh() {
     const date = selectedDate();
     if (!holiday(date)) {
-      restoreSchoolButton();
+      setHolidayUi(false);
       return;
     }
     mark(GENERAL_MARKER, date);
     banner();
     installOptions();
+    installFreeControl();
     if (needsRebuild(date)) void rebuild();
   }
 
@@ -334,7 +424,7 @@
     if (!body || body === observedBody) return;
     observer?.disconnect();
     observedBody = body;
-    observer = new MutationObserver(() => schedule(80));
+    observer = new MutationObserver(() => schedule(100));
     observer.observe(body, { childList:true, subtree:true });
   }
 
