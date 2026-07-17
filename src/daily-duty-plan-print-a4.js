@@ -3,7 +3,8 @@
 
   const ORIGINAL_ID = 'dpDailyPrint';
   const A4_ID = 'dpDailyPrintA4';
-  const PRINT_VERSION = '2';
+  const PRINT_VERSION = '3';
+  const VIRTUAL_DUTIES = new Set(['1341', '1743', '1941']);
 
   function escapeHtml(value) {
     return String(value ?? '')
@@ -72,7 +73,8 @@
     return String(input?.value || '').trim();
   }
 
-  function visibleRows() {
+  function tableRows() {
+    const seen3039 = { value: false };
     return [...document.querySelectorAll('#dpDailyPlanRows tr[data-row-id]')]
       .map((row) => ({
         name: rowValue(row, 'name', '.dp-daily-driver-select'),
@@ -83,11 +85,52 @@
         departure: rowValue(row, 'departure'),
         stop: rowValue(row, 'stop')
       }))
-      .filter((row) => Object.values(row).some((value) => String(value || '').trim()));
+      .filter((row) => Object.values(row).some((value) => String(value || '').trim()))
+      .filter((row) => {
+        const duty = String(row.duty || '').trim();
+        if (VIRTUAL_DUTIES.has(duty)) return false;
+        if (duty === '3039') {
+          if (seen3039.value) return false;
+          seen3039.value = true;
+        }
+        return true;
+      });
+  }
+
+  function visibleRows() {
+    const rows = tableRows();
+    const virtual = typeof window.dienstpilotGetSplitShiftPrintRows === 'function'
+      ? window.dienstpilotGetSplitShiftPrintRows(selectedDate())
+      : [];
+    if (!Array.isArray(virtual) || !virtual.length) return rows;
+
+    const EinsatzwagenIndex = rows.findIndex((row) => normalize(row.duty) === 'einsatzwagen');
+    if (EinsatzwagenIndex < 0) return [...rows, ...virtual];
+    return [
+      ...rows.slice(0, EinsatzwagenIndex),
+      ...virtual,
+      ...rows.slice(EinsatzwagenIndex)
+    ];
   }
 
   function dutyRowHtml(row) {
-    const duty = row.duty ? `Dienst ${escapeHtml(row.duty)}` : '';
+    if (Array.isArray(row.split) && row.split.length === 2) {
+      return `<div class="row split-row">
+        <div class="left">
+          <strong>${escapeHtml(row.split[0].name)}</strong><span>Dienst ${escapeHtml(row.duty)} · ${escapeHtml(row.split[0].label)}</span>
+          <strong class="split-second">${escapeHtml(row.split[1].name)}</strong><span>Dienst ${escapeHtml(row.duty)} · ${escapeHtml(row.split[1].label)}</span>
+        </div>
+        <div class="middle">
+          <strong>/ ${escapeHtml(row.bus)}</strong><span>/ ${escapeHtml(row.split[0].start)} - ${escapeHtml(row.split[0].end)} Uhr</span>
+          <strong class="split-second">&nbsp;</strong><span>/ ${escapeHtml(row.split[1].start)} - ${escapeHtml(row.split[1].end)} Uhr</span>
+        </div>
+        <div class="rightcol">&nbsp;</div>
+      </div>`;
+    }
+
+    const dutyLabel = row.shiftLabel
+      ? `Dienst ${escapeHtml(row.duty)} · ${escapeHtml(row.shiftLabel)}`
+      : (row.duty ? `Dienst ${escapeHtml(row.duty)}` : '');
     const bus = row.bus ? `/ ${escapeHtml(row.bus)}` : '';
     const times = row.start || row.end
       ? `/ ${escapeHtml(row.start || '--:--')} - ${escapeHtml(row.end || '--:--')} Uhr`
@@ -96,7 +139,7 @@
     const right = [departure, escapeHtml(row.stop)].filter(Boolean).join(' ');
 
     return `<div class="row">
-      <div class="left"><strong>${escapeHtml(row.name) || '&nbsp;'}</strong><span>${duty || '&nbsp;'}</span></div>
+      <div class="left"><strong>${escapeHtml(row.name) || '&nbsp;'}</strong><span>${dutyLabel || '&nbsp;'}</span></div>
       <div class="middle"><strong>${bus || '&nbsp;'}</strong><span>${times || '&nbsp;'}</span></div>
       <div class="rightcol">${right || '&nbsp;'}</div>
     </div>`;
@@ -131,9 +174,7 @@
     const chunks = [];
     const perPage = freeNames.length ? 16 : 17;
 
-    for (let index = 0; index < items.length; index += perPage) {
-      chunks.push(items.slice(index, index + perPage));
-    }
+    for (let index = 0; index < items.length; index += perPage) chunks.push(items.slice(index, index + perPage));
     if (!chunks.length) chunks.push([]);
 
     if (freeNames.length) {
@@ -193,7 +234,9 @@
       .stop-title{grid-column:3;font-size:10.4pt;text-align:left}
       .rows{width:100%}
       .row{display:grid;grid-template-columns:minmax(0,23fr) minmax(0,31fr) minmax(0,46fr);column-gap:3mm;width:100%;min-height:14.5mm;align-items:start;break-inside:avoid;page-break-inside:avoid}
+      .split-row{min-height:23mm}
       .left,.middle{display:flex;flex-direction:column;line-height:1.25;min-width:0;overflow-wrap:anywhere}
+      .split-second{margin-top:2.2mm}
       .rightcol{padding-top:5mm;line-height:1.25;min-width:0;overflow-wrap:anywhere}
       .row strong{font-size:10.3pt;line-height:1.2}
       .row span,.rightcol{font-size:9.5pt}
