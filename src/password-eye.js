@@ -74,6 +74,7 @@
     loadScript('dpCatalogEditorSimplify', 'src/catalog-editor-simplify.js?v=20260711-3');
     loadScript('dpCatalogAddDutyStable', 'src/catalog-add-duty-stable.js?v=20260711-2');
     loadScript('dpDailyDutyPlan', 'src/daily-duty-plan.js?v=20260711-1');
+    loadScript('dpHolidayPlan18V4', 'src/holiday-plan-clean-v3.js?v=20260717-4');
     loadScript('dpDailyDutyDriverSelectV2', 'src/daily-duty-driver-select.js?v=20260717-4');
     loadScript('dpDriverMAlsaba', 'src/driver-m-alsaba.js?v=20260717-1');
     loadScript('dpDriverNameCorrections', 'src/driver-name-corrections.js?v=20260717-1');
@@ -81,7 +82,6 @@
     loadScript('dpDailyDutyBusMove', 'src/daily-duty-plan-bus-move.js?v=20260711-1');
     loadScript('dpDailyDutyPhotoDefaults', 'src/daily-duty-plan-photo-defaults.js?v=20260711-2');
     loadScript('dpDailyDutyPhotoAuto', 'src/daily-duty-plan-photo-auto.js?v=20260711-2');
-    loadScript('dpHolidayPlanCleanV3', 'src/holiday-plan-clean-v3.js?v=20260717-1');
     loadScript('dpSplitShiftDutiesV5NewTimes', 'src/split-shift-duties-v5.js?v=20260717-2');
     loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260717-3');
     loadScript('dpDailyDutySeparation', 'src/daily-duty-plan-separation.js?v=20260711-1');
