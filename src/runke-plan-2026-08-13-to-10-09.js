@@ -1,33 +1,41 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotRunkePlan20260813To20261009V5) return;
-  window.__dienstpilotRunkePlan20260813To20261009V5 = true;
+  if (window.__dienstpilotRalfRunkePlan20260813To20261009V6) return;
+  window.__dienstpilotRalfRunkePlan20260813To20261009V6 = true;
 
-  const API_URL = 'https://api.dienstpilot-runke.de/api/data/plan_runke';
+  const API_BASE = 'https://api.dienstpilot-runke.de/api/data/';
+  const TARGET_PROFILE = 'ralf_runke';
+  const TARGET_API_URL = `${API_BASE}plan_${TARGET_PROFILE}`;
+  const WRONG_ADMIN_API_URL = `${API_BASE}plan_runke`;
   const TOKEN_KEY = 'dienstpilot_api_token';
   const USER_KEY = 'dienstpilot_user';
   const ROLE_KEY = 'dienstpilot_role';
-  const LOCAL_PLAN_KEY = 'lrz-plan-runke';
+  const LOCAL_PLAN_KEY = `lrz-plan-${TARGET_PROFILE}`;
   const MAIN_KEY = 'lenkRuhezeitenRunke20260413';
   const ACTIVE_DRIVER_KEY = 'dienstpilot_aktiver_kollege';
-  const LOCAL_DONE_KEY = 'dienstpilot_runke_plan_2026_08_13_10_09_v5';
-  const SERVER_MARKER = 'runkePlan20260813To20261009V5';
+  const LOCAL_DONE_KEY = 'dienstpilot_ralf_runke_plan_2026_08_13_10_09_v6';
+  const SERVER_MARKER = 'ralfRunkePlan20260813To20261009V6';
   const OLD_SERVER_MARKERS = [
     'runkePlan20260813To20261009V1',
     'runkePlan20260813To20261009V3',
-    'runkePlan20260813To20261009V4'
+    'runkePlan20260813To20261009V4',
+    'runkePlan20260813To20261009V5'
   ];
-  const BACKUP_KEY = 'runkePlanBefore20260813To20271231V5';
+  const BACKUP_KEY = 'ralfRunkePlanBefore20260813To20271231V6';
+  const WRONG_BACKUP_KEYS = [
+    'runkePlanBefore20260813To20271231V4',
+    'runkePlanBefore20260813To20271231V5'
+  ];
   const SOURCE_TEXT = 'Hochgeladener Dienstplan Runke, Stand 14.07.2026';
-  const DISPLAY_NAME = 'Ralf Runke Fahrer';
+  const DISPLAY_NAME = 'Ralf Runke';
   const NOTICE_ID = 'dpRunkePlanImportNotice';
   const REPLACE_FROM = '2026-08-13';
   const REPLACE_TO = '2026-10-09';
   const CLEAR_FROM = '2026-10-10';
   const CLEAR_TO = '2027-12-31';
 
-  // Exakt aus Seite 1 der hochgeladenen Dienstplantabelle, Spalte "Runke".
+  // Exakt aus Seite 1 der hochgeladenen Dienstplantabelle, jeweils aus der Spalte "Runke".
   const ENTRIES = [
     ['2026-08-13','3025','13:10','21:50'],
     ['2026-08-14','3025','13:10','21:50'],
@@ -100,6 +108,14 @@
       .replace(/[\u0300-\u036f]/g, '');
   }
 
+  function profileKey(value) {
+    return normalize(value)
+      .replace(/ß/g, 'ss')
+      .replace(/[^a-z0-9_-]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .replace(/_+/g, '_');
+  }
+
   function currentUser() {
     try {
       return JSON.parse(sessionStorage.getItem(USER_KEY) || 'null') || {};
@@ -108,13 +124,27 @@
     }
   }
 
-  function mayImport() {
+  function currentRole() {
     const user = currentUser();
-    const role = normalize(user.role || sessionStorage.getItem(ROLE_KEY));
+    return normalize(user.role || sessionStorage.getItem(ROLE_KEY));
+  }
+
+  function currentSessionProfile() {
+    const user = currentUser();
+    return profileKey(user.driverProfile || user.username || '');
+  }
+
+  function isManagement() {
+    const role = currentRole();
     return role === 'administrator'
       || role === 'admin'
       || role === 'geschaftsleitung'
       || role === 'geschaeftsleitung';
+  }
+
+  function mayImport() {
+    return isManagement()
+      || (currentRole() === 'fahrer' && currentSessionProfile() === TARGET_PROFILE);
   }
 
   function headers(extra = {}) {
@@ -167,7 +197,7 @@
     return ENTRIES.map(([date, number, start, end]) => {
       const free = number === 'Frei';
       return {
-        id: `runke-week-plan-${date}`,
+        id: `ralf-runke-week-plan-${date}`,
         date,
         number,
         start,
@@ -189,11 +219,23 @@
     return months.sort();
   }
 
+  function shouldActivateTargetLocally() {
+    if (currentSessionProfile() === TARGET_PROFILE) return true;
+    if (profileKey(localStorage.getItem(ACTIVE_DRIVER_KEY)) === TARGET_PROFILE) return true;
+    try {
+      const main = JSON.parse(localStorage.getItem(MAIN_KEY) || '{}') || {};
+      return profileKey(main?.appSettings?.activeProfile) === TARGET_PROFILE;
+    } catch {
+      return false;
+    }
+  }
+
   function updateLocalPlan(plan) {
     localStorage.setItem(LOCAL_PLAN_KEY, JSON.stringify(plan));
-    localStorage.setItem(ACTIVE_DRIVER_KEY, 'runke');
     localStorage.setItem(LOCAL_DONE_KEY, '1');
+    if (!shouldActivateTargetLocally()) return;
 
+    localStorage.setItem(ACTIVE_DRIVER_KEY, TARGET_PROFILE);
     let main = {};
     try {
       main = JSON.parse(localStorage.getItem(MAIN_KEY) || '{}') || {};
@@ -202,9 +244,11 @@
     localStorage.setItem(MAIN_KEY, JSON.stringify({
       ...main,
       duties: Array.isArray(plan.duties) ? plan.duties : [],
+      vacations: Array.isArray(plan.vacations) ? plan.vacations : [],
+      vacationEntitlement: Number.isFinite(plan.vacationEntitlement) ? plan.vacationEntitlement : 30,
       appSettings: {
         ...(main.appSettings || {}),
-        activeProfile: 'runke',
+        activeProfile: TARGET_PROFILE,
         shownMonths: ensureVisibleMonths(plan),
         bundeslaender: plan.bundeslaender || main.appSettings?.bundeslaender || { ferien: ['NI'], feiertage: ['NI'] },
         hideSundays: !!plan.hideSundays
@@ -219,7 +263,7 @@
     notice.textContent = text;
     notice.style.cssText = [
       'position:fixed','left:50%','top:18px','transform:translateX(-50%)','z-index:100000',
-      'max-width:min(860px,calc(100vw - 28px))','padding:13px 17px','border-radius:13px',
+      'max-width:min(900px,calc(100vw - 28px))','padding:13px 17px','border-radius:13px',
       `border:1px solid ${ok ? '#86efac' : '#fecaca'}`,
       `background:${ok ? '#f0fdf4' : '#fff1f2'}`,
       `color:${ok ? '#166534' : '#b91c1c'}`,
@@ -229,14 +273,73 @@
     window.setTimeout(() => notice.remove(), 12000);
   }
 
-  async function readServerPlan() {
-    const response = await fetch(API_URL, {
+  async function readPlan(url) {
+    const response = await fetch(url, {
       cache: 'no-store',
       headers: headers()
     });
     const wrapper = await response.json().catch(() => ({}));
     if (!response.ok && response.status !== 404) throw new Error(wrapper.error || `Serverstatus ${response.status}`);
     return response.status === 404 ? { duties: [] } : unwrap(wrapper);
+  }
+
+  async function writePlan(url, plan) {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: headers({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(plan)
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || `Serverstatus ${response.status}`);
+  }
+
+  function isWrongImportedRow(row) {
+    const id = String(row?.id || '');
+    const source = String(row?.source || '');
+    return id.startsWith('runke-week-plan-')
+      || source === 'Dienstplan Runke 13.08.–09.10.2026'
+      || source === SOURCE_TEXT;
+  }
+
+  async function restoreAdministratorPlanIfNeeded() {
+    if (!isManagement()) return;
+
+    try {
+      const wrong = await readPlan(WRONG_ADMIN_API_URL);
+      const duties = Array.isArray(wrong.duties) ? wrong.duties : [];
+      const backup = WRONG_BACKUP_KEYS
+        .map((key) => wrong?.importBackups?.[key])
+        .find((entry) => entry && typeof entry === 'object');
+      const hasWrongRows = duties.some((row) => isWrongImportedRow(row));
+      const hasOldMarker = OLD_SERVER_MARKERS.some((marker) => wrong?.imports?.[marker]);
+      if (!hasWrongRows && !hasOldMarker) return;
+
+      let restoredDuties;
+      if (backup) {
+        const restoredRange = Array.isArray(backup?.replacedRange?.rows) ? backup.replacedRange.rows : [];
+        const restoredFuture = Array.isArray(backup?.clearedRange?.rows) ? backup.clearedRange.rows : [];
+        const outside = duties.filter((row) => (
+          !inRange(row?.date, REPLACE_FROM, REPLACE_TO)
+          && !inRange(row?.date, CLEAR_FROM, CLEAR_TO)
+        ));
+        restoredDuties = [...outside, ...restoredRange, ...restoredFuture];
+      } else {
+        restoredDuties = duties.filter((row) => !isWrongImportedRow(row));
+      }
+
+      const imports = { ...(wrong.imports || {}) };
+      OLD_SERVER_MARKERS.forEach((marker) => delete imports[marker]);
+      const corrected = {
+        ...wrong,
+        duties: restoredDuties.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || String(a.start || '').localeCompare(String(b.start || ''))),
+        imports,
+        correctedAt: new Date().toISOString(),
+        correctedReason: 'Runke-Import gehörte zum Fahrerprofil ralf_runke.'
+      };
+      await writePlan(WRONG_ADMIN_API_URL, corrected);
+    } catch (error) {
+      console.warn('Falsch zugeordnete Runke-Einträge konnten nicht automatisch bereinigt werden:', error);
+    }
   }
 
   async function importPlan() {
@@ -246,11 +349,12 @@
 
     running = true;
     try {
-      const current = await readServerPlan();
+      const current = await readPlan(TARGET_API_URL);
 
       if (planIsExact(current) && current?.imports?.[SERVER_MARKER]) {
-        completed = true;
         updateLocalPlan(current);
+        completed = true;
+        await restoreAdministratorPlanIfNeeded();
         return;
       }
 
@@ -283,7 +387,7 @@
 
       const plan = {
         ...current,
-        profile: 'runke',
+        profile: TARGET_PROFILE,
         displayName: DISPLAY_NAME,
         profileType: 'Fahrer',
         duties,
@@ -295,25 +399,19 @@
         importBackups
       };
 
-      const putResponse = await fetch(API_URL, {
-        method: 'PUT',
-        headers: headers({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify(plan)
-      });
-      const putData = await putResponse.json().catch(() => ({}));
-      if (!putResponse.ok) throw new Error(putData.error || `Serverstatus ${putResponse.status}`);
-
-      const verified = await readServerPlan();
+      await writePlan(TARGET_API_URL, plan);
+      const verified = await readPlan(TARGET_API_URL);
       if (!planIsExact(verified)) {
-        throw new Error('Die Serverprüfung hat nicht alle 42 erwarteten Einträge bestätigt.');
+        throw new Error('Die Serverprüfung für plan_ralf_runke hat nicht alle 42 erwarteten Einträge bestätigt.');
       }
 
       updateLocalPlan(verified);
       completed = true;
-      showNotice('Ralf Runke Fahrer: 42 Einträge vom 13.08. bis 09.10.2026 wurden gespeichert und auf dem Server geprüft. Ab 10.10.2026 bis Ende 2027 bleiben die Dienste leer.');
+      await restoreAdministratorPlanIfNeeded();
+      showNotice('Ralf Runke · Fahrer: 42 Einträge vom 13.08. bis 09.10.2026 wurden im richtigen Fahrerprofil gespeichert und geprüft. Ab 10.10.2026 bis Ende 2027 bleiben die Dienste leer.');
       window.dispatchEvent(new Event('pageshow'));
     } catch (error) {
-      console.warn('Ralf-Runke-Fahrerplan konnte noch nicht eingetragen werden:', error);
+      console.warn('Fahrerplan ralf_runke konnte noch nicht eingetragen werden:', error);
       showNotice(error.message || 'Der Fahrerplan Ralf Runke konnte nicht auf dem Server gespeichert werden.', false);
     } finally {
       running = false;
