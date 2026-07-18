@@ -27,7 +27,9 @@
 
   function hasAccess() {
     const role = currentRole();
-    return role === 'geschaftsleitung'
+    return role === 'administrator'
+      || role === 'admin'
+      || role === 'geschaftsleitung'
       || role === 'geschaeftsleitung'
       || role === 'disposition';
   }
