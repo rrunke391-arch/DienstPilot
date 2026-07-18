@@ -1,13 +1,20 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotVehiclePlateOptionsV2) return;
-  window.__dienstpilotVehiclePlateOptionsV2 = true;
+  if (window.__dienstpilotVehiclePlateOptionsV3) return;
+  window.__dienstpilotVehiclePlateOptionsV3 = true;
 
   const TABLE_ID = 'dpDailyPlanRows';
   const LIST_ID = 'dpDailyVehiclePlateList';
-  const STYLE_ID = 'dpVehiclePlateOptionsStyleV2';
+  const STYLE_ID = 'dpVehiclePlateOptionsStyleV3';
   const MANUAL_VALUE = '__manual__';
+  const OLD_PLATE = 'OS-JF 215';
+  const NEW_PLATE = 'OS-IF 215';
+  const LOCAL_KEY = 'dienstpilot_daily_duty_plans_v1';
+  const TOKEN_KEY = 'dienstpilot_api_token';
+  const USER_KEY = 'dienstpilot_user';
+  const ROLE_KEY = 'dienstpilot_role';
+  const API_URL = 'https://api.dienstpilot-runke.de/api/data/daily_duty_plans';
   const REQUIRED_PLATES = [
     'OS-LK 621',
     'OS-TG 324',
@@ -31,7 +38,7 @@
     'OS-RS 725',
     'OS-DZ 116',
     'OS-UL 818',
-    'OS-JF 215',
+    'OS-IF 215',
     'OS-HD 124',
     'OS-FN 919',
     'OS-AX 716',
@@ -45,9 +52,147 @@
   let observer = null;
   let observedBody = null;
   let installing = false;
+  let migrationRunning = false;
+  let remoteMigrationDone = false;
+
+  function normalizeRaw(value) {
+    return String(value || '').trim().toUpperCase().replace(/\s+/g, ' ');
+  }
 
   function normalize(value) {
-    return String(value || '').trim().toUpperCase().replace(/\s+/g, ' ');
+    const plate = normalizeRaw(value);
+    return plate === OLD_PLATE ? NEW_PLATE : plate;
+  }
+
+  function normalizeRole(value) {
+    return String(value || '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function currentRole() {
+    try {
+      const user = JSON.parse(sessionStorage.getItem(USER_KEY) || 'null') || {};
+      return normalizeRole(user.role || sessionStorage.getItem(ROLE_KEY));
+    } catch {
+      return normalizeRole(sessionStorage.getItem(ROLE_KEY));
+    }
+  }
+
+  function maySavePlans() {
+    const role = currentRole();
+    return role === 'administrator'
+      || role === 'admin'
+      || role === 'geschaftsleitung'
+      || role === 'geschaeftsleitung'
+      || role === 'disposition';
+  }
+
+  function tokenHeaders(extra = {}) {
+    const headers = new Headers(extra);
+    const token = sessionStorage.getItem(TOKEN_KEY) || '';
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    return headers;
+  }
+
+  function replacePlateDeep(value) {
+    let changes = 0;
+
+    function walk(node) {
+      if (Array.isArray(node)) return node.map(walk);
+      if (node && typeof node === 'object') {
+        const result = {};
+        Object.entries(node).forEach(([key, item]) => {
+          result[key] = walk(item);
+        });
+        return result;
+      }
+      if (typeof node === 'string' && normalizeRaw(node) === OLD_PLATE) {
+        changes += 1;
+        return NEW_PLATE;
+      }
+      return node;
+    }
+
+    return { value: walk(value), changes };
+  }
+
+  function containsOldPlate(value) {
+    if (Array.isArray(value)) return value.some(containsOldPlate);
+    if (value && typeof value === 'object') return Object.values(value).some(containsOldPlate);
+    return typeof value === 'string' && normalizeRaw(value) === OLD_PLATE;
+  }
+
+  function unwrap(wrapper) {
+    return wrapper && Object.prototype.hasOwnProperty.call(wrapper, 'data')
+      ? (wrapper.data || {})
+      : (wrapper || {});
+  }
+
+  function setStatus(text) {
+    const status = document.getElementById('dpDailyPlanStatus');
+    if (!status) return;
+    status.textContent = text;
+    status.className = 'dp-daily-status ok';
+  }
+
+  function migrateLocalStore() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
+      const migrated = replacePlateDeep(raw);
+      if (!migrated.changes) return 0;
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(migrated.value));
+      return migrated.changes;
+    } catch {
+      return 0;
+    }
+  }
+
+  async function migrateRemoteStore() {
+    if (remoteMigrationDone || migrationRunning || !maySavePlans()) return 0;
+    const token = sessionStorage.getItem(TOKEN_KEY) || '';
+    if (!token) return 0;
+
+    migrationRunning = true;
+    try {
+      const response = await fetch(API_URL, {
+        cache: 'no-store',
+        headers: tokenHeaders()
+      });
+      if (!response.ok) throw new Error(`Serverstatus ${response.status}`);
+      const wrapper = await response.json().catch(() => ({}));
+      const current = unwrap(wrapper);
+      const migrated = replacePlateDeep(current);
+
+      if (migrated.changes) {
+        const saveResponse = await fetch(API_URL, {
+          method: 'PUT',
+          headers: tokenHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(migrated.value)
+        });
+        if (!saveResponse.ok) throw new Error(`Serverstatus ${saveResponse.status}`);
+
+        const verifyResponse = await fetch(API_URL, {
+          cache: 'no-store',
+          headers: tokenHeaders()
+        });
+        if (!verifyResponse.ok) throw new Error(`Prüfung: Serverstatus ${verifyResponse.status}`);
+        const verifiedWrapper = await verifyResponse.json().catch(() => ({}));
+        const verified = unwrap(verifiedWrapper);
+        if (containsOldPlate(verified)) throw new Error('Das alte Kennzeichen ist nach dem Speichern noch vorhanden.');
+        localStorage.setItem(LOCAL_KEY, JSON.stringify(verified));
+      }
+
+      remoteMigrationDone = true;
+      return migrated.changes;
+    } catch (error) {
+      console.warn('Kennzeichenkorrektur OS-IF 215 konnte noch nicht vollständig gespeichert werden:', error);
+      return 0;
+    } finally {
+      migrationRunning = false;
+    }
   }
 
   function addStyle() {
@@ -130,7 +275,18 @@
     input.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
+  function correctVisibleInput(input) {
+    const original = normalizeRaw(input.value);
+    const corrected = normalize(input.value);
+    if (original !== OLD_PLATE || corrected === original) return false;
+    input.value = corrected;
+    dispatchValue(input);
+    return true;
+  }
+
   function ensureEditor(input, plates) {
+    correctVisibleInput(input);
+
     let editor = input.closest('.dp-vehicle-editor');
     if (!editor) {
       editor = document.createElement('div');
@@ -180,6 +336,7 @@
         input.value = normalize(input.value);
         select.dataset.manual = '0';
         input.hidden = true;
+        dispatchValue(input);
         schedule(20);
       });
       input.addEventListener('input', () => {
@@ -197,11 +354,23 @@
     installing = true;
     try {
       addStyle();
+      const corrected = [...document.querySelectorAll(`#${TABLE_ID} input[data-field="bus"]`)]
+        .filter((input) => correctVisibleInput(input)).length;
       const plates = collectPlates();
       ensureList(plates);
       document.querySelectorAll(`#${TABLE_ID} input[data-field="bus"]`).forEach((input) => ensureEditor(input, plates));
+      if (corrected) setStatus(`Kennzeichen ${OLD_PLATE} wurde in ${NEW_PLATE} geändert.`);
     } finally {
       installing = false;
+    }
+  }
+
+  async function migrateStoredPlans() {
+    const localChanges = migrateLocalStore();
+    const remoteChanges = await migrateRemoteStore();
+    if (localChanges || remoteChanges) {
+      setStatus(`Kennzeichen ${OLD_PLATE} wurde dauerhaft in ${NEW_PLATE} geändert.`);
+      [0, 100, 350].forEach((delay) => window.setTimeout(install, delay));
     }
   }
 
@@ -222,10 +391,11 @@
   function refresh() {
     installObserver();
     [0, 120, 400, 900, 1800].forEach((delay) => window.setTimeout(install, delay));
+    void migrateStoredPlans();
   }
 
   document.addEventListener('click', (event) => {
-    if (event.target.closest?.('#dpDailyDutyPlanTab,#dpDailyAddRow,#dpDailyInsertDefaults,#loginButton,.tab[data-tab="eingabe"]')) refresh();
+    if (event.target.closest?.('#dpDailyDutyPlanTab,#dpDailyAddRow,#dpDailyInsertDefaults,#dpDailySave,#loginButton,.tab[data-tab="eingabe"]')) refresh();
   }, true);
 
   document.addEventListener('change', (event) => {
