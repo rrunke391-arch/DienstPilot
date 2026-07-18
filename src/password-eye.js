@@ -83,6 +83,7 @@
     loadScript('dpDailyDutyPhotoDefaults', 'src/daily-duty-plan-photo-defaults.js?v=20260711-2');
     loadScript('dpDailyDutyPhotoAuto', 'src/daily-duty-plan-photo-auto.js?v=20260711-2');
     loadScript('dpSplitShiftDutiesV5NewTimes', 'src/split-shift-duties-v5.js?v=20260717-2');
+    loadScript('dpSplitShiftTimeEditor', 'src/split-shift-time-editor.js?v=20260718-1');
     loadScript('dpWorkshopVehicles', 'src/workshop-vehicles.js?v=20260717-1');
     loadScript('dpSavedDutyPlansFolder', 'src/saved-duty-plans-folder.js?v=20260718-1');
     loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260717-3');
