@@ -116,7 +116,7 @@
       if (remove) {
         remove.disabled = true;
         remove.dataset.dpFixedSaturdayDuty = '1';
-        remove.title = `${labelText} und Spätschicht müssen im Samstagsplan erhalten bleiben.`;
+        remove.title = 'Früh- und Spätschicht müssen im Samstagsplan erhalten bleiben.';
       }
 
       if (cell) {
