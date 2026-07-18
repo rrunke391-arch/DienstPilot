@@ -48,7 +48,8 @@
     ['3055', 'M.Alsaba', 'OS-DZ 116', '07:03', '17:04', '07:20', 'Wellingholzhausen, Schule'],
     ['3056', 'N.Awdullahi', 'OS-EV 118', '07:07', '16:04', '07:31', 'Gesmold, Schimmweg'],
     ['3057', 'K.Alomar', 'OS-ZT 626', '09:20', '18:21', '09:55', 'Werther, ZOB'],
-    ['1340', 'M.Eggern', 'OS-AX 716', '05:13', '19:44', '', ''],
+    ['1340', 'F.Biermann', 'OS-MR 825', '05:13', '14:14', '', ''],
+    ['11541', 'C.Strotmann', 'OS-MR 825', '14:22', '00:20', '', ''],
     ['Einsatzwagen', 'Einsatzwagen', 'OS-TG 324', '', '', '', '']
   ];
 
