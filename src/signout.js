@@ -112,6 +112,7 @@
     loadScript('dpVacationRequestWorkflow', 'src/vacation-request-workflow.js?v=20260713-1');
     loadScript('dpVacationReviewPanel', 'src/vacation-review-panel.js?v=20260713-1');
     loadScript('dpDutyAssignment', 'src/duty-assignment.js?v=20260712-2');
+    loadScript('dpNewDriverProfile', 'src/new-driver-profile.js?v=20260718-1');
     loadStylesheet('dpPasswordEyeSlash', 'src/password-eye-slash.css?v=20260711-1');
     loadStylesheet('dpCatalogFieldsHidden', 'src/catalog-fields-hidden.css?v=20260711-2');
     loadStylesheet('dpOverviewPolishCss', 'src/overview-polish.css?v=20260712-1');
