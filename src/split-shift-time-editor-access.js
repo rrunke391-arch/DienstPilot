@@ -1,14 +1,16 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotSplitShiftTimeEditorAccessV1) return;
-  window.__dienstpilotSplitShiftTimeEditorAccessV1 = true;
+  if (window.__dienstpilotDutyTimeEditorAccessV2) return;
+  window.__dienstpilotDutyTimeEditorAccessV2 = true;
 
   const USER_KEY = 'dienstpilot_user';
   const ROLE_KEY = 'dienstpilot_role';
-  const BODY_CLASS = 'dp-split-time-edit-restricted';
-  const STYLE_ID = 'dpSplitShiftTimeEditorAccessStyle';
-  const EDITOR_SELECTOR = '#dpStableSplitShiftPanel .dp-split-time-editor';
+  const BODY_CLASS = 'dp-duty-time-edit-restricted';
+  const STYLE_ID = 'dpDutyTimeEditorAccessStyleV2';
+  const SPLIT_EDITOR_SELECTOR = '#dpStableSplitShiftPanel .dp-split-time-editor';
+  const DAILY_TIME_SELECTOR = '#dpDailyPlanRows input[data-field="start"],#dpDailyPlanRows input[data-field="end"]';
+  const LOCK_MARKER = 'dpTimeAccessLocked';
 
   function normalize(value) {
     return String(value || '')
@@ -40,9 +42,30 @@
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
-      body.${BODY_CLASS} ${EDITOR_SELECTOR}{display:none!important;visibility:hidden!important;pointer-events:none!important}
+      body.${BODY_CLASS} ${SPLIT_EDITOR_SELECTOR}{display:none!important;visibility:hidden!important;pointer-events:none!important}
+      body.${BODY_CLASS} ${DAILY_TIME_SELECTOR}{background:#f1f5f9!important;color:#475569!important;cursor:not-allowed!important;border-color:#cbd5e1!important}
     `;
     document.head.appendChild(style);
+  }
+
+  function lockControl(control, locked) {
+    if (!control) return;
+    if (locked) {
+      if (control.dataset[LOCK_MARKER] !== '1') {
+        control.dataset[LOCK_MARKER] = '1';
+        control.disabled = true;
+        control.setAttribute('aria-disabled', 'true');
+        control.title = 'Beginn und Ende können nur Administrator und Geschäftsleitung bearbeiten.';
+      }
+      return;
+    }
+
+    if (control.dataset[LOCK_MARKER] === '1') {
+      delete control.dataset[LOCK_MARKER];
+      control.disabled = false;
+      control.removeAttribute('aria-disabled');
+      if (control.title === 'Beginn und Ende können nur Administrator und Geschäftsleitung bearbeiten.') control.removeAttribute('title');
+    }
   }
 
   function applyAccess() {
@@ -50,15 +73,14 @@
     if (!document.body) return;
     const allowed = mayEditTimes();
     document.body.classList.toggle(BODY_CLASS, !allowed);
-    document.querySelectorAll(`${EDITOR_SELECTOR} input,${EDITOR_SELECTOR} button`).forEach((control) => {
-      control.disabled = !allowed;
-      control.setAttribute('aria-hidden', allowed ? 'false' : 'true');
-    });
+
+    document.querySelectorAll(DAILY_TIME_SELECTOR).forEach((control) => lockControl(control, !allowed));
+    document.querySelectorAll(`${SPLIT_EDITOR_SELECTOR} input,${SPLIT_EDITOR_SELECTOR} button`).forEach((control) => lockControl(control, !allowed));
   }
 
   function blockUnauthorizedEdit(event) {
     if (mayEditTimes()) return;
-    const target = event.target.closest?.(`${EDITOR_SELECTOR},[data-save-split-times]`);
+    const target = event.target.closest?.(`${DAILY_TIME_SELECTOR},${SPLIT_EDITOR_SELECTOR},[data-save-split-times]`);
     if (!target) return;
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -69,8 +91,14 @@
   document.addEventListener('change', blockUnauthorizedEdit, true);
 
   document.addEventListener('click', (event) => {
-    if (event.target.closest?.('#loginButton,#dpSignoutButton,#dpDailyDutyPlanTab,.tab')) {
-      [0, 120, 400, 900].forEach((delay) => window.setTimeout(applyAccess, delay));
+    if (event.target.closest?.('#loginButton,#dpSignoutButton,#dpDailyDutyPlanTab,#dpDailyInsertDefaults,#dpDailyAddRow,#dpDailySave,.tab')) {
+      [0, 80, 220, 600, 1200].forEach((delay) => window.setTimeout(applyAccess, delay));
+    }
+  }, true);
+
+  document.addEventListener('change', (event) => {
+    if (event.target?.id === 'dpDailyPlanDate' || event.target?.matches?.('#dpDailyPlanRows input[data-field="duty"]')) {
+      [0, 80, 250, 700].forEach((delay) => window.setTimeout(applyAccess, delay));
     }
   }, true);
 
