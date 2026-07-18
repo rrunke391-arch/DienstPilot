@@ -133,7 +133,7 @@
     loadScript('dpHolidayPlan18V5', 'src/holiday-plan-clean-v3.js?v=20260717-5');
     loadScript('dpDailyDutyDriverSelectV2', 'src/daily-duty-driver-select.js?v=20260717-4');
     loadScript('dpSaturdaySplitDutyOptionsV1', 'src/saturday-split-duty-options.js?v=20260718-1');
-    loadScript('dpDailyDutyDutySelect', 'src/daily-duty-duty-select.js?v=20260716-5');
+    loadScript('dpDailyDutyDutySelectV5', 'src/daily-duty-duty-select.js?v=20260718-5');
     loadScript('dpDailyDutyRoleAccess', 'src/daily-duty-role-access.js?v=20260718-3');
     loadScript('dpVehiclePlateOptions', 'src/vehicle-plate-options.js?v=20260717-2');
     loadScript('dpDailyDutyBusMove', 'src/daily-duty-plan-bus-move.js?v=20260711-1');
@@ -145,9 +145,10 @@
     loadScript('dpSplitShiftTimeEditor', 'src/split-shift-time-editor.js?v=20260718-1');
     loadScript('dpWorkshopVehicles', 'src/workshop-vehicles.js?v=20260717-1');
     loadScript('dpSavedDutyPlansFolder', 'src/saved-duty-plans-folder.js?v=20260718-1');
+    loadScript('dpWeekendCombinedEditorV1', 'src/weekend-combined-editor.js?v=20260718-1');
     loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260717-3');
-    loadScript('dpDailyDutySeparation', 'src/daily-duty-plan-separation.js?v=20260711-1');
-    loadScript('dpDailyDutyPrintAnytimeV3', 'src/daily-duty-plan-print-anytime.js?v=20260718-3');
+    loadScript('dpDailyDutySeparationV2', 'src/daily-duty-plan-separation.js?v=20260718-2');
+    loadScript('dpDailyDutyPrintAnytimeV4', 'src/daily-duty-plan-print-anytime.js?v=20260718-4');
     loadScript('dpDailyDutyWeekendPhotoV2', 'src/daily-duty-plan-weekend-photo.js?v=20260718-2');
     loadScript('dpDailyDutySeparationGuard', 'src/daily-duty-plan-separation-guard.js?v=20260711-2');
   }
@@ -159,7 +160,6 @@
 
     catalogStaticRepairDone = true;
     button.remove();
-
     window.dispatchEvent(new Event('focus'));
   }
 
@@ -173,7 +173,6 @@
 
       window.setTimeout(() => {
         if (document.getElementById('dpCatalogAddDutyStableModal')) return;
-
         const current = document.getElementById('dpCatalogAddDutyStable');
         if (!current) return;
         current.remove();
