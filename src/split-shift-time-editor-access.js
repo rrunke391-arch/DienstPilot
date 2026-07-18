@@ -1,16 +1,17 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotDutyTimeEditorAccessV2) return;
-  window.__dienstpilotDutyTimeEditorAccessV2 = true;
+  if (window.__dienstpilotDutyTimeEditorAccessV3) return;
+  window.__dienstpilotDutyTimeEditorAccessV3 = true;
 
   const USER_KEY = 'dienstpilot_user';
   const ROLE_KEY = 'dienstpilot_role';
   const BODY_CLASS = 'dp-duty-time-edit-restricted';
-  const STYLE_ID = 'dpDutyTimeEditorAccessStyleV2';
+  const STYLE_ID = 'dpDutyTimeEditorAccessStyleV3';
   const SPLIT_EDITOR_SELECTOR = '#dpStableSplitShiftPanel .dp-split-time-editor';
-  const DAILY_TIME_SELECTOR = '#dpDailyPlanRows input[data-field="start"],#dpDailyPlanRows input[data-field="end"]';
+  const DAILY_TIME_SELECTOR = '#dpDailyPlanRows input[data-field="start"],#dpDailyPlanRows input[data-field="end"],#dpDailyPlanRows input[data-field="departure"]';
   const LOCK_MARKER = 'dpTimeAccessLocked';
+  const LOCK_TITLE = 'Beginn, Ende und Abfahrt 1. Haltestelle können nur Administrator und Geschäftsleitung bearbeiten.';
 
   function normalize(value) {
     return String(value || '')
@@ -55,7 +56,7 @@
         control.dataset[LOCK_MARKER] = '1';
         control.disabled = true;
         control.setAttribute('aria-disabled', 'true');
-        control.title = 'Beginn und Ende können nur Administrator und Geschäftsleitung bearbeiten.';
+        control.title = LOCK_TITLE;
       }
       return;
     }
@@ -64,7 +65,7 @@
       delete control.dataset[LOCK_MARKER];
       control.disabled = false;
       control.removeAttribute('aria-disabled');
-      if (control.title === 'Beginn und Ende können nur Administrator und Geschäftsleitung bearbeiten.') control.removeAttribute('title');
+      if (control.title === LOCK_TITLE || control.title === 'Beginn und Ende können nur Administrator und Geschäftsleitung bearbeiten.') control.removeAttribute('title');
     }
   }
 
