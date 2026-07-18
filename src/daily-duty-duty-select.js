@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  if (window.__dpDutySelectV4) return;
-  window.__dpDutySelectV4 = true;
+  if (window.__dpDutySelectV5) return;
+  window.__dpDutySelectV5 = true;
 
   const USER_KEY = 'dienstpilot_user';
   const ROLE_KEY = 'dienstpilot_role';
@@ -24,6 +24,13 @@
     '3011', '3012', '3013', '3014', '3015', '3016', '3017', '3018', '3019',
     '3020', '3021', '3022', '3023', '3024', '3025', '3041', '3042', '3095'
   ];
+
+  const SATURDAY_DUTIES = [
+    '3050', '3051', '3052', '3053', '3054', '3055', '3056', '3057',
+    '1340', '11541', 'Einsatzwagen'
+  ];
+
+  const SUNDAY_DUTIES = ['3061', '3062', '1943'];
 
   const HOLIDAY_DUTIES = [
     ['3031', '05:03', '13:21', '05:20', 'Wellingholzhausen, Schule'],
@@ -48,10 +55,11 @@
     ['Einsatzwagen', '', '', '', '']
   ];
 
-  // Die Fotovorlage enthält Dienst 3039 und Dienst 1941 jeweils zweimal.
+  // Diese Dienste dürfen innerhalb ihrer Vorlage jeweils zweimal vorkommen.
   const MAX_ASSIGNMENTS = new Map([
     ['3039', 2],
-    ['1941', 2]
+    ['1941', 2],
+    ['1943', 2]
   ]);
 
   function normalize(value) {
@@ -81,6 +89,7 @@
 
   function mayEdit() {
     return [
+      'administrator', 'admin',
       'geschaftsleitung', 'geschaeftsleitung',
       'disposition', 'disponent', 'disponentin'
     ].includes(role());
@@ -94,16 +103,17 @@
     const date = selectedDate();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return 'school';
     const day = new Date(`${date}T12:00:00`).getDay();
-    if (day === 0 || day === 6) return 'weekend';
+    if (day === 6) return 'saturday';
+    if (day === 0) return 'sunday';
     return HOLIDAY_PERIODS.some(([start, end]) => date >= start && date <= end)
       ? 'holiday'
       : 'school';
   }
 
   function addStyle() {
-    if (document.getElementById('dpDutySelectV4Style')) return;
+    if (document.getElementById('dpDutySelectV5Style')) return;
     const style = document.createElement('style');
-    style.id = 'dpDutySelectV4Style';
+    style.id = 'dpDutySelectV5Style';
     style.textContent = `
       #dpDailyPlanRows .dp-daily-duty-select{width:100%;box-sizing:border-box;padding:8px 30px 8px 9px;border:1px solid #2563eb;border-radius:9px;background:#fff;color:#0f172a;font:inherit;font-weight:800;cursor:pointer}
       #dpDailyPlanRows .dp-daily-duty-select.invalid,#dpDailyPlanRows .dp-daily-duty-select.duplicate{border-color:#dc2626;background:#fff7f7;color:#991b1b}
@@ -120,12 +130,9 @@
     const currentMode = mode();
     if (currentMode === 'holiday') return [FREE, ...HOLIDAY_DUTIES.map((entry) => entry[0])];
     if (currentMode === 'school') return [FREE, ...SCHOOL_DUTIES];
-
-    const values = new Set([FREE, ...SCHOOL_DUTIES, ...HOLIDAY_DUTIES.map((entry) => entry[0])]);
-    document.querySelectorAll('#dpDailyDutyList option').forEach((option) => {
-      if (option.value) values.add(option.value);
-    });
-    return [...values];
+    if (currentMode === 'saturday') return [FREE, ...SATURDAY_DUTIES];
+    if (currentMode === 'sunday') return [FREE, ...SUNDAY_DUTIES];
+    return [FREE];
   }
 
   function assignmentCount(value, skipInput = null) {
@@ -260,7 +267,9 @@
       ? 'Feriendienst oder Frei auswählen'
       : currentMode === 'school'
         ? 'Schultagsdienst oder Frei auswählen'
-        : 'Dienst oder Frei auswählen';
+        : currentMode === 'saturday'
+          ? 'Samstagsdienst oder Frei auswählen'
+          : 'Sonntagsdienst oder Frei auswählen';
     if (current && !allowed && currentMode !== 'holiday') {
       placeholder.textContent = `Dienst ${current} ungültig – anderen Dienst oder Frei wählen`;
     }
