@@ -89,9 +89,10 @@
     loadScript('dpSplitShiftTimeEditor', 'src/split-shift-time-editor.js?v=20260718-1');
     loadScript('dpWorkshopVehicles', 'src/workshop-vehicles.js?v=20260717-1');
     loadScript('dpSavedDutyPlansFolder', 'src/saved-duty-plans-folder.js?v=20260718-1');
+    loadScript('dpWeekendCombinedEditorV1', 'src/weekend-combined-editor.js?v=20260718-1');
     loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260717-3');
-    loadScript('dpDailyDutySeparation', 'src/daily-duty-plan-separation.js?v=20260711-1');
-    loadScript('dpDailyDutyPrintAnytimeV3', 'src/daily-duty-plan-print-anytime.js?v=20260718-3');
+    loadScript('dpDailyDutySeparationV2', 'src/daily-duty-plan-separation.js?v=20260718-2');
+    loadScript('dpDailyDutyPrintAnytimeV4', 'src/daily-duty-plan-print-anytime.js?v=20260718-4');
     loadScript('dpDailyDutyWeekendPhotoV2', 'src/daily-duty-plan-weekend-photo.js?v=20260718-2');
     loadScript('dpDailyDutySeparationGuard', 'src/daily-duty-plan-separation-guard.js?v=20260711-2');
   }
