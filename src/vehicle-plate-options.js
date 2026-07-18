@@ -1,12 +1,12 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotVehiclePlateOptionsV3) return;
-  window.__dienstpilotVehiclePlateOptionsV3 = true;
+  if (window.__dienstpilotVehiclePlateOptionsV4) return;
+  window.__dienstpilotVehiclePlateOptionsV4 = true;
 
   const TABLE_ID = 'dpDailyPlanRows';
   const LIST_ID = 'dpDailyVehiclePlateList';
-  const STYLE_ID = 'dpVehiclePlateOptionsStyleV3';
+  const STYLE_ID = 'dpVehiclePlateOptionsStyleV4';
   const MANUAL_VALUE = '__manual__';
   const OLD_PLATE = 'OS-JF 215';
   const NEW_PLATE = 'OS-IF 215';
@@ -15,56 +15,33 @@
   const USER_KEY = 'dienstpilot_user';
   const ROLE_KEY = 'dienstpilot_role';
   const API_URL = 'https://api.dienstpilot-runke.de/api/data/daily_duty_plans';
+
   const REQUIRED_PLATES = [
-    'OS-LK 621',
-    'OS-TG 324',
-    'OS-GZ 123',
-    'OS-LF 223',
-    'OS-RE 224',
-    'OS-NP 617',
-    'OS-JY 122',
-    'OS-SU 722',
-    'OS-GO 717',
-    'OS-KX 220',
-    'OS-OP 622',
-    'OS-ZT 626',
-    'OS-KF 526',
-    'OS-YG 120',
-    'OS-XB 925',
-    'OS-WP 918',
-    'OS-EV 118',
-    'OS-BU 816',
-    'OS-PK 216',
-    'OS-RS 725',
-    'OS-DZ 116',
-    'OS-UL 818',
-    'OS-IF 215',
-    'OS-HD 124',
-    'OS-FN 919',
-    'OS-AX 716',
-    'OS-MR 825',
-    'OS-CL 916',
-    'OS-QS 519',
-    'OS-VH 721'
+    'OS-LK 621', 'OS-TG 324', 'OS-GZ 123', 'OS-LF 223', 'OS-RE 224',
+    'OS-NP 617', 'OS-JY 122', 'OS-SU 722', 'OS-GO 717', 'OS-KX 220',
+    'OS-OP 622', 'OS-ZT 626', 'OS-KF 526', 'OS-YG 120', 'OS-XB 925',
+    'OS-WP 918', 'OS-EV 118', 'OS-BU 816', 'OS-PK 216', 'OS-RS 725',
+    'OS-DZ 116', 'OS-UL 818', 'OS-IF 215', 'OS-HD 124', 'OS-FN 919',
+    'OS-AX 716', 'OS-MR 825', 'OS-CL 916', 'OS-QS 519', 'OS-VH 721'
   ];
 
   let timer = 0;
   let observer = null;
   let observedBody = null;
   let installing = false;
-  let migrationRunning = false;
+  let remoteMigrationRunning = false;
   let remoteMigrationDone = false;
 
-  function normalizeRaw(value) {
+  function rawPlate(value) {
     return String(value || '').trim().toUpperCase().replace(/\s+/g, ' ');
   }
 
-  function normalize(value) {
-    const plate = normalizeRaw(value);
+  function canonicalPlate(value) {
+    const plate = rawPlate(value);
     return plate === OLD_PLATE ? NEW_PLATE : plate;
   }
 
-  function normalizeRole(value) {
+  function normalizedRole(value) {
     return String(value || '')
       .trim()
       .toLowerCase()
@@ -75,26 +52,29 @@
   function currentRole() {
     try {
       const user = JSON.parse(sessionStorage.getItem(USER_KEY) || 'null') || {};
-      return normalizeRole(user.role || sessionStorage.getItem(ROLE_KEY));
+      return normalizedRole(user.role || sessionStorage.getItem(ROLE_KEY));
     } catch {
-      return normalizeRole(sessionStorage.getItem(ROLE_KEY));
+      return normalizedRole(sessionStorage.getItem(ROLE_KEY));
     }
   }
 
   function maySavePlans() {
-    const role = currentRole();
-    return role === 'administrator'
-      || role === 'admin'
-      || role === 'geschaftsleitung'
-      || role === 'geschaeftsleitung'
-      || role === 'disposition';
+    return [
+      'administrator', 'admin', 'geschaftsleitung', 'geschaeftsleitung', 'disposition'
+    ].includes(currentRole());
   }
 
-  function tokenHeaders(extra = {}) {
+  function authHeaders(extra = {}) {
     const headers = new Headers(extra);
     const token = sessionStorage.getItem(TOKEN_KEY) || '';
     if (token) headers.set('Authorization', `Bearer ${token}`);
     return headers;
+  }
+
+  function unwrap(value) {
+    return value && Object.prototype.hasOwnProperty.call(value, 'data')
+      ? (value.data || {})
+      : (value || {});
   }
 
   function replacePlateDeep(value) {
@@ -103,13 +83,9 @@
     function walk(node) {
       if (Array.isArray(node)) return node.map(walk);
       if (node && typeof node === 'object') {
-        const result = {};
-        Object.entries(node).forEach(([key, item]) => {
-          result[key] = walk(item);
-        });
-        return result;
+        return Object.fromEntries(Object.entries(node).map(([key, item]) => [key, walk(item)]));
       }
-      if (typeof node === 'string' && normalizeRaw(node) === OLD_PLATE) {
+      if (typeof node === 'string' && rawPlate(node) === OLD_PLATE) {
         changes += 1;
         return NEW_PLATE;
       }
@@ -122,13 +98,7 @@
   function containsOldPlate(value) {
     if (Array.isArray(value)) return value.some(containsOldPlate);
     if (value && typeof value === 'object') return Object.values(value).some(containsOldPlate);
-    return typeof value === 'string' && normalizeRaw(value) === OLD_PLATE;
-  }
-
-  function unwrap(wrapper) {
-    return wrapper && Object.prototype.hasOwnProperty.call(wrapper, 'data')
-      ? (wrapper.data || {})
-      : (wrapper || {});
+    return typeof value === 'string' && rawPlate(value) === OLD_PLATE;
   }
 
   function setStatus(text) {
@@ -140,8 +110,8 @@
 
   function migrateLocalStore() {
     try {
-      const raw = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
-      const migrated = replacePlateDeep(raw);
+      const current = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
+      const migrated = replacePlateDeep(current);
       if (!migrated.changes) return 0;
       localStorage.setItem(LOCAL_KEY, JSON.stringify(migrated.value));
       return migrated.changes;
@@ -151,47 +121,38 @@
   }
 
   async function migrateRemoteStore() {
-    if (remoteMigrationDone || migrationRunning || !maySavePlans()) return 0;
-    const token = sessionStorage.getItem(TOKEN_KEY) || '';
-    if (!token) return 0;
+    if (remoteMigrationDone || remoteMigrationRunning || !maySavePlans()) return 0;
+    if (!sessionStorage.getItem(TOKEN_KEY)) return 0;
 
-    migrationRunning = true;
+    remoteMigrationRunning = true;
     try {
-      const response = await fetch(API_URL, {
-        cache: 'no-store',
-        headers: tokenHeaders()
-      });
-      if (!response.ok) throw new Error(`Serverstatus ${response.status}`);
-      const wrapper = await response.json().catch(() => ({}));
-      const current = unwrap(wrapper);
+      const getResponse = await fetch(API_URL, { cache: 'no-store', headers: authHeaders() });
+      if (!getResponse.ok) throw new Error(`Serverstatus ${getResponse.status}`);
+      const current = unwrap(await getResponse.json().catch(() => ({})));
       const migrated = replacePlateDeep(current);
 
       if (migrated.changes) {
-        const saveResponse = await fetch(API_URL, {
+        const putResponse = await fetch(API_URL, {
           method: 'PUT',
-          headers: tokenHeaders({ 'Content-Type': 'application/json' }),
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(migrated.value)
         });
-        if (!saveResponse.ok) throw new Error(`Serverstatus ${saveResponse.status}`);
+        if (!putResponse.ok) throw new Error(`Serverstatus ${putResponse.status}`);
 
-        const verifyResponse = await fetch(API_URL, {
-          cache: 'no-store',
-          headers: tokenHeaders()
-        });
+        const verifyResponse = await fetch(API_URL, { cache: 'no-store', headers: authHeaders() });
         if (!verifyResponse.ok) throw new Error(`Prüfung: Serverstatus ${verifyResponse.status}`);
-        const verifiedWrapper = await verifyResponse.json().catch(() => ({}));
-        const verified = unwrap(verifiedWrapper);
-        if (containsOldPlate(verified)) throw new Error('Das alte Kennzeichen ist nach dem Speichern noch vorhanden.');
+        const verified = unwrap(await verifyResponse.json().catch(() => ({})));
+        if (containsOldPlate(verified)) throw new Error('Das alte Kennzeichen ist nach der Speicherung noch vorhanden.');
         localStorage.setItem(LOCAL_KEY, JSON.stringify(verified));
       }
 
       remoteMigrationDone = true;
       return migrated.changes;
     } catch (error) {
-      console.warn('Kennzeichenkorrektur OS-IF 215 konnte noch nicht vollständig gespeichert werden:', error);
+      console.warn('Kennzeichen OS-IF 215 konnte noch nicht vollständig gespeichert werden:', error);
       return 0;
     } finally {
-      migrationRunning = false;
+      remoteMigrationRunning = false;
     }
   }
 
@@ -201,11 +162,7 @@
     style.id = STYLE_ID;
     style.textContent = `
       #${TABLE_ID} .dp-vehicle-editor{display:grid;gap:5px;min-width:0}
-      #${TABLE_ID} .dp-vehicle-select{
-        display:block;width:100%;box-sizing:border-box;padding:8px 28px 8px 9px;
-        border:1px solid #2563eb;border-radius:9px;background:#fff;color:#0f172a;
-        font:inherit;font-weight:800;cursor:pointer
-      }
+      #${TABLE_ID} .dp-vehicle-select{display:block;width:100%;box-sizing:border-box;padding:8px 28px 8px 9px;border:1px solid #2563eb;border-radius:9px;background:#fff;color:#0f172a;font:inherit;font-weight:800;cursor:pointer}
       #${TABLE_ID} .dp-vehicle-select:focus{outline:2px solid #2563eb;outline-offset:1px}
       #${TABLE_ID} .dp-vehicle-manual-input[hidden]{display:none!important}
       #${TABLE_ID} .dp-vehicle-manual-input{font-size:12px!important}
@@ -214,12 +171,24 @@
     document.head.appendChild(style);
   }
 
+  function dispatchInput(input, includeChange = false) {
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    if (includeChange) input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function correctVisibleInput(input) {
+    if (rawPlate(input.value) !== OLD_PLATE) return false;
+    input.value = NEW_PLATE;
+    dispatchInput(input);
+    return true;
+  }
+
   function collectPlates() {
     const plates = [];
     const add = (value) => {
-      const plate = normalize(value);
-      if (!plate || plate === 'OS-XX 123') return;
-      if (!plates.includes(plate)) plates.push(plate);
+      const plate = canonicalPlate(value);
+      if (!plate || plate === 'OS-XX 123' || plates.includes(plate)) return;
+      plates.push(plate);
     };
 
     REQUIRED_PLATES.forEach(add);
@@ -234,19 +203,17 @@
       list.id = LIST_ID;
       document.body.appendChild(list);
     }
-
     list.replaceChildren(...plates.map((plate) => {
       const option = document.createElement('option');
       option.value = plate;
       return option;
     }));
-    return list;
   }
 
-  function rebuildSelect(select, plates, current) {
-    const normalizedCurrent = normalize(current);
+  function rebuildSelect(select, plates, currentValue) {
+    const current = canonicalPlate(currentValue);
     const values = [...plates];
-    if (normalizedCurrent && !values.includes(normalizedCurrent)) values.unshift(normalizedCurrent);
+    if (current && !values.includes(current)) values.unshift(current);
 
     const fragment = document.createDocumentFragment();
     const blank = document.createElement('option');
@@ -267,21 +234,7 @@
     fragment.appendChild(manual);
 
     select.replaceChildren(fragment);
-    select.value = normalizedCurrent && values.includes(normalizedCurrent) ? normalizedCurrent : '';
-  }
-
-  function dispatchValue(input) {
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-  }
-
-  function correctVisibleInput(input) {
-    const original = normalizeRaw(input.value);
-    const corrected = normalize(input.value);
-    if (original !== OLD_PLATE || corrected === original) return false;
-    input.value = corrected;
-    dispatchValue(input);
-    return true;
+    select.value = current && values.includes(current) ? current : '';
   }
 
   function ensureEditor(input, plates) {
@@ -325,23 +278,26 @@
 
         select.dataset.manual = '0';
         input.hidden = true;
-        input.value = normalize(select.value);
-        dispatchValue(input);
+        input.value = canonicalPlate(select.value);
+        dispatchInput(input, true);
       });
     }
 
     if (!input.dataset.dpVehicleBound) {
       input.dataset.dpVehicleBound = '1';
       input.addEventListener('change', () => {
-        input.value = normalize(input.value);
+        const corrected = canonicalPlate(input.value);
+        if (input.value !== corrected) {
+          input.value = corrected;
+          dispatchInput(input);
+        }
         select.dataset.manual = '0';
         input.hidden = true;
-        dispatchValue(input);
         schedule(20);
       });
       input.addEventListener('input', () => {
         if (select.dataset.manual === '1') return;
-        const current = normalize(input.value);
+        const current = canonicalPlate(input.value);
         if ([...select.options].some((option) => option.value === current)) select.value = current;
       });
     }
@@ -354,11 +310,11 @@
     installing = true;
     try {
       addStyle();
-      const corrected = [...document.querySelectorAll(`#${TABLE_ID} input[data-field="bus"]`)]
-        .filter((input) => correctVisibleInput(input)).length;
+      const inputs = [...document.querySelectorAll(`#${TABLE_ID} input[data-field="bus"]`)];
+      const corrected = inputs.filter(correctVisibleInput).length;
       const plates = collectPlates();
       ensureList(plates);
-      document.querySelectorAll(`#${TABLE_ID} input[data-field="bus"]`).forEach((input) => ensureEditor(input, plates));
+      inputs.forEach((input) => ensureEditor(input, plates));
       if (corrected) setStatus(`Kennzeichen ${OLD_PLATE} wurde in ${NEW_PLATE} geändert.`);
     } finally {
       installing = false;
