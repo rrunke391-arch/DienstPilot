@@ -1,12 +1,14 @@
 (() => {
   'use strict';
 
+  if (window.__dienstpilotDailyPrintAnytimeV4) return;
+  window.__dienstpilotDailyPrintAnytimeV4 = true;
+
   const LOCAL_KEY = 'dienstpilot_daily_duty_plans_v1';
   const DATE_ID = 'dpDailyPlanDate';
   const WEEKDAY_BUTTON = 'dpDailyPrintWeekday';
   const WEEKEND_BUTTON = 'dpDailyPrintWeekend';
-  const SATURDAY_EDIT_BUTTON = 'dpDailyEditSaturday';
-  const SUNDAY_EDIT_BUTTON = 'dpDailyEditSunday';
+  const WEEKEND_EDIT_BUTTON = 'dpDailyEditWeekend';
 
   const WEEKDAY_ASSIGNMENTS = [
     ['3001', 'I.Janzen', 'OS-LK 621', '05:03', '12:12', '05:20', 'Wellingholzhausen, Schule'],
@@ -23,7 +25,7 @@
     ['3013', 'A.Szczepanik', 'OS-ZT 626', '06:35', '17:05', '07:00', 'Neuenkirchen, Schulzentrum'],
     ['3014', 'M.Malko', 'OS-KF 526', '06:35', '15:39', '07:00', 'Melle, ZOB'],
     ['3015', 'N.Ghulami', 'OS-YG 120', '06:36', '16:57', '07:00', 'Wennigsen, Alt Wiewen'],
-    ['3016', 'P.Lhommel', 'OS-XB 925', '06:43', '18:06', '07:18', 'Bissendorf, Friedensweg'],
+    ['3016', 'P.Lommel', 'OS-XB 925', '06:43', '18:06', '07:18', 'Bissendorf, Friedensweg'],
     ['3017', 'A.Hasan', 'OS-WP 918', '06:44', '17:35', '07:05', 'Laer, Dornkampsweg'],
     ['3018', 'N.Awdullahi', 'OS-EV 118', '06:44', '19:41', '07:02', 'Kerssenbrock, Brandhorstweg'],
     ['3019', 'K.Giotis', 'OS-BU 816', '06:49', '17:28', '07:07', 'Nüven, Obernüven'],
@@ -31,7 +33,7 @@
     ['3021', 'W.Blaz', 'OS-RS 725', '06:50', '19:33', '07:15', 'Melle, ZOB'],
     ['3022', 'W.Wüllner', 'OS-DZ 116', '12:03', '19:21', '12:20', 'Wellingholzhausen, Schule'],
     ['3023', 'T.Wiemann', 'OS-UL 818', '12:03', '20:21', '12:20', 'Wellingholzhausen, Schule'],
-    ['3024', 'D.Knigge', 'OS-JF 215', '12:20', '21:05', '12:45', 'Melle, ZOB'],
+    ['3024', 'D.Knigge', 'OS-IF 215', '12:20', '21:05', '12:45', 'Melle, ZOB'],
     ['3025', 'N.Murad', 'OS-HD 124', '13:10', '21:50', '13:35', 'Melle, ZOB'],
     ['1341', 'M.Al Dabbah / A.Al Arsan', 'OS-FN 919', '', '', '', ''],
     ['1941', 'S.Yasatemur / M.Eggern', 'OS-AX 716', '', '', '', ''],
@@ -43,14 +45,14 @@
     ['3050', 'F.Biermann', 'OS-SU 722', '06:03', '14:21', '06:20', 'Wellingholzhausen, Schule'],
     ['3051', 'S.Kelgorn', 'OS-YG 120', '06:42', '15:21', '07:15', 'Bruchmühlen, Schule'],
     ['3052', 'H.J.Husmann', 'OS-LF 223', '06:43', '14:41', '07:16', 'Buer, Schulzentrum'],
-    ['3053', 'P.Lhommel', 'OS-XB 925', '06:47', '14:39', '07:12', 'Neuenkirchen, Schulzentrum'],
+    ['3053', 'P.Lommel', 'OS-XB 925', '06:47', '14:39', '07:12', 'Neuenkirchen, Schulzentrum'],
     ['3054', 'W.Blaz', 'OS-BS 725', '06:51', '19:21', '07:18', 'Westerhausen, Vinkenaue'],
     ['3055', 'M.Alsaba', 'OS-DZ 116', '07:03', '17:04', '07:20', 'Wellingholzhausen, Schule'],
     ['3056', 'N.Awdullahi', 'OS-EV 118', '07:07', '16:04', '07:31', 'Gesmold, Schimmweg'],
     ['3057', 'K.Alomar', 'OS-ZT 626', '09:20', '18:21', '09:55', 'Werther, ZOB'],
     ['1340', 'F.Biermann', 'OS-MR 825', '05:13', '14:14', '', ''],
     ['11541', 'C.Strotmann', 'OS-MR 825', '14:22', '00:20', '', ''],
-    ['Einsatzwagen', 'Einsatzwagen', 'OS-TG 324', '', '', '', '']
+    ['Einsatzwagen', 'Einsatzwagen', 'OS-IF 215', '', '', '', '']
   ];
 
   const SUNDAY_ASSIGNMENTS = [
@@ -69,8 +71,7 @@
 
   function rowsFromAssignments(assignments) {
     return assignments.map(([duty, name, bus, start, end, departure, stop], index) => ({
-      id: `print-${duty}-${index}`,
-      duty, name, bus, start, end, departure, stop
+      id: `print-${duty}-${index}`, duty, name, bus, start, end, departure, stop
     }));
   }
 
@@ -80,7 +81,7 @@
       id: String(value.id || ''),
       name: String(value.name || ''),
       duty: String(value.duty || ''),
-      bus: String(value.bus || ''),
+      bus: String(value.bus || '').replace(/^OS-JF 215$/i, 'OS-IF 215'),
       start: String(value.start || ''),
       end: String(value.end || ''),
       departure: String(value.departure || ''),
@@ -155,13 +156,8 @@
       const field = (name) => String(row.querySelector(`[data-field="${name}"]`)?.value || '');
       return normalizeRow({
         id: row.dataset.rowId,
-        name: field('name'),
-        duty: field('duty'),
-        bus: field('bus'),
-        start: field('start'),
-        end: field('end'),
-        departure: field('departure'),
-        stop: field('stop')
+        name: field('name'), duty: field('duty'), bus: field('bus'), start: field('start'),
+        end: field('end'), departure: field('departure'), stop: field('stop')
       });
     }).filter((row) => Object.values(row).some((value) => String(value || '').trim()));
   }
@@ -172,6 +168,8 @@
   }
 
   function sourceRows(date) {
+    const combined = window.dienstpilotWeekendCombinedRows?.[date];
+    if (Array.isArray(combined) && combined.length) return combined.map(normalizeRow);
     if (date === currentDate()) {
       const visible = visibleRows();
       if (visible.length) return visible;
@@ -187,9 +185,7 @@
     order.forEach((duty) => {
       const candidates = source.filter((row) => String(row.duty || '').trim().toLowerCase() === duty);
       const fallbacks = fallback.filter((row) => String(row.duty || '').trim().toLowerCase() === duty);
-      for (let index = 0; index < fallbacks.length; index += 1) {
-        result.push(normalizeRow(candidates[index] || fallbacks[index]));
-      }
+      for (let index = 0; index < fallbacks.length; index += 1) result.push(normalizeRow(candidates[index] || fallbacks[index]));
     });
 
     return result;
@@ -204,10 +200,7 @@
 
   function weekendDates() {
     const monday = mondayOfWeek(parseDate(currentDate()));
-    return {
-      saturday: isoDate(addDays(monday, 5)),
-      sunday: isoDate(addDays(monday, 6))
-    };
+    return { saturday: isoDate(addDays(monday, 5)), sunday: isoDate(addDays(monday, 6)) };
   }
 
   function printDeparture(value) {
@@ -229,6 +222,24 @@
     return `<div class="print-row"><div class="left"><strong>${escapeHtml(row.name) || '&nbsp;'}</strong><span>${duty || '&nbsp;'}</span></div><div class="middle"><strong>${bus || '&nbsp;'}</strong><span>${times || '&nbsp;'}</span></div><div class="right">${right || '&nbsp;'}</div></div>`;
   }
 
+  function saturdayRowsHtml(rows) {
+    const regular = rows.filter((row) => !['1340', '11541'].includes(String(row.duty).trim()) && String(row.duty).trim().toLowerCase() !== 'einsatzwagen');
+    const early = rows.find((row) => String(row.duty).trim() === '1340') || {};
+    const late = rows.find((row) => String(row.duty).trim() === '11541') || {};
+    const wagon = rows.find((row) => String(row.duty).trim().toLowerCase() === 'einsatzwagen');
+    let html = regular.map(normalRowHtml).join('');
+
+    if (early.duty || late.duty) {
+      const earlyTimes = early.start || early.end ? `${escapeHtml(early.start || '--:--')} - ${escapeHtml(early.end || '--:--')}` : '';
+      const lateTimes = late.start || late.end ? `/ ${escapeHtml(late.start || '--:--')} - ${escapeHtml(late.end || '--:--')} Uhr` : '';
+      const bus = late.bus || early.bus;
+      html += `<div class="print-row split-duty"><div class="left"><strong>${escapeHtml(early.name) || '&nbsp;'}</strong><span>${earlyTimes || '&nbsp;'}</span></div><div class="middle"><strong>/ ${escapeHtml(late.name) || '&nbsp;'} &nbsp; / &nbsp; ${escapeHtml(bus) || '&nbsp;'}</strong><span>${lateTimes} / Dienst 1340 / Dienst 11541</span></div><div class="right">&nbsp;</div></div>`;
+    }
+
+    if (wagon) html += normalRowHtml(wagon);
+    return html;
+  }
+
   function sundayRowsHtml(rows) {
     const regular = rows.filter((row) => String(row.duty).trim() !== '1943');
     const split = rows.filter((row) => String(row.duty).trim() === '1943');
@@ -244,7 +255,7 @@
   }
 
   function sectionHtml(date, rows, type) {
-    const body = type === 'sunday' ? sundayRowsHtml(rows) : rows.map(normalRowHtml).join('');
+    const body = type === 'saturday' ? saturdayRowsHtml(rows) : type === 'sunday' ? sundayRowsHtml(rows) : rows.map(normalRowHtml).join('');
     return `<section class="plan-section ${type}">${headerHtml(date)}<div class="print-rows">${body}</div></section>`;
   }
 
@@ -304,52 +315,44 @@
     const sundayRows = strictRows(dates.sunday, SUNDAY_ASSIGNMENTS, SUNDAY_ALLOWED, SUNDAY_ORDER);
     const html = sectionHtml(dates.saturday, saturdayRows, 'saturday') + sectionHtml(dates.sunday, sundayRows, 'sunday');
     openPrint(html, 'Dienstplan Samstag und Sonntag');
-    setStatus(`Nur die Samstags- und Sonntagsdienste für ${germanDate(dates.saturday)} und ${germanDate(dates.sunday)} wurden für den Druck geöffnet.`);
+    setStatus(`Samstag ${germanDate(dates.saturday)} und Sonntag ${germanDate(dates.sunday)} wurden gemeinsam für den Druck geöffnet.`);
   }
 
-  function openEditor(dayOffset) {
-    const monday = mondayOfWeek(parseDate(currentDate()));
-    const target = isoDate(addDays(monday, dayOffset));
-    const input = document.getElementById(DATE_ID);
-    if (!input) return;
-    input.value = target;
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-    window.setTimeout(() => {
-      if (typeof window.dienstpilotPopulateDailyPlan === 'function') window.dienstpilotPopulateDailyPlan();
-      if (typeof window.dienstpilotApplyWeekendPhotoTemplate === 'function') window.dienstpilotApplyWeekendPhotoTemplate();
-    }, 220);
-    setStatus(dayOffset === 5 ? 'Der Samstagsplan ist zum Bearbeiten geöffnet.' : 'Der Sonntagsplan ist zum Bearbeiten geöffnet.');
-  }
+  window.dienstpilotPrintWeekendPlans = printWeekend;
 
-  function installEditButtons() {
+  function installEditButton() {
     const wrapper = document.querySelector('.dp-daily-plan-print-separation');
     if (!wrapper) return;
+
+    document.querySelectorAll('#dpDailyEditSaturday,#dpDailyEditSunday').forEach((button) => button.remove());
     let editRow = document.querySelector('.dp-weekend-edit-buttons');
     if (!editRow) {
       editRow = document.createElement('div');
       editRow.className = 'dp-weekend-edit-buttons';
       editRow.style.display = 'grid';
-      editRow.style.gridTemplateColumns = '1fr 1fr';
+      editRow.style.gridTemplateColumns = '1fr';
       editRow.style.gap = '10px';
       editRow.style.marginTop = '8px';
-
-      const saturday = document.createElement('button');
-      saturday.id = SATURDAY_EDIT_BUTTON;
-      saturday.type = 'button';
-      saturday.className = 'dp-daily-secondary dp-daily-edit-only';
-      saturday.textContent = 'Samstag bearbeiten';
-      saturday.addEventListener('click', () => openEditor(5));
-
-      const sunday = document.createElement('button');
-      sunday.id = SUNDAY_EDIT_BUTTON;
-      sunday.type = 'button';
-      sunday.className = 'dp-daily-secondary dp-daily-edit-only';
-      sunday.textContent = 'Sonntag bearbeiten';
-      sunday.addEventListener('click', () => openEditor(6));
-
-      editRow.append(saturday, sunday);
       wrapper.insertAdjacentElement('afterend', editRow);
     }
+
+    let button = document.getElementById(WEEKEND_EDIT_BUTTON);
+    if (!button) {
+      button = document.createElement('button');
+      button.id = WEEKEND_EDIT_BUTTON;
+      button.type = 'button';
+      button.className = 'dp-daily-secondary dp-daily-edit-only';
+      button.addEventListener('click', () => {
+        if (typeof window.dienstpilotOpenWeekendCombinedEditor === 'function') {
+          window.dienstpilotOpenWeekendCombinedEditor();
+        } else {
+          window.setTimeout(() => window.dienstpilotOpenWeekendCombinedEditor?.(), 250);
+        }
+      });
+      editRow.appendChild(button);
+    }
+    button.textContent = 'Samstag und Sonntag gemeinsam bearbeiten';
+    button.title = 'Beide Wochenendtage gleichzeitig öffnen, bearbeiten und gemeinsam speichern';
   }
 
   function refreshLabels() {
@@ -361,15 +364,16 @@
       weekday.classList.add('dp-active-plan');
     }
     if (weekend) {
-      weekend.title = 'Ausschließlich die Samstags- und Sonntagsdienste gemeinsam drucken';
+      weekend.textContent = 'Dienstplan Samstag und Sonntag gemeinsam drucken';
+      weekend.title = 'Samstags- und Sonntagsdienste gemeinsam auf einer Seite drucken';
       weekend.classList.add('dp-active-plan');
     }
     const label = document.getElementById('dpDailyPlanModeLabel');
     if (label) {
       label.className = 'dp-daily-plan-mode-label';
-      label.textContent = 'Beim Wochenenddruck werden ausschließlich die getrennten Samstag- und Sonntagsdienste ausgegeben.';
+      label.textContent = 'Samstag und Sonntag werden gemeinsam bearbeitet, gemeinsam gespeichert und auf einer Seite gedruckt.';
     }
-    installEditButtons();
+    installEditButton();
   }
 
   document.addEventListener('click', (event) => {
