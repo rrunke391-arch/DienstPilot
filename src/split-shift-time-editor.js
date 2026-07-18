@@ -260,8 +260,10 @@
     const lateSelect = block.querySelector('.dp-driver-assignment-select[data-side="late"]');
     const earlyLabel = earlySelect?.closest('.dp-shift-driver')?.querySelector('.dp-shift-label');
     const lateLabel = lateSelect?.closest('.dp-shift-driver')?.querySelector('.dp-shift-label');
-    if (earlyLabel) earlyLabel.textContent = `Frühschicht ${times.early.start}–${times.early.end}`;
-    if (lateLabel) lateLabel.textContent = `Spätschicht ${times.late.start}–${times.late.end}`;
+    const earlyText = `Frühschicht ${times.early.start}–${times.early.end}`;
+    const lateText = `Spätschicht ${times.late.start}–${times.late.end}`;
+    if (earlyLabel && earlyLabel.textContent !== earlyText) earlyLabel.textContent = earlyText;
+    if (lateLabel && lateLabel.textContent !== lateText) lateLabel.textContent = lateText;
   }
 
   function installEditors() {
@@ -357,11 +359,13 @@
   }
 
   function installPrintPatch() {
+    if (window.__dienstpilotSplitShiftTimePrintPatchV1) return;
     const getter = window.dienstpilotGetSplitShiftPrintRows;
-    if (typeof getter !== 'function' || getter.__dpSplitShiftTimeEditorV1) return;
+    if (typeof getter !== 'function') return;
     const wrapped = (date) => applyTimesToPrintRows(getter(date), String(date || selectedDate()));
     wrapped.__dpSplitShiftTimeEditorV1 = true;
     window.dienstpilotGetSplitShiftPrintRows = wrapped;
+    window.__dienstpilotSplitShiftTimePrintPatchV1 = true;
   }
 
   function updatePreviewTimes() {
@@ -376,7 +380,8 @@
         const duty = match[1];
         const side = normalizeText(match[2]).startsWith('spat') ? 'late' : 'early';
         const times = timesFor(date, duty);
-        middleSpans[index].textContent = `/ ${times[side].start} - ${times[side].end} Uhr`;
+        const desired = `/ ${times[side].start} - ${times[side].end} Uhr`;
+        if (middleSpans[index].textContent !== desired) middleSpans[index].textContent = desired;
       });
     });
   }
