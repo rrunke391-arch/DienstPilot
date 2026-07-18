@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotRunkePlan20260813To20261009V3) return;
-  window.__dienstpilotRunkePlan20260813To20261009V3 = true;
+  if (window.__dienstpilotRunkePlan20260813To20261009V4) return;
+  window.__dienstpilotRunkePlan20260813To20261009V4 = true;
 
   const API_URL = 'https://api.dienstpilot-runke.de/api/data/plan_runke';
   const TOKEN_KEY = 'dienstpilot_api_token';
@@ -11,61 +11,81 @@
   const LOCAL_PLAN_KEY = 'lrz-plan-runke';
   const MAIN_KEY = 'lenkRuhezeitenRunke20260413';
   const ACTIVE_DRIVER_KEY = 'dienstpilot_aktiver_kollege';
-  const LOCAL_DONE_KEY = 'dienstpilot_runke_plan_2026_08_13_10_09_v3';
-  const SERVER_MARKER = 'runkePlan20260813To20261009V3';
-  const OLD_SERVER_MARKER = 'runkePlan20260813To20261009V1';
-  const BACKUP_KEY = 'runkePlanBefore20260813To20271231V3';
-  const SOURCE_TEXT = 'Wochenplan Runke 13.08.–09.10.2026';
+  const LOCAL_DONE_KEY = 'dienstpilot_runke_plan_2026_08_13_10_09_v4';
+  const SERVER_MARKER = 'runkePlan20260813To20261009V4';
+  const OLD_SERVER_MARKERS = [
+    'runkePlan20260813To20261009V1',
+    'runkePlan20260813To20261009V3'
+  ];
+  const BACKUP_KEY = 'runkePlanBefore20260813To20271231V4';
+  const SOURCE_TEXT = 'Dienstplan Runke 13.08.–09.10.2026';
   const NOTICE_ID = 'dpRunkePlanImportNotice';
   const REPLACE_FROM = '2026-08-13';
   const REPLACE_TO = '2026-10-09';
   const CLEAR_FROM = '2026-10-10';
   const CLEAR_TO = '2027-12-31';
 
+  // Exakt aus der hochgeladenen Dienstplantabelle, Spalte des Fahrers Runke.
   const ENTRIES = [
     ['2026-08-13','3025','13:10','21:50'],
     ['2026-08-14','3025','13:10','21:50'],
+
     ['2026-08-17','3011','06:23','17:00'],
     ['2026-08-18','3011','06:23','17:00'],
     ['2026-08-19','Frei','',''],
     ['2026-08-20','3014','06:35','15:39'],
     ['2026-08-21','3014','06:35','15:39'],
+
     ['2026-08-24','3013','06:35','17:05'],
     ['2026-08-25','3013','06:35','17:05'],
     ['2026-08-26','3001','05:03','12:12'],
     ['2026-08-27','3001','05:03','12:12'],
     ['2026-08-28','3001','05:03','12:12'],
+
     ['2026-08-31','3012','06:31','16:50'],
     ['2026-09-01','3012','06:31','16:50'],
     ['2026-09-02','Frei','',''],
     ['2026-09-03','3012','06:31','16:50'],
     ['2026-09-04','3012','06:31','16:50'],
+
     ['2026-09-07','3024','12:20','21:05'],
     ['2026-09-08','3024','12:20','21:05'],
     ['2026-09-09','3024','12:20','21:05'],
     ['2026-09-10','3024','12:20','21:05'],
     ['2026-09-11','3024','12:20','21:05'],
+
     ['2026-09-14','3001','05:03','12:12'],
     ['2026-09-15','3001','05:03','12:12'],
     ['2026-09-16','3013','06:35','17:05'],
     ['2026-09-17','3013','06:35','17:05'],
     ['2026-09-18','3013','06:35','17:05'],
+
     ['2026-09-21','3014','06:35','15:39'],
     ['2026-09-22','Frei','',''],
     ['2026-09-23','3011','06:23','17:00'],
     ['2026-09-24','3011','06:23','17:00'],
     ['2026-09-25','3011','06:23','16:10'],
+
     ['2026-09-28','3016','06:43','18:06'],
     ['2026-09-29','3019','06:49','17:28'],
     ['2026-09-30','3012','06:31','16:50'],
     ['2026-10-01','Frei','',''],
     ['2026-10-02','3095','20:20','04:05'],
+
     ['2026-10-05','3022','12:03','19:21'],
     ['2026-10-06','3022','12:03','19:21'],
     ['2026-10-07','3022','12:03','19:21'],
     ['2026-10-08','3022','12:03','19:21'],
     ['2026-10-09','3022','12:03','19:21']
   ];
+
+  const EXPECTED_BY_DATE = new Map(ENTRIES.map(([date, number, start, end]) => [date, {
+    date,
+    number,
+    start,
+    end,
+    type: number === 'Frei' ? 'frei' : 'dienst'
+  }]));
 
   let running = false;
   let completed = false;
@@ -107,6 +127,34 @@
     return /^\d{4}-\d{2}-\d{2}$/.test(value) && value >= from && value <= to;
   }
 
+  function sameRow(actual, expected) {
+    return String(actual?.date || '') === expected.date
+      && String(actual?.number || '') === expected.number
+      && String(actual?.start || '') === expected.start
+      && String(actual?.end || '') === expected.end
+      && String(actual?.type || (expected.number === 'Frei' ? 'frei' : 'dienst')) === expected.type;
+  }
+
+  function planIsExact(plan) {
+    const duties = Array.isArray(plan?.duties) ? plan.duties : [];
+    const targetRows = duties.filter((row) => inRange(row?.date, REPLACE_FROM, REPLACE_TO));
+    if (targetRows.length !== ENTRIES.length) return false;
+
+    const grouped = new Map();
+    targetRows.forEach((row) => {
+      const date = String(row?.date || '');
+      if (!grouped.has(date)) grouped.set(date, []);
+      grouped.get(date).push(row);
+    });
+
+    for (const [date, expected] of EXPECTED_BY_DATE) {
+      const rows = grouped.get(date) || [];
+      if (rows.length !== 1 || !sameRow(rows[0], expected)) return false;
+    }
+
+    return !duties.some((row) => inRange(row?.date, CLEAR_FROM, CLEAR_TO));
+  }
+
   function importedRows(now, assignedBy) {
     return ENTRIES.map(([date, number, start, end]) => {
       const free = number === 'Frei';
@@ -126,7 +174,7 @@
   }
 
   function ensureVisibleMonths(plan) {
-    const months = Array.isArray(plan.shownMonths) ? [...plan.shownMonths] : [];
+    const months = Array.isArray(plan?.shownMonths) ? [...plan.shownMonths] : [];
     ['2026-08','2026-09','2026-10'].forEach((month) => {
       if (!months.includes(month)) months.push(month);
     });
@@ -163,7 +211,7 @@
     notice.textContent = text;
     notice.style.cssText = [
       'position:fixed','left:50%','top:18px','transform:translateX(-50%)','z-index:100000',
-      'max-width:min(820px,calc(100vw - 28px))','padding:13px 17px','border-radius:13px',
+      'max-width:min(840px,calc(100vw - 28px))','padding:13px 17px','border-radius:13px',
       `border:1px solid ${ok ? '#86efac' : '#fecaca'}`,
       `background:${ok ? '#f0fdf4' : '#fff1f2'}`,
       `color:${ok ? '#166534' : '#b91c1c'}`,
@@ -191,7 +239,7 @@
         ? { duties: [] }
         : (Object.prototype.hasOwnProperty.call(wrapper, 'data') ? (wrapper.data || {}) : wrapper);
 
-      if (current?.imports?.[SERVER_MARKER]) {
+      if (planIsExact(current) && current?.imports?.[SERVER_MARKER]) {
         completed = true;
         updateLocalPlan(current);
         return;
@@ -212,7 +260,7 @@
         .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || String(a.start || '').localeCompare(String(b.start || '')));
 
       const imports = { ...(current.imports || {}) };
-      delete imports[OLD_SERVER_MARKER];
+      OLD_SERVER_MARKERS.forEach((marker) => delete imports[marker]);
       imports[SERVER_MARKER] = now;
 
       const importBackups = { ...(current.importBackups || {}) };
@@ -246,7 +294,7 @@
 
       updateLocalPlan(plan);
       completed = true;
-      showNotice('Dienstplan Ralf Runke vom 13.08. bis 09.10.2026 wurde eingetragen. Ab 10.10.2026 bis Ende 2027 bleiben die Dienste leer.');
+      showNotice('Ralf Runke: 42 Einträge vom 13.08. bis 09.10.2026 wurden exakt gespeichert. Ab 10.10.2026 bis Ende 2027 bleiben alle Dienste leer.');
       window.dispatchEvent(new Event('pageshow'));
     } catch (error) {
       console.warn('Ralf-Runke-Dienstplan konnte noch nicht eingetragen werden:', error);
