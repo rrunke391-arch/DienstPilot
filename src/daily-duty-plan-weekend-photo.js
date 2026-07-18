@@ -1,10 +1,13 @@
 (() => {
   'use strict';
 
+  if (window.__dienstpilotWeekendPhotoTemplateV2) return;
+  window.__dienstpilotWeekendPhotoTemplateV2 = true;
+
   const DATE_ID = 'dpDailyPlanDate';
   const TABLE_ID = 'dpDailyPlanRows';
   const ADD_ID = 'dpDailyAddRow';
-  const MARKER_KEY = 'dienstpilot_weekend_photo_template_20260711_v1';
+  const MARKER_KEY = 'dienstpilot_weekend_photo_template_20260718_v2';
   let running = false;
 
   const SATURDAY = [
@@ -16,7 +19,8 @@
     { duty: '3055', name: 'M.Alsaba', bus: 'OS-DZ 116', start: '07:03', end: '17:04', departure: '07:20', stop: 'Wellingholzhausen, Schule' },
     { duty: '3056', name: 'N.Awdullahi', bus: 'OS-EV 118', start: '07:07', end: '16:04', departure: '07:31', stop: 'Gesmold, Schimmweg' },
     { duty: '3057', name: 'K.Alomar', bus: 'OS-ZT 626', start: '09:20', end: '18:21', departure: '09:55', stop: 'Werther, ZOB' },
-    { duty: '1340', name: 'M.Eggern', bus: 'OS-AX 716', start: '05:13', end: '19:44', departure: '', stop: '' },
+    { duty: '1340', name: 'F.Biermann', bus: 'OS-MR 825', start: '05:13', end: '14:14', departure: '', stop: '' },
+    { duty: '11541', name: 'C.Strotmann', bus: 'OS-MR 825', start: '14:22', end: '00:20', departure: '', stop: '' },
     { duty: 'Einsatzwagen', name: 'Einsatzwagen', bus: 'OS-TG 324', start: '', end: '', departure: '', stop: '' }
   ];
 
@@ -94,7 +98,7 @@
 
   function setField(row, field, value) {
     const input = row?.querySelector(`input[data-field="${field}"]`);
-    if (!input || input.disabled) return;
+    if (!input) return;
     input.value = String(value ?? '');
     dispatchInput(input);
   }
@@ -174,7 +178,7 @@
 
       mark(date);
       setStatus(dayOfWeek(date) === 6
-        ? 'Nur die Samstagsdienste wurden zum Bearbeiten geladen. Alle Kennzeichen bleiben verschiebbar.'
+        ? 'Samstagsdienste geladen: Dienst 1340 als Frühschicht und Dienst 11541 als Spätschicht mit jeweils eigenem Fahrer.'
         : 'Nur die Sonntagsdienste wurden zum Bearbeiten geladen. Alle Kennzeichen bleiben verschiebbar.');
     } finally {
       running = false;
