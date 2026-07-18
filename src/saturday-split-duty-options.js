@@ -30,6 +30,7 @@
     style.id = STYLE_ID;
     style.textContent = `
       #${TABLE_ID} .dp-saturday-shift-label{display:inline-flex;margin:0 0 5px;padding:3px 7px;border:1px solid #93c5fd;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:11px;font-weight:950;line-height:1}
+      #${TABLE_ID} tr[data-dp-saturday-shift] .dp-daily-duty-select{background:#f1f5f9!important;color:#334155!important;cursor:not-allowed!important}
       @media print{#${TABLE_ID} .dp-saturday-shift-label{display:none!important}}
     `;
     document.head.appendChild(style);
@@ -60,6 +61,17 @@
 
   function clearRowLabel(row) {
     row.querySelector('.dp-saturday-shift-label')?.remove();
+    const select = row.querySelector('.dp-daily-duty-select[data-dp-fixed-saturday-duty="1"]');
+    if (select) {
+      select.disabled = false;
+      delete select.dataset.dpFixedSaturdayDuty;
+      select.removeAttribute('aria-disabled');
+    }
+    const remove = row.querySelector('[data-action="delete"][data-dp-fixed-saturday-duty="1"]');
+    if (remove) {
+      remove.disabled = false;
+      delete remove.dataset.dpFixedSaturdayDuty;
+    }
     delete row.dataset.dpSaturdayShift;
   }
 
@@ -94,7 +106,17 @@
         ensureSelectOption(select, duty, labelText);
         if (select.value !== duty) select.value = duty;
         select.classList.remove('invalid');
-        select.title = `${labelText}: Dienst ${duty}`;
+        select.title = `${labelText}: Dienst ${duty} ist fest vorgegeben.`;
+        select.disabled = true;
+        select.dataset.dpFixedSaturdayDuty = '1';
+        select.setAttribute('aria-disabled', 'true');
+      }
+
+      const remove = row.querySelector('[data-action="delete"]');
+      if (remove) {
+        remove.disabled = true;
+        remove.dataset.dpFixedSaturdayDuty = '1';
+        remove.title = `${labelText} und Spätschicht müssen im Samstagsplan erhalten bleiben.`;
       }
 
       if (cell) {
