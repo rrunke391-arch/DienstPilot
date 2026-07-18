@@ -139,6 +139,7 @@
     loadScript('dpDailyDutyBusMove', 'src/daily-duty-plan-bus-move.js?v=20260711-1');
     loadScript('dpDailyDutyPhotoDefaults', 'src/daily-duty-plan-photo-defaults.js?v=20260711-2');
     loadScript('dpDailyDutyPhotoAuto', 'src/daily-duty-plan-photo-auto.js?v=20260711-2');
+    loadScript('dpDailyEinsatzwagenLastV1', 'src/daily-duty-einsatzwagen-last.js?v=20260718-1');
     loadScript('dpSplitShiftDutiesV5NewTimes', 'src/split-shift-duties-v5.js?v=20260717-2');
     loadScript('dpSplitShiftTimeEditorAccess', 'src/split-shift-time-editor-access.js?v=20260718-2');
     loadScript('dpSplitShiftTimeEditor', 'src/split-shift-time-editor.js?v=20260718-1');
