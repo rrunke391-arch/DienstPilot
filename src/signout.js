@@ -148,6 +148,7 @@
     loadScript('dpWeekendCombinedEditorV1', 'src/weekend-combined-editor.js?v=20260718-1');
     loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260717-3');
     loadScript('dpDailyDutySeparationV2', 'src/daily-duty-plan-separation.js?v=20260718-2');
+    loadScript('dpWeekendCombinedOpenFixV1', 'src/weekend-combined-open-fix.js?v=20260718-1');
     loadScript('dpDailyDutyPrintAnytimeV4', 'src/daily-duty-plan-print-anytime.js?v=20260718-4');
     loadScript('dpDailyDutyWeekendPhotoV2', 'src/daily-duty-plan-weekend-photo.js?v=20260718-2');
     loadScript('dpDailyDutySeparationGuard', 'src/daily-duty-plan-separation-guard.js?v=20260711-2');
@@ -157,7 +158,6 @@
     if (catalogStaticRepairDone) return;
     const button = document.getElementById('dpCatalogAddDutyStable');
     if (!button) return;
-
     catalogStaticRepairDone = true;
     button.remove();
     window.dispatchEvent(new Event('focus'));
