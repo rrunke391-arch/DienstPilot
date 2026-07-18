@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotRunkePlan20260813To20261009V4) return;
-  window.__dienstpilotRunkePlan20260813To20261009V4 = true;
+  if (window.__dienstpilotRunkePlan20260813To20261009V5) return;
+  window.__dienstpilotRunkePlan20260813To20261009V5 = true;
 
   const API_URL = 'https://api.dienstpilot-runke.de/api/data/plan_runke';
   const TOKEN_KEY = 'dienstpilot_api_token';
@@ -11,21 +11,23 @@
   const LOCAL_PLAN_KEY = 'lrz-plan-runke';
   const MAIN_KEY = 'lenkRuhezeitenRunke20260413';
   const ACTIVE_DRIVER_KEY = 'dienstpilot_aktiver_kollege';
-  const LOCAL_DONE_KEY = 'dienstpilot_runke_plan_2026_08_13_10_09_v4';
-  const SERVER_MARKER = 'runkePlan20260813To20261009V4';
+  const LOCAL_DONE_KEY = 'dienstpilot_runke_plan_2026_08_13_10_09_v5';
+  const SERVER_MARKER = 'runkePlan20260813To20261009V5';
   const OLD_SERVER_MARKERS = [
     'runkePlan20260813To20261009V1',
-    'runkePlan20260813To20261009V3'
+    'runkePlan20260813To20261009V3',
+    'runkePlan20260813To20261009V4'
   ];
-  const BACKUP_KEY = 'runkePlanBefore20260813To20271231V4';
-  const SOURCE_TEXT = 'Dienstplan Runke 13.08.–09.10.2026';
+  const BACKUP_KEY = 'runkePlanBefore20260813To20271231V5';
+  const SOURCE_TEXT = 'Hochgeladener Dienstplan Runke, Stand 14.07.2026';
+  const DISPLAY_NAME = 'Ralf Runke Fahrer';
   const NOTICE_ID = 'dpRunkePlanImportNotice';
   const REPLACE_FROM = '2026-08-13';
   const REPLACE_TO = '2026-10-09';
   const CLEAR_FROM = '2026-10-10';
   const CLEAR_TO = '2027-12-31';
 
-  // Exakt aus der hochgeladenen Dienstplantabelle, Spalte des Fahrers Runke.
+  // Exakt aus Seite 1 der hochgeladenen Dienstplantabelle, Spalte "Runke".
   const ENTRIES = [
     ['2026-08-13','3025','13:10','21:50'],
     ['2026-08-14','3025','13:10','21:50'],
@@ -122,6 +124,12 @@
     return result;
   }
 
+  function unwrap(wrapper) {
+    return wrapper && Object.prototype.hasOwnProperty.call(wrapper, 'data')
+      ? (wrapper.data || {})
+      : (wrapper || {});
+  }
+
   function inRange(date, from, to) {
     const value = String(date || '');
     return /^\d{4}-\d{2}-\d{2}$/.test(value) && value >= from && value <= to;
@@ -211,7 +219,7 @@
     notice.textContent = text;
     notice.style.cssText = [
       'position:fixed','left:50%','top:18px','transform:translateX(-50%)','z-index:100000',
-      'max-width:min(840px,calc(100vw - 28px))','padding:13px 17px','border-radius:13px',
+      'max-width:min(860px,calc(100vw - 28px))','padding:13px 17px','border-radius:13px',
       `border:1px solid ${ok ? '#86efac' : '#fecaca'}`,
       `background:${ok ? '#f0fdf4' : '#fff1f2'}`,
       `color:${ok ? '#166534' : '#b91c1c'}`,
@@ -221,6 +229,16 @@
     window.setTimeout(() => notice.remove(), 12000);
   }
 
+  async function readServerPlan() {
+    const response = await fetch(API_URL, {
+      cache: 'no-store',
+      headers: headers()
+    });
+    const wrapper = await response.json().catch(() => ({}));
+    if (!response.ok && response.status !== 404) throw new Error(wrapper.error || `Serverstatus ${response.status}`);
+    return response.status === 404 ? { duties: [] } : unwrap(wrapper);
+  }
+
   async function importPlan() {
     if (running || completed || !mayImport()) return;
     const token = sessionStorage.getItem(TOKEN_KEY) || '';
@@ -228,16 +246,7 @@
 
     running = true;
     try {
-      const getResponse = await fetch(API_URL, {
-        cache: 'no-store',
-        headers: headers()
-      });
-      const wrapper = await getResponse.json().catch(() => ({}));
-      if (!getResponse.ok && getResponse.status !== 404) throw new Error(wrapper.error || `Serverstatus ${getResponse.status}`);
-
-      const current = getResponse.status === 404
-        ? { duties: [] }
-        : (Object.prototype.hasOwnProperty.call(wrapper, 'data') ? (wrapper.data || {}) : wrapper);
+      const current = await readServerPlan();
 
       if (planIsExact(current) && current?.imports?.[SERVER_MARKER]) {
         completed = true;
@@ -275,6 +284,8 @@
       const plan = {
         ...current,
         profile: 'runke',
+        displayName: DISPLAY_NAME,
+        profileType: 'Fahrer',
         duties,
         shownMonths: ensureVisibleMonths(current),
         startDate: current.startDate || '2026-08-01',
@@ -292,13 +303,18 @@
       const putData = await putResponse.json().catch(() => ({}));
       if (!putResponse.ok) throw new Error(putData.error || `Serverstatus ${putResponse.status}`);
 
-      updateLocalPlan(plan);
+      const verified = await readServerPlan();
+      if (!planIsExact(verified)) {
+        throw new Error('Die Serverprüfung hat nicht alle 42 erwarteten Einträge bestätigt.');
+      }
+
+      updateLocalPlan(verified);
       completed = true;
-      showNotice('Ralf Runke: 42 Einträge vom 13.08. bis 09.10.2026 wurden exakt gespeichert. Ab 10.10.2026 bis Ende 2027 bleiben alle Dienste leer.');
+      showNotice('Ralf Runke Fahrer: 42 Einträge vom 13.08. bis 09.10.2026 wurden gespeichert und auf dem Server geprüft. Ab 10.10.2026 bis Ende 2027 bleiben die Dienste leer.');
       window.dispatchEvent(new Event('pageshow'));
     } catch (error) {
-      console.warn('Ralf-Runke-Dienstplan konnte noch nicht eingetragen werden:', error);
-      showNotice('Der Dienstplan für Ralf Runke konnte noch nicht auf dem Server gespeichert werden.', false);
+      console.warn('Ralf-Runke-Fahrerplan konnte noch nicht eingetragen werden:', error);
+      showNotice(error.message || 'Der Fahrerplan Ralf Runke konnte nicht auf dem Server gespeichert werden.', false);
     } finally {
       running = false;
     }
