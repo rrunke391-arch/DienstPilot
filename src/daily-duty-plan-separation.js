@@ -92,7 +92,7 @@
     const weekend = document.createElement('button');
     weekend.id = WEEKEND_PRINT_ID;
     weekend.type = 'button';
-    weekend.textContent = 'Dienstplan Samstag, Sonntag drucken';
+    weekend.textContent = 'Dienstplan Samstag und Sonntag gemeinsam drucken';
     weekend.addEventListener('click', () => printCurrentPlan('weekend'));
 
     wrapper.append(weekday, weekend);
@@ -129,18 +129,16 @@
         : 'Dafür ein Datum von Montag bis Freitag auswählen';
     }
     if (weekendButton) {
-      weekendButton.title = weekend
-        ? 'Den ausgewählten Samstags- oder Sonntagsdienstplan drucken'
-        : 'Dafür einen Samstag oder Sonntag auswählen';
+      weekendButton.title = 'Samstag und Sonntag gemeinsam auf einer Seite drucken';
     }
 
     if (label) {
       label.className = 'dp-daily-plan-mode-label' + (weekday ? ' weekday' : weekend ? ' weekend' : '');
       label.textContent = weekday
-        ? 'Aktiver Plan: Montag bis Freitag – Werktagsdienste sind vom Wochenende getrennt.'
+        ? 'Aktiver Plan: Montag bis Freitag.'
         : weekend
-          ? 'Aktiver Plan: Samstag oder Sonntag – Wochenenddienste sind von Montag bis Freitag getrennt.'
-          : 'Bitte ein Datum auswählen.';
+          ? 'Aktiver Wochenendplan: Samstag und Sonntag werden gemeinsam bearbeitet, gespeichert und gedruckt.'
+          : 'Samstag und Sonntag können gemeinsam geöffnet und bearbeitet werden.';
     }
 
     const empty = document.querySelector('#dpDailyPlanRows .dp-preview-empty');
@@ -148,7 +146,7 @@
       empty.textContent = weekday
         ? 'Der Dienstplan Montag bis Freitag wird für dieses Datum automatisch eingefügt.'
         : weekend
-          ? 'Der passende Samstags- oder Sonntagsdienstplan wird für dieses Datum automatisch eingefügt.'
+          ? 'Den gemeinsamen Wochenendplan über „Samstag und Sonntag gemeinsam bearbeiten“ öffnen.'
           : 'Bitte ein Datum auswählen.';
     }
   }
@@ -175,7 +173,7 @@
     });
 
     const subtitle = card.querySelector('.dp-daily-title .muted');
-    if (subtitle) subtitle.textContent = 'Werktagspläne sowie Samstags- und Sonntagspläne werden getrennt bearbeitet, gespeichert und gedruckt.';
+    if (subtitle) subtitle.textContent = 'Montag bis Freitag wird getrennt bearbeitet. Samstag und Sonntag werden gemeinsam bearbeitet, gespeichert und auf einer Seite gedruckt.';
 
     createPrintButtons(actions);
     installModeLabel(card);
@@ -188,7 +186,7 @@
     if (event.target?.id === 'dpDailyPlanDate') window.setTimeout(updateMode, 80);
   });
   document.addEventListener('click', (event) => {
-    if (event.target.closest?.('#dpDailyDutyPlanTab,#loginButton,#dpDailyAddRow,#dpDailyClear')) {
+    if (event.target.closest?.('#dpDailyDutyPlanTab,#loginButton,#dpDailyAddRow,#dpDailyClear,#dpDailyEditWeekend')) {
       [0, 120, 350].forEach((delay) => window.setTimeout(() => {
         install();
         updateMode();
