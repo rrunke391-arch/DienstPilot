@@ -101,7 +101,7 @@
 
   function loadUserModules() {
     loadScript('dpPlanApiBridge', 'src/plan-api-bridge.js?v=20260712-1');
-    loadScript('dpRunkePlan20260813To20261009V5', 'src/runke-plan-2026-08-13-to-10-09.js?v=20260718-5');
+    loadScript('dpRalfRunkePlan20260813To20261009V6', 'src/runke-plan-2026-08-13-to-10-09.js?v=20260718-6');
     loadScript('dpRunkeWeekDisplayFix', 'src/runke-week-display-fix.js?v=20260718-1');
     loadScript('dpVacationPersistenceV4', 'src/vacation-persistence-v4.js?v=20260713-2');
     loadScript('dpDriverVacationAccess', 'src/driver-vacation-access.js?v=20260713-1');
