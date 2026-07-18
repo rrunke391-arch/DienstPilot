@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotRunkePlan20260813To20261009V1) return;
-  window.__dienstpilotRunkePlan20260813To20261009V1 = true;
+  if (window.__dienstpilotRunkePlanRollback20260813To20261009V2) return;
+  window.__dienstpilotRunkePlanRollback20260813To20261009V2 = true;
 
   const API_URL = 'https://api.dienstpilot-runke.de/api/data/plan_runke';
   const TOKEN_KEY = 'dienstpilot_api_token';
@@ -13,52 +13,8 @@
   const ACTIVE_DRIVER_KEY = 'dienstpilot_aktiver_kollege';
   const LOCAL_DONE_KEY = 'dienstpilot_runke_plan_2026_08_13_10_09_v1';
   const SERVER_MARKER = 'runkePlan20260813To20261009V1';
-  const NOTICE_ID = 'dpRunkePlanImportNotice';
-
-  const ENTRIES = [
-    ['2026-08-13','3025','13:10','21:50'],
-    ['2026-08-14','3025','13:10','21:50'],
-    ['2026-08-17','3011','06:23','17:00'],
-    ['2026-08-18','3011','06:23','17:00'],
-    ['2026-08-19','Frei','',''],
-    ['2026-08-20','3014','06:35','15:39'],
-    ['2026-08-21','3014','06:35','15:39'],
-    ['2026-08-24','3013','06:35','17:05'],
-    ['2026-08-25','3013','06:35','17:05'],
-    ['2026-08-26','3001','05:03','12:12'],
-    ['2026-08-27','3001','05:03','12:12'],
-    ['2026-08-28','3001','05:03','12:12'],
-    ['2026-08-31','3012','06:31','16:50'],
-    ['2026-09-01','3012','06:31','16:50'],
-    ['2026-09-02','Frei','',''],
-    ['2026-09-03','3012','06:31','16:50'],
-    ['2026-09-04','3012','06:31','16:50'],
-    ['2026-09-07','3024','12:20','21:05'],
-    ['2026-09-08','3024','12:20','21:05'],
-    ['2026-09-09','3024','12:20','21:05'],
-    ['2026-09-10','3024','12:20','21:05'],
-    ['2026-09-11','3024','12:20','21:05'],
-    ['2026-09-14','3001','05:03','12:12'],
-    ['2026-09-15','3001','05:03','12:12'],
-    ['2026-09-16','3013','06:35','17:05'],
-    ['2026-09-17','3013','06:35','17:05'],
-    ['2026-09-18','3013','06:35','17:05'],
-    ['2026-09-21','3014','06:35','15:39'],
-    ['2026-09-22','Frei','',''],
-    ['2026-09-23','3011','06:23','17:00'],
-    ['2026-09-24','3011','06:23','17:00'],
-    ['2026-09-25','3011','06:23','16:10'],
-    ['2026-09-28','3016','06:43','18:06'],
-    ['2026-09-29','3019','06:49','17:28'],
-    ['2026-09-30','3012','06:31','16:50'],
-    ['2026-10-01','Frei','',''],
-    ['2026-10-02','3095','20:20','04:05'],
-    ['2026-10-05','3022','12:03','19:21'],
-    ['2026-10-06','3022','12:03','19:21'],
-    ['2026-10-07','3022','12:03','19:21'],
-    ['2026-10-08','3022','12:03','19:21'],
-    ['2026-10-09','3022','12:03','19:21']
-  ];
+  const SOURCE_TEXT = 'Wochenplan 13.08.–09.10.2026';
+  const NOTICE_ID = 'dpRunkePlanRollbackNotice';
 
   let running = false;
   let completed = false;
@@ -79,7 +35,7 @@
     }
   }
 
-  function mayImport() {
+  function mayRollback() {
     const user = currentUser();
     const role = normalize(user.role || sessionStorage.getItem(ROLE_KEY));
     return role === 'administrator'
@@ -95,35 +51,16 @@
     return result;
   }
 
-  function expectedRows(now, assignedBy) {
-    return ENTRIES.map(([date, number, start, end]) => {
-      const free = number === 'Frei';
-      return {
-        id: `runke-rotation-${date}`,
-        date,
-        number,
-        start,
-        end,
-        type: free ? 'frei' : 'dienst',
-        assignedBy,
-        assignedAt: now,
-        source: 'Wochenplan 13.08.–09.10.2026',
-        assignment: { assignedBy, assignedAt: now }
-      };
-    });
-  }
-
-  function ensureMonths(plan) {
-    const months = Array.isArray(plan.shownMonths) ? [...plan.shownMonths] : [];
-    ['2026-08','2026-09','2026-10'].forEach((month) => {
-      if (!months.includes(month)) months.push(month);
-    });
-    return months.sort();
+  function isImportedRow(row) {
+    const id = String(row?.id || '');
+    const source = String(row?.source || '');
+    return id.startsWith('runke-rotation-') || source === SOURCE_TEXT;
   }
 
   function updateLocalPlan(plan) {
     localStorage.setItem(LOCAL_PLAN_KEY, JSON.stringify(plan));
     localStorage.setItem(ACTIVE_DRIVER_KEY, 'runke');
+    localStorage.removeItem(LOCAL_DONE_KEY);
 
     let main = {};
     try {
@@ -136,7 +73,7 @@
       appSettings: {
         ...(main.appSettings || {}),
         activeProfile: 'runke',
-        shownMonths: ensureMonths(plan),
+        shownMonths: Array.isArray(plan.shownMonths) ? plan.shownMonths : (main.appSettings?.shownMonths || ['2026-08']),
         bundeslaender: plan.bundeslaender || main.appSettings?.bundeslaender || { ferien: ['NI'], feiertage: ['NI'] },
         hideSundays: !!plan.hideSundays
       }
@@ -160,8 +97,8 @@
     window.setTimeout(() => notice.remove(), 10000);
   }
 
-  async function importPlan() {
-    if (running || completed || !mayImport()) return;
+  async function rollbackPlan() {
+    if (running || completed || !mayRollback()) return;
     const token = sessionStorage.getItem(TOKEN_KEY) || '';
     if (!token) return;
 
@@ -175,37 +112,27 @@
       if (!getResponse.ok && getResponse.status !== 404) throw new Error(wrapper.error || `Serverstatus ${getResponse.status}`);
 
       const current = getResponse.status === 404
-        ? {}
+        ? { duties: [] }
         : (Object.prototype.hasOwnProperty.call(wrapper, 'data') ? (wrapper.data || {}) : wrapper);
+      const duties = Array.isArray(current.duties) ? current.duties : [];
+      const removedCount = duties.filter(isImportedRow).length;
+      const markerPresent = Boolean(current?.imports?.[SERVER_MARKER]);
 
-      if (current?.imports?.[SERVER_MARKER]) {
+      if (!removedCount && !markerPresent) {
         completed = true;
-        localStorage.setItem(LOCAL_DONE_KEY, '1');
+        localStorage.removeItem(LOCAL_DONE_KEY);
         updateLocalPlan(current);
         return;
       }
 
+      const imports = { ...(current.imports || {}) };
+      delete imports[SERVER_MARKER];
       const now = new Date().toISOString();
-      const user = currentUser();
-      const assignedBy = user.displayName || user.username || 'Administrator';
-      const dateSet = new Set(ENTRIES.map(([date]) => date));
-      const preserved = (Array.isArray(current.duties) ? current.duties : [])
-        .filter((row) => !dateSet.has(String(row?.date || '')));
-      const duties = [...preserved, ...expectedRows(now, assignedBy)]
-        .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || String(a.start || '').localeCompare(String(b.start || '')));
-
       const plan = {
         ...current,
-        profile: 'runke',
-        duties,
-        shownMonths: ensureMonths(current),
-        startDate: current.startDate || '2026-08-01',
-        savedAt: now,
-        assignedBy,
-        imports: {
-          ...(current.imports || {}),
-          [SERVER_MARKER]: now
-        }
+        duties: duties.filter((row) => !isImportedRow(row)),
+        imports,
+        savedAt: now
       };
 
       const putResponse = await fetch(API_URL, {
@@ -217,31 +144,30 @@
       if (!putResponse.ok) throw new Error(putData.error || `Serverstatus ${putResponse.status}`);
 
       updateLocalPlan(plan);
-      localStorage.setItem(LOCAL_DONE_KEY, '1');
       completed = true;
-      showNotice('Dienstplan Ralf Runke vom 13.08. bis 09.10.2026 wurde mit 42 Tagen eingetragen.');
+      showNotice(`${removedCount} automatisch eingetragene Runke-Dienste wurden wieder entfernt.`);
       window.dispatchEvent(new Event('pageshow'));
     } catch (error) {
-      console.warn('Ralf-Runke-Dienstplan konnte noch nicht eingetragen werden:', error);
-      showNotice('Der Dienstplan für Ralf Runke konnte noch nicht auf dem Server gespeichert werden.', false);
+      console.warn('Rücknahme des Runke-Dienstplans fehlgeschlagen:', error);
+      showNotice('Die automatische Eintragung konnte noch nicht vom Server entfernt werden.', false);
     } finally {
       running = false;
     }
   }
 
-  function scheduleImport() {
-    [0, 300, 900, 1800, 3500].forEach((delay) => window.setTimeout(importPlan, delay));
+  function scheduleRollback() {
+    [0, 300, 900, 1800, 3500].forEach((delay) => window.setTimeout(rollbackPlan, delay));
   }
 
   document.addEventListener('click', (event) => {
     if (event.target.closest?.('#loginButton,#loadRunke,#loadKollege,#loadSelectedProfile,.tab[data-tab="eingabe"]')) {
-      scheduleImport();
+      scheduleRollback();
     }
   }, true);
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scheduleImport, { once: true });
-  else scheduleImport();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scheduleRollback, { once: true });
+  else scheduleRollback();
 
-  window.addEventListener('pageshow', scheduleImport);
-  window.addEventListener('focus', scheduleImport);
+  window.addEventListener('pageshow', scheduleRollback);
+  window.addEventListener('focus', scheduleRollback);
 })();
