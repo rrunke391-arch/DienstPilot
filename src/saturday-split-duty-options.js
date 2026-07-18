@@ -54,19 +54,23 @@
       option.value = duty;
       select.appendChild(option);
     }
-    option.textContent = `Dienst ${duty} – ${label}`;
+    const text = `Dienst ${duty} – ${label}`;
+    if (option.textContent !== text) option.textContent = text;
   }
 
-  function removeLabels() {
-    document.querySelectorAll(`#${TABLE_ID} .dp-saturday-shift-label`).forEach((label) => label.remove());
+  function clearRowLabel(row) {
+    row.querySelector('.dp-saturday-shift-label')?.remove();
+    delete row.dataset.dpSaturdayShift;
   }
 
   function decorateRows() {
     ensureDatalistOptions();
-    removeLabels();
-    if (!isSaturday()) return;
-
     const rows = [...document.querySelectorAll(`#${TABLE_ID} tr[data-row-id]`)];
+    if (!isSaturday()) {
+      rows.forEach(clearRowLabel);
+      return;
+    }
+
     const dutySelects = rows
       .map((row) => row.querySelector('.dp-daily-duty-select'))
       .filter(Boolean);
@@ -79,22 +83,29 @@
       const input = row.querySelector('input[data-field="duty"]');
       const duty = String(input?.value || '').trim();
       const labelText = SPECIAL[duty];
-      if (!labelText) return;
+      if (!labelText) {
+        clearRowLabel(row);
+        return;
+      }
 
       const cell = input?.closest('td');
       const select = cell?.querySelector('.dp-daily-duty-select');
       if (select) {
         ensureSelectOption(select, duty, labelText);
-        select.value = duty;
+        if (select.value !== duty) select.value = duty;
         select.classList.remove('invalid');
         select.title = `${labelText}: Dienst ${duty}`;
       }
 
-      if (cell && !cell.querySelector('.dp-saturday-shift-label')) {
-        const label = document.createElement('span');
-        label.className = 'dp-saturday-shift-label';
-        label.textContent = `${labelText} · Dienst ${duty}`;
-        cell.insertBefore(label, cell.firstChild);
+      if (cell) {
+        let label = cell.querySelector('.dp-saturday-shift-label');
+        if (!label) {
+          label = document.createElement('span');
+          label.className = 'dp-saturday-shift-label';
+          cell.insertBefore(label, cell.firstChild);
+        }
+        const text = `${labelText} · Dienst ${duty}`;
+        if (label.textContent !== text) label.textContent = text;
       }
       row.dataset.dpSaturdayShift = labelText === 'Frühschicht' ? 'early' : 'late';
     });
