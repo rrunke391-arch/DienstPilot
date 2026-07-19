@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotAdditionalDriverOptions) return;
+  if (window.__dienstpilotAdditionalDriverOptionsV2) return;
+  window.__dienstpilotAdditionalDriverOptionsV2 = true;
   window.__dienstpilotAdditionalDriverOptions = true;
 
   if (!document.getElementById('dpNiedersachsenHolidayDutyPlanScript')) {
@@ -73,25 +74,28 @@
     ].includes(currentRole());
   }
 
+  function setOption(option, value, label) {
+    if (option.value !== value) option.value = value;
+    if (option.label !== label) option.label = label;
+    if (option.textContent !== label) option.textContent = label;
+  }
+
   function correctHergerdtNames() {
     document.querySelectorAll('#kollegeSelect option').forEach((option) => {
       const shown = option.textContent || option.label || option.value;
-      if (normalize(shown) === 'hergerdt') option.textContent = 'L.Hergerdt';
+      if (normalize(shown) === 'hergerdt' && option.textContent !== 'L.Hergerdt') option.textContent = 'L.Hergerdt';
     });
 
     document.querySelectorAll('#dpAssignDriversV2 option').forEach((option) => {
       const shown = option.label || option.textContent || option.value;
       if (normalize(shown) === 'hergerdt' || profileKey(option.value) === 'hergerdt') {
-        option.value = 'hergerdt';
-        option.label = 'L.Hergerdt';
-        option.textContent = 'L.Hergerdt';
+        setOption(option, 'hergerdt', 'L.Hergerdt');
       }
     });
 
     document.querySelectorAll('#dpDailyPlanRows .dp-daily-driver-select option').forEach((option) => {
       if (normalize(option.value || option.textContent) === 'hergerdt') {
-        option.value = 'L.Hergerdt';
-        option.textContent = 'L.Hergerdt';
+        setOption(option, 'L.Hergerdt', 'L.Hergerdt');
       }
     });
 
@@ -163,7 +167,7 @@
   }
 
   function scheduleInstall() {
-    [0, 100, 300, 800, 1600, 3200, 5200].forEach((delay) => window.setTimeout(install, delay));
+    [0, 120, 350, 900, 1800, 3200].forEach((delay) => window.setTimeout(install, delay));
   }
 
   document.addEventListener('click', (event) => {
