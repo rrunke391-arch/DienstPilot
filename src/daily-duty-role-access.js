@@ -1,6 +1,14 @@
 (() => {
   'use strict';
 
+  if (!document.getElementById('dpStabilityNormalizationV1')) {
+    const script = document.createElement('script');
+    script.id = 'dpStabilityNormalizationV1';
+    script.src = 'src/stability-normalization.js?v=20260719-1';
+    script.async = false;
+    document.head.appendChild(script);
+  }
+
   const USER_KEY = 'dienstpilot_user';
   const ROLE_KEY = 'dienstpilot_role';
   const TAB_ID = 'dpDailyDutyPlanTab';
