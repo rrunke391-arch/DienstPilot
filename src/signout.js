@@ -1,6 +1,9 @@
 (() => {
   'use strict';
 
+  if (window.__dienstpilotPrimaryModuleLoaderV1) return;
+  window.__dienstpilotPrimaryModuleLoaderV1 = true;
+
   let catalogStaticRepairDone = false;
   let catalogFallbackInstalled = false;
 
@@ -114,6 +117,8 @@
     loadScript('dpVacationReviewPanel', 'src/vacation-review-panel.js?v=20260713-1');
     loadScript('dpDutyAssignment', 'src/duty-assignment.js?v=20260712-2');
     loadScript('dpNewDriverProfile', 'src/new-driver-profile.js?v=20260718-1');
+    loadScript('dpMonthSelectorFinalV7', 'src/month-selector-final.js?v=20260712-7');
+
     loadStylesheet('dpPasswordEyeSlash', 'src/password-eye-slash.css?v=20260711-1');
     loadStylesheet('dpCatalogFieldsHidden', 'src/catalog-fields-hidden.css?v=20260711-2');
     loadStylesheet('dpOverviewPolishCss', 'src/overview-polish.css?v=20260712-1');
@@ -123,6 +128,7 @@
     loadScript('dpDutyCardSimple', 'src/duty-card-simple.js?v=20260712-2');
     loadScript('dpSelfPassword', 'src/self-password.js?v=20260711-3');
     loadScript('dpLoginPasswordEyeSlash', 'src/login-password-eye-slash.js?v=20260711-1');
+
     loadScript('dpCatalogEditor', 'src/catalog-editor.js?v=20260711-3');
     loadScript('dpSplitShiftCatalogV3', 'src/split-shift-catalog.js?v=20260717-3');
     loadScript('dpCatalogTimeScale', 'src/catalog-time-scale.js?v=20260711-4');
@@ -130,15 +136,17 @@
     loadScript('dpCatalogAddDutyStable', 'src/catalog-add-duty-stable.js?v=20260711-2');
     loadScript('dpXlsmCore', 'src/xlsm-core.js?v=20260711-1');
     loadScript('dpXlsmExchange', 'src/xlsm-exchange.js?v=20260711-1');
+
     loadScript('dpDailyDutyPlan', 'src/daily-duty-plan.js?v=20260711-1');
     loadScript('dpDailyDutyRenderStabilityV1', 'src/daily-duty-render-stability.js?v=20260719-1');
 
-    // Die zentrale Drucksteuerung wird bewusst vor der Dienstauswahl geladen.
-    // So druckt „Montag bis Freitag“ niemals die aktuell sichtbare Samstagsansicht.
+    // Die zentrale Drucksteuerung wird vor allen weiteren Dienstplan-Erweiterungen geladen.
     loadScript('dpDailyDutyPrintAnytimeV4', 'src/daily-duty-plan-print-anytime.js?v=20260718-4');
 
     loadScript('dpHolidayPlan18V5', 'src/holiday-plan-clean-v3.js?v=20260717-5');
     loadScript('dpDailyDutyDriverSelectV4', 'src/daily-duty-driver-select.js?v=20260719-1');
+    loadScript('dpDriverMAlsaba', 'src/driver-m-alsaba.js?v=20260717-1');
+    loadScript('dpDriverNameCorrectionsV2', 'src/driver-name-corrections.js?v=20260719-2');
     loadScript('dpSaturdaySplitDutyOptionsV1', 'src/saturday-split-duty-options.js?v=20260718-1');
     loadScript('dpDailyDutyDutySelectV6', 'src/daily-duty-duty-select.js?v=20260719-6');
     loadScript('dpDailyDutyRoleAccess', 'src/daily-duty-role-access.js?v=20260718-3');
@@ -193,11 +201,10 @@
     }, true);
   }
 
-  function refreshRoleModules() {
+  function refreshAfterLogin() {
     loadUserModules();
+    createButton();
     refreshName();
-    window.dispatchEvent(new Event('pageshow'));
-    window.dispatchEvent(new Event('focus'));
   }
 
   onReady(() => {
@@ -209,8 +216,8 @@
     window.setTimeout(recreateCatalogAddButtonOnce, 800);
 
     document.addEventListener('click', (event) => {
-      if (event.target.closest && event.target.closest('#loginButton')) {
-        [250, 700, 1400, 2600, 4500].forEach((delay) => window.setTimeout(refreshRoleModules, delay));
+      if (event.target.closest?.('#loginButton')) {
+        [200, 600, 1400].forEach((delay) => window.setTimeout(refreshAfterLogin, delay));
       }
     }, true);
   });
