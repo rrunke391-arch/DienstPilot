@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotSplitShiftDutiesV5) return;
+  if (window.__dienstpilotSplitShiftDutiesV6) return;
+  window.__dienstpilotSplitShiftDutiesV6 = true;
   window.__dienstpilotSplitShiftDutiesV5 = true;
 
   const SECTION_ID = 'tab-daily-duty-plan';
@@ -46,17 +47,26 @@
   };
 
   const FALLBACK_DRIVERS = [
-    'Y.Yasar', 'Bumhoffer', 'M.Entrup', 'M.Schweppe', 'I.Janzen', 'Alomar', 'H.Al Sayek',
-    'A.Szczepanik', 'Kocdemir', 'W.Wüllner', 'S.Wittwer', 'Biermann', 'A.Gerding',
-    'R.Runke', 'P.Lhommel', 'M.Malko', 'N.Murad', 'S.Kurta', 'T.Wiemann', 'A.Muth',
+    'Y.Yasar', 'Bumhoffer', 'M.Entrup', 'M.Schweppe', 'I.Janzen', 'K.Alomar', 'H.AI Sayek',
+    'A.Szczepanik', 'A.Kocdemir', 'W.Wüllner', 'S.Wittwer', 'F.Biermann', 'A.Gerding',
+    'R.Runke', 'P.Lommel', 'M.Malko', 'N.Murad', 'S.Kurta', 'T.Wiemann', 'A.Muth',
     'S.Suleimani', 'J.Faber', 'L.Hergerdt', 'A.Hergerdt', 'A.Hasan', 'D.Knigge',
     'N.Awdullahi', 'K.Giotis', 'K.Igelbrink', 'A.Alrobaie', 'A.Morzsa', 'M.Al Dabbah',
     'C.Strotmann', 'M.Eggern', 'S.Yasatemur', 'N.Ghulami', 'M.Alsaba'
   ];
 
+  const NAME_ALIASES = new Map([
+    ['alomar', 'K.Alomar'], ['kalomar', 'K.Alomar'],
+    ['halsayek', 'H.AI Sayek'], ['haisayek', 'H.AI Sayek'], ['sayek', 'H.AI Sayek'],
+    ['kocdemir', 'A.Kocdemir'], ['akocdemir', 'A.Kocdemir'],
+    ['biermann', 'F.Biermann'], ['fbiermann', 'F.Biermann'],
+    ['lommel', 'P.Lommel'], ['lhommel', 'P.Lommel'], ['plommel', 'P.Lommel'], ['plhommel', 'P.Lommel']
+  ]);
+
   let timer = 0;
   let remoteRequested = false;
   let remoteDrivers = [];
+  let refreshing = false;
 
   function normalize(value) {
     return String(value || '')
@@ -66,9 +76,18 @@
       .replace(/[\u0300-\u036f]/g, '');
   }
 
+  function compact(value) {
+    return normalize(value).replace(/[^a-z0-9]+/g, '');
+  }
+
   function canonicalName(value) {
     const name = String(value || '').trim();
-    return normalize(name) === 'hergerdt' ? 'L.Hergerdt' : name;
+    if (!name) return '';
+    if (typeof window.dienstpilotCanonicalDriverName === 'function') {
+      return window.dienstpilotCanonicalDriverName(name);
+    }
+    if (normalize(name) === 'hergerdt') return 'L.Hergerdt';
+    return NAME_ALIASES.get(compact(name)) || name;
   }
 
   function escapeHtml(value) {
@@ -168,6 +187,10 @@
     return names.sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
   }
 
+  function sameNameList(a, b) {
+    return a.length === b.length && a.every((name, index) => normalize(name) === normalize(b[index]));
+  }
+
   async function requestRemoteDrivers() {
     if (remoteRequested) return;
     remoteRequested = true;
@@ -181,11 +204,15 @@
       if (!response.ok) return;
       const data = await response.json();
       const users = Array.isArray(data) ? data : (Array.isArray(data?.users) ? data.users : []);
-      remoteDrivers = users
+      const next = users
         .filter((user) => normalize(user?.role) === 'fahrer' || user?.driverProfile)
         .map((user) => canonicalName(user.displayName || user.driverProfile || user.username || ''))
-        .filter(Boolean);
-      schedule(80);
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
+      if (!sameNameList(remoteDrivers, next)) {
+        remoteDrivers = next;
+        schedule(80);
+      }
     } catch {}
   }
 
@@ -211,8 +238,8 @@
     document.head.appendChild(style);
   }
 
-  function driverOptions(selected) {
-    return availableDrivers().map((driver) => (
+  function driverOptions(selected, drivers) {
+    return drivers.map((driver) => (
       `<option value="${escapeHtml(driver)}"${normalize(driver) === normalize(selected) ? ' selected' : ''}>${escapeHtml(driver)}</option>`
     )).join('');
   }
@@ -223,6 +250,37 @@
       .some((input) => Boolean(DUTIES[String(input.value || '').trim()]));
   }
 
+  function panelModel(date) {
+    const drivers = availableDrivers();
+    const assignments = Object.fromEntries(Object.keys(DUTIES).map((duty) => [duty, assignmentFor(duty, date)]));
+    const signature = JSON.stringify({ date, drivers, assignments });
+    const blocks = Object.entries(DUTIES).map(([duty, config]) => {
+      const assigned = assignments[duty];
+      return `
+        <div class="dp-shift-duty">
+          <div class="dp-shift-duty-title">Dienst ${duty} – Fahrer frei zuordnen</div>
+          <div class="dp-shift-grid">
+            <label class="dp-shift-driver">
+              <span class="dp-shift-label">Frühschicht ${config.early.start}–${config.early.end}</span>
+              <select class="dp-driver-assignment-select" data-duty="${duty}" data-side="early">${driverOptions(assigned.early, drivers)}</select>
+            </label>
+            <label class="dp-shift-driver">
+              <span class="dp-shift-label">Spätschicht ${config.late.start}–${config.late.end}</span>
+              <select class="dp-driver-assignment-select" data-duty="${duty}" data-side="late">${driverOptions(assigned.late, drivers)}</select>
+            </label>
+          </div>
+        </div>`;
+    }).join('');
+
+    return {
+      signature,
+      html: `
+        <h3>Fahrer für Früh- und Spätschicht auswählen</h3>
+        <div class="dp-shift-help">Die Dienste 1341, 1941 und 1743 werden hier vollständig verwaltet und stehen deshalb nicht noch einmal als zusätzliche Bearbeitungszeilen unten im Plan.</div>
+        ${blocks}`
+    };
+  }
+
   function renderPanel(date) {
     const section = document.getElementById(SECTION_ID);
     const tableWrap = section?.querySelector('.dp-daily-table-wrap');
@@ -230,7 +288,7 @@
 
     let panel = document.getElementById(PANEL_ID);
     if (!shouldShowPanel(date)) {
-      panel?.remove();
+      if (panel) panel.remove();
       return;
     }
 
@@ -240,28 +298,10 @@
       tableWrap.insertAdjacentElement('beforebegin', panel);
     }
 
-    const blocks = Object.entries(DUTIES).map(([duty, config]) => {
-      const assigned = assignmentFor(duty, date);
-      return `
-        <div class="dp-shift-duty">
-          <div class="dp-shift-duty-title">Dienst ${duty} – Fahrer frei zuordnen</div>
-          <div class="dp-shift-grid">
-            <label class="dp-shift-driver">
-              <span class="dp-shift-label">Frühschicht ${config.early.start}–${config.early.end}</span>
-              <select class="dp-driver-assignment-select" data-duty="${duty}" data-side="early">${driverOptions(assigned.early)}</select>
-            </label>
-            <label class="dp-shift-driver">
-              <span class="dp-shift-label">Spätschicht ${config.late.start}–${config.late.end}</span>
-              <select class="dp-driver-assignment-select" data-duty="${duty}" data-side="late">${driverOptions(assigned.late)}</select>
-            </label>
-          </div>
-        </div>`;
-    }).join('');
-
-    panel.innerHTML = `
-      <h3>Fahrer für Früh- und Spätschicht auswählen</h3>
-      <div class="dp-shift-help">Die Dienste 1341, 1941 und 1743 werden hier vollständig verwaltet und stehen deshalb nicht noch einmal als zusätzliche Bearbeitungszeilen unten im Plan.</div>
-      ${blocks}`;
+    const model = panelModel(date);
+    if (panel.dataset.dpRenderSignature === model.signature && panel.childElementCount) return;
+    panel.innerHTML = model.html;
+    panel.dataset.dpRenderSignature = model.signature;
   }
 
   function splitPrintRows(date) {
@@ -320,26 +360,53 @@
   function decoratePreview(date) {
     const preview = document.getElementById('dpDailyPlanPreview');
     if (!preview) return;
-    preview.querySelectorAll('.dp-split-virtual-preview').forEach((row) => row.remove());
-    const virtualRows = splitPrintRows(date);
-    if (!virtualRows.length) return;
 
+    const virtualRows = splitPrintRows(date);
+    const html = virtualRows.map(previewRowHtml).join('');
+    const signature = `${date}|${html}`;
+    const existing = [...preview.querySelectorAll('.dp-split-virtual-preview')];
+
+    if (!virtualRows.length) {
+      if (existing.length) existing.forEach((row) => row.remove());
+      delete preview.dataset.dpSplitSignature;
+      return;
+    }
+
+    if (preview.dataset.dpSplitSignature === signature && existing.length === virtualRows.length) return;
+
+    existing.forEach((row) => row.remove());
     const tableRows = [...document.querySelectorAll(`#${TABLE_ID} tr[data-row-id]`)];
     const lastIsEinsatzwagen = tableRows.length
       && String(tableRows.at(-1)?.querySelector('input[data-field="duty"]')?.value || '').trim() === 'Einsatzwagen';
     const previewRows = [...preview.querySelectorAll('.dp-preview-row')];
     const before = lastIsEinsatzwagen ? previewRows.at(-1) : null;
     const holder = document.createElement('div');
-    holder.innerHTML = virtualRows.map(previewRowHtml).join('');
+    holder.innerHTML = html;
     [...holder.children].forEach((row) => preview.insertBefore(row, before));
+    preview.dataset.dpSplitSignature = signature;
+  }
+
+  function setStatus(text) {
+    const status = document.getElementById('dpDailyPlanStatus');
+    if (!status) return;
+    if (status.textContent !== text) status.textContent = text;
+    if (status.className !== 'dp-daily-status ok') status.className = 'dp-daily-status ok';
   }
 
   function refresh() {
-    const date = selectedDate();
-    addStyle();
-    renderPanel(date);
-    decoratePreview(date);
-    void requestRemoteDrivers();
+    if (refreshing) return;
+    refreshing = true;
+    try {
+      const section = document.getElementById(SECTION_ID);
+      if (!section || section.classList.contains('hidden')) return;
+      const date = selectedDate();
+      addStyle();
+      renderPanel(date);
+      decoratePreview(date);
+      void requestRemoteDrivers();
+    } finally {
+      refreshing = false;
+    }
   }
 
   function schedule(delay = 250) {
@@ -356,30 +423,25 @@
       const side = select.dataset.side === 'late' ? 'late' : 'early';
       const driver = canonicalName(select.value);
       assignDriver(duty, side, driver);
-      const status = document.getElementById('dpDailyPlanStatus');
-      if (status) {
-        status.textContent = `${driver} wurde bei Dienst ${duty} der ${side === 'early' ? 'Frühschicht' : 'Spätschicht'} zugeteilt.`;
-        status.className = 'dp-daily-status ok';
-      }
-      schedule(50);
+      setStatus(`${driver} wurde bei Dienst ${duty} der ${side === 'early' ? 'Frühschicht' : 'Spätschicht'} zugeteilt.`);
+      schedule(40);
       return;
     }
-    if (event.target?.id === DATE_ID) schedule(900);
+    if (event.target?.id === DATE_ID) schedule(180);
   }, true);
 
   document.addEventListener('input', (event) => {
-    if (event.target.matches?.(`#${TABLE_ID} input,#${TABLE_ID} select`)) schedule(350);
+    if (event.target.matches?.(`#${TABLE_ID} input[data-field="duty"]`)) schedule(120);
   }, true);
 
   document.addEventListener('click', (event) => {
     if (event.target.closest?.('#dpDailyDutyPlanTab,#dpDailyInsertDefaults,#dpDailyAddRow,#loginButton,#dpDailySave,#dpDailyPlanRows [data-action]')) {
-      schedule(700);
+      schedule(180);
     }
   }, true);
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => schedule(900), { once: true });
-  else schedule(900);
-  [1800, 4200, 7600].forEach((delay) => window.setTimeout(() => schedule(0), delay));
-  window.addEventListener('pageshow', () => schedule(700));
-  window.addEventListener('focus', () => schedule(700));
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => schedule(250), { once: true });
+  else schedule(250);
+  window.addEventListener('pageshow', () => schedule(180));
+  window.addEventListener('focus', () => schedule(250));
 })();
