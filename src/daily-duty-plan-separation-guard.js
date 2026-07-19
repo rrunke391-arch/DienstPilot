@@ -11,8 +11,8 @@
   }
 
   function loadExtras() {
-    loadScript('dpDailyDutyWeekdayRepair', 'src/daily-duty-plan-weekday-repair.js?v=20260711-1');
-    loadScript('dpDailyDutyStartRepair', 'src/daily-duty-plan-start-duties-repair.js?v=20260711-1');
+    loadScript('dpDailyDutyWeekdayRepairV2', 'src/daily-duty-plan-weekday-repair.js?v=20260719-2');
+    loadScript('dpDailyDutyStartRepairV2', 'src/daily-duty-plan-start-duties-repair.js?v=20260719-2');
     loadScript('dpXlsmCore', 'src/xlsm-core.js?v=20260711-1');
     loadScript('dpXlsmExchange', 'src/xlsm-exchange.js?v=20260711-1');
   }
@@ -22,8 +22,8 @@
   function setStatus(text) {
     const status = document.getElementById('dpDailyPlanStatus');
     if (!status) return;
-    status.textContent = text;
-    status.className = 'dp-daily-status error';
+    if (status.textContent !== text) status.textContent = text;
+    if (status.className !== 'dp-daily-status error') status.className = 'dp-daily-status error';
   }
 
   function duties() {
@@ -33,11 +33,11 @@
   }
 
   function weekendDuty(value) {
-    return /^(305[0-7]|3061|3062)$/.test(value) || value === '1340' || value === '1943';
+    return /^(305[0-7]|3061|3062)$/.test(value) || value === '1340' || value === '11541' || value === '1943';
   }
 
   function weekdayDuty(value) {
-    return /^(300[1-9]|301\d|302[0-5])$/.test(value) || value === '1341' || value === '1941';
+    return /^(300[1-9]|301\d|302[0-5])$/.test(value) || value === '1341' || value === '1743' || value === '1941';
   }
 
   document.addEventListener('click', (event) => {
