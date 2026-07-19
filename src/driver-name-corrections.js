@@ -1,10 +1,19 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotDriverNameCorrectionsV1) return;
+  if (window.__dienstpilotDriverNameCorrectionsV2) return;
+  window.__dienstpilotDriverNameCorrectionsV2 = true;
   window.__dienstpilotDriverNameCorrectionsV1 = true;
 
   const SPLIT_ASSIGNMENT_KEY = 'dienstpilot_split_shift_assignments_v4';
+  const RELEVANT_SELECTOR = [
+    '#dpDailyPlanRows',
+    '#dpStableSplitShiftPanel',
+    '#kollegeSelect',
+    '#dpAssignDriversV2',
+    '#dpAssignDriverV2',
+    '[data-driver-name]'
+  ].join(',');
 
   const REQUIRED_NAMES = [
     'K.Alomar',
@@ -25,43 +34,31 @@
   const ALIASES = new Map([
     ['alomar', 'K.Alomar'],
     ['kalomar', 'K.Alomar'],
-
     ['sayek', 'H.AI Sayek'],
     ['halsayek', 'H.AI Sayek'],
     ['haisayek', 'H.AI Sayek'],
-
     ['wiemann', 'T.Wiemann'],
     ['twiemann', 'T.Wiemann'],
-
     ['murad', 'N.Murad'],
     ['nmurad', 'N.Murad'],
-
     ['biermann', 'F.Biermann'],
     ['fbiermann', 'F.Biermann'],
-
     ['schweppe', 'M.Schweppe'],
     ['mschweppe', 'M.Schweppe'],
-
     ['wullner', 'W.Wüllner'],
     ['wwullner', 'W.Wüllner'],
-
     ['szczepanik', 'A.Szczepanik'],
     ['aszczepanik', 'A.Szczepanik'],
-
     ['lommel', 'P.Lommel'],
     ['lhommel', 'P.Lommel'],
     ['plommel', 'P.Lommel'],
     ['plhommel', 'P.Lommel'],
-
     ['entrup', 'M.Entrup'],
     ['mentrup', 'M.Entrup'],
-
     ['gerding', 'A.Gerding'],
     ['agerding', 'A.Gerding'],
-
     ['kocdemir', 'A.Kocdemir'],
     ['akocdemir', 'A.Kocdemir'],
-
     ['kurta', 'S.Kurta'],
     ['skurta', 'S.Kurta']
   ]);
@@ -149,7 +146,6 @@
 
     names.sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
 
-    const desired = [''].concat(names);
     const current = [...select.options].map((option) => option.value === '' ? '' : `${option.value}|${option.textContent}`);
     const expected = [''].concat(names.map((name) => `${name}|${name}`));
     const same = current.length === expected.length && current.every((value, index) => value === expected[index]);
@@ -170,8 +166,13 @@
       select.replaceChildren(fragment);
     }
 
-    const selectedMatch = names.find((name) => normalize(name) === normalize(selected));
-    select.value = selectedMatch || '';
+    const selectedMatch = names.find((name) => normalize(name) === normalize(selected)) || '';
+    if (select.value !== selectedMatch) select.value = selectedMatch;
+  }
+
+  function setOptionName(option, corrected) {
+    if (option.label !== corrected) option.label = corrected;
+    if (option.textContent !== corrected) option.textContent = corrected;
   }
 
   function correctProfileOptions(select) {
@@ -185,8 +186,7 @@
       const existing = byCanonical.get(key);
 
       if (!existing) {
-        option.label = corrected;
-        option.textContent = corrected;
+        setOptionName(option, corrected);
         byCanonical.set(key, option);
         return;
       }
@@ -194,8 +194,7 @@
       const keepCurrent = option.value === selectedValue && existing.value !== selectedValue;
       if (keepCurrent) {
         existing.remove();
-        option.label = corrected;
-        option.textContent = corrected;
+        setOptionName(option, corrected);
         byCanonical.set(key, option);
       } else {
         option.remove();
@@ -233,15 +232,22 @@
     } catch {}
   }
 
+  function observeBody() {
+    if (!observer || !document.body) return;
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
   function install() {
     if (running) return;
     running = true;
+    observer?.disconnect();
     try {
       migrateSplitAssignments();
       correctInputs();
       correctSelects();
     } finally {
       running = false;
+      observeBody();
     }
   }
 
@@ -250,10 +256,25 @@
     timer = window.setTimeout(install, delay);
   }
 
+  function nodeRelevant(node) {
+    if (node?.nodeType !== 1) return false;
+    return node.matches?.(RELEVANT_SELECTOR) || Boolean(node.querySelector?.(RELEVANT_SELECTOR));
+  }
+
+  function mutationRelevant(mutation) {
+    const target = mutation.target?.nodeType === 1 ? mutation.target : mutation.target?.parentElement;
+    if (target?.closest?.(RELEVANT_SELECTOR)) return true;
+    return [...mutation.addedNodes, ...mutation.removedNodes].some(nodeRelevant);
+  }
+
   function startObserver() {
-    if (!document.body || observer) return;
-    observer = new MutationObserver(() => schedule(80));
-    observer.observe(document.body, { childList: true, subtree: true });
+    if (!document.body) return;
+    if (!observer) {
+      observer = new MutationObserver((mutations) => {
+        if (!running && mutations.some(mutationRelevant)) schedule(80);
+      });
+    }
+    observeBody();
   }
 
   document.addEventListener('change', (event) => {
@@ -267,14 +288,14 @@
 
   document.addEventListener('click', (event) => {
     if (event.target.closest?.('#loginButton,#dpDailyDutyPlanTab,#dpDutyAssignmentV2,#dpDailyAddRow,#dpDailyInsertDefaults,.tab[data-tab="eingabe"]')) {
-      [0, 150, 500, 1200].forEach((delay) => window.setTimeout(install, delay));
+      [0, 150, 500].forEach((delay) => window.setTimeout(install, delay));
     }
   }, true);
 
   function start() {
     startObserver();
     install();
-    [250, 700, 1600, 3200, 6000].forEach((delay) => window.setTimeout(install, delay));
+    [250, 700, 1600].forEach((delay) => window.setTimeout(install, delay));
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
