@@ -102,20 +102,24 @@
   function status(text, kind = '') {
     const node = document.getElementById('dpDailyPlanStatus');
     if (!node) return;
-    node.textContent = text;
-    node.className = 'dp-daily-status' + (kind ? ` ${kind}` : '');
+    const className = 'dp-daily-status' + (kind ? ` ${kind}` : '');
+    if (node.textContent !== text) node.textContent = text;
+    if (node.className !== className) node.className = className;
   }
 
   function restoreSchoolButton() {
     const button = document.getElementById(HOLIDAY_INSERT);
     if (!button) return;
-    button.id = INSERT;
-    button.textContent = 'Standarddienste einfügen';
+    if (button.id !== INSERT) button.id = INSERT;
+    if (button.textContent !== 'Standarddienste einfügen') button.textContent = 'Standarddienste einfügen';
   }
 
   function setHolidayUi(active) {
     const generalAdd = document.getElementById(ADD);
-    if (generalAdd) generalAdd.style.display = active ? 'none' : '';
+    if (generalAdd) {
+      const display = active ? 'none' : '';
+      if (generalAdd.style.display !== display) generalAdd.style.display = display;
+    }
     if (!active) {
       document.getElementById(CONTROL_ID)?.remove();
       restoreSchoolButton();
@@ -143,11 +147,12 @@
       node.id = 'dpNiHolidayDutyStatus';
       document.getElementById('dpDailyPlanStatus')?.insertAdjacentElement('afterend', node);
     }
-    node.textContent = 'Niedersachsen-Ferien: 18 Dienste – 3031 bis 3045 sowie 1341, 1941 und 1743. Der Einsatzwagen wird separat geführt. Über „＋ Frei“ können beliebig viele freie Fahrer ergänzt werden.';
+    const bannerText = 'Niedersachsen-Ferien: 18 Dienste – 3031 bis 3045 sowie 1341, 1941 und 1743. Der Einsatzwagen wird separat geführt. Über „＋ Frei“ können beliebig viele freie Fahrer ergänzt werden.';
+    if (node.textContent !== bannerText) node.textContent = bannerText;
     const button = document.getElementById(INSERT) || document.getElementById(HOLIDAY_INSERT);
     if (button) {
-      button.id = HOLIDAY_INSERT;
-      button.textContent = '18 Ferien-Dienste einfügen';
+      if (button.id !== HOLIDAY_INSERT) button.id = HOLIDAY_INSERT;
+      if (button.textContent !== '18 Ferien-Dienste einfügen') button.textContent = '18 Ferien-Dienste einfügen';
     }
     setHolidayUi(true);
   }
@@ -385,20 +390,26 @@
     if (!holiday(selectedDate()) || !visible()) return;
     const body = document.getElementById(TABLE);
     if (!body) return;
-    document.getElementById(CONTROL_ID)?.remove();
 
-    const control = document.createElement('tr');
-    control.id = CONTROL_ID;
-    const cell = document.createElement('td');
-    cell.colSpan = 8;
+    let control = document.getElementById(CONTROL_ID);
+    if (!control) {
+      control = document.createElement('tr');
+      control.id = CONTROL_ID;
+      const cell = document.createElement('td');
+      cell.colSpan = 8;
+      cell.innerHTML = '<div class="dp-free-control"><button type="button" class="dp-free-button">＋ Frei</button><span class="dp-free-help"></span></div>';
+      control.appendChild(cell);
+      control.querySelector('.dp-free-button')?.addEventListener('click', addFreeRow);
+    }
+
     const count = rows().filter((row) => value(row,'duty') === 'Frei').length;
-    cell.innerHTML = `<div class="dp-free-control"><button type="button" class="dp-free-button">＋ Frei</button><span class="dp-free-help">Fahrer ohne Dienst hinzufügen${count ? ` · aktuell ${count} Fahrer frei` : ''}</span></div>`;
-    control.appendChild(cell);
-    control.querySelector('.dp-free-button')?.addEventListener('click', addFreeRow);
+    const helpText = `Fahrer ohne Dienst hinzufügen${count ? ` · aktuell ${count} Fahrer frei` : ''}`;
+    const help = control.querySelector('.dp-free-help');
+    if (help && help.textContent !== helpText) help.textContent = helpText;
 
-    const firstFree = rows().find((row) => value(row,'duty') === 'Frei');
-    if (firstFree) body.insertBefore(control, firstFree);
-    else body.appendChild(control);
+    const firstFree = rows().find((row) => value(row,'duty') === 'Frei') || null;
+    const alreadyCorrect = control.parentElement === body && control.nextElementSibling === firstFree;
+    if (!alreadyCorrect) body.insertBefore(control, firstFree);
   }
 
   function refresh() {
@@ -419,12 +430,25 @@
     timer = setTimeout(refresh, delay);
   }
 
+  function isControlOnlyMutation(mutation) {
+    const target = mutation.target?.nodeType === 1 ? mutation.target : mutation.target?.parentElement;
+    if (target?.closest?.(`#${CONTROL_ID}`)) return true;
+    const changedNodes = [...mutation.addedNodes, ...mutation.removedNodes];
+    return changedNodes.length > 0 && changedNodes.every((node) => {
+      if (node.nodeType !== 1) return false;
+      return node.id === CONTROL_ID || node.closest?.(`#${CONTROL_ID}`);
+    });
+  }
+
   function observe() {
     const body = document.getElementById(TABLE);
     if (!body || body === observedBody) return;
     observer?.disconnect();
     observedBody = body;
-    observer = new MutationObserver(() => schedule(100));
+    observer = new MutationObserver((mutations) => {
+      if (running || addingFree) return;
+      if (mutations.some((mutation) => !isControlOnlyMutation(mutation))) schedule(100);
+    });
     observer.observe(body, { childList:true, subtree:true });
   }
 
