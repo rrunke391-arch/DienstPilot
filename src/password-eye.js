@@ -1,6 +1,9 @@
 (() => {
   'use strict';
 
+  if (window.__dienstpilotPasswordEyeV2) return;
+  window.__dienstpilotPasswordEyeV2 = true;
+
   let dailyDutyInputPatchInstalled = false;
 
   const eyeIcon = (slashed) => `
@@ -57,51 +60,6 @@
     });
   }
 
-  function loadScript(id, src) {
-    if (document.getElementById(id)) return;
-    const script = document.createElement('script');
-    script.id = id;
-    script.src = src;
-    script.async = false;
-    document.head.appendChild(script);
-  }
-
-  function loadCatalogModules() {
-    loadScript('dpMonthSelectorFinalV7', 'src/month-selector-final.js?v=20260712-7');
-    loadScript('dpCatalogEditor', 'src/catalog-editor.js?v=20260711-3');
-    loadScript('dpSplitShiftCatalogV3', 'src/split-shift-catalog.js?v=20260717-3');
-    loadScript('dpCatalogTimeScale', 'src/catalog-time-scale.js?v=20260711-4');
-    loadScript('dpCatalogEditorSimplify', 'src/catalog-editor-simplify.js?v=20260711-3');
-    loadScript('dpCatalogAddDutyStable', 'src/catalog-add-duty-stable.js?v=20260711-2');
-    loadScript('dpDailyDutyStorageGuardV1', 'src/daily-duty-storage-guard.js?v=20260719-1');
-    loadScript('dpDailyDutyPlan', 'src/daily-duty-plan.js?v=20260711-1');
-    loadScript('dpDailyDutyRenderStabilityV1', 'src/daily-duty-render-stability.js?v=20260719-1');
-    loadScript('dpDailyDutyPrintAnytimeV4', 'src/daily-duty-plan-print-anytime.js?v=20260718-4');
-    loadScript('dpHolidayPlan18V5', 'src/holiday-plan-clean-v3.js?v=20260717-5');
-    loadScript('dpDailyDutyDriverSelectV4', 'src/daily-duty-driver-select.js?v=20260719-1');
-    loadScript('dpDriverMAlsaba', 'src/driver-m-alsaba.js?v=20260717-1');
-    loadScript('dpDriverNameCorrectionsV2', 'src/driver-name-corrections.js?v=20260719-2');
-    loadScript('dpSaturdaySplitDutyOptionsV1', 'src/saturday-split-duty-options.js?v=20260718-1');
-    loadScript('dpDailyDutyDutySelectV6', 'src/daily-duty-duty-select.js?v=20260719-6');
-    loadScript('dpVehiclePlateOptions', 'src/vehicle-plate-options.js?v=20260717-2');
-    loadScript('dpDailyDutyBusMove', 'src/daily-duty-plan-bus-move.js?v=20260711-1');
-    loadScript('dpDailyDutyPhotoDefaults', 'src/daily-duty-plan-photo-defaults.js?v=20260711-2');
-    loadScript('dpDailyDutyPhotoAuto', 'src/daily-duty-plan-photo-auto.js?v=20260711-2');
-    loadScript('dpDailyEinsatzwagenLastV1', 'src/daily-duty-einsatzwagen-last.js?v=20260718-1');
-    loadScript('dpSplitShiftDutiesV6', 'src/split-shift-duties-v5.js?v=20260719-6');
-    loadScript('dpSplitShiftTimeEditorAccess', 'src/split-shift-time-editor-access.js?v=20260718-2');
-    loadScript('dpSplitShiftTimeEditor', 'src/split-shift-time-editor.js?v=20260718-1');
-    loadScript('dpWorkshopVehicles', 'src/workshop-vehicles.js?v=20260717-1');
-    loadScript('dpSavedDutyPlansFolder', 'src/saved-duty-plans-folder.js?v=20260718-1');
-    loadScript('dpWeekendCombinedEditorV1', 'src/weekend-combined-editor.js?v=20260718-1');
-    loadScript('dpWeekendSavedPlansV2', 'src/weekend-saved-plans.js?v=20260719-2');
-    loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260717-3');
-    loadScript('dpDailyDutySeparationV3', 'src/daily-duty-plan-separation.js?v=20260719-3');
-    loadScript('dpWeekendCombinedOpenFixV1', 'src/weekend-combined-open-fix.js?v=20260718-1');
-    loadScript('dpDailyDutyWeekendPhotoV2', 'src/daily-duty-plan-weekend-photo.js?v=20260718-2');
-    loadScript('dpDailyDutySeparationGuard', 'src/daily-duty-plan-separation-guard.js?v=20260711-2');
-  }
-
   function installDailyDutyInputPatch() {
     if (dailyDutyInputPatchInstalled) return;
     dailyDutyInputPatchInstalled = true;
@@ -129,15 +87,8 @@
   function start() {
     startPasswordEye();
     installDailyDutyInputPatch();
-    loadCatalogModules();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
   else start();
-
-  document.addEventListener('click', (event) => {
-    if (event.target.closest?.('#loginButton,.tab[data-tab="katalog"],.tab[data-tab="eingabe"],.tab[data-tab="einstellungen"],#dpDailyDutyPlanTab')) {
-      [0, 200, 700].forEach((delay) => window.setTimeout(loadCatalogModules, delay));
-    }
-  }, true);
 })();
