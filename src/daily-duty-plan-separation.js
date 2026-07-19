@@ -1,10 +1,16 @@
 (() => {
   'use strict';
 
+  if (window.__dienstpilotDailyPlanSeparationV3) return;
+  window.__dienstpilotDailyPlanSeparationV3 = true;
+
   const STYLE_ID = 'dpDailyPlanSeparationStyle';
   const WEEKDAY_PRINT_ID = 'dpDailyPrintWeekday';
   const WEEKEND_PRINT_ID = 'dpDailyPrintWeekend';
   const MODE_ID = 'dpDailyPlanModeLabel';
+  const WEEKEND_PANEL_ID = 'dpWeekendCombinedEditor';
+
+  let installTimer = 0;
 
   function currentDate() {
     return String(document.getElementById('dpDailyPlanDate')?.value || '').trim();
@@ -26,11 +32,23 @@
     return day === 0 || day === 6;
   }
 
+  function setText(node, text) {
+    if (node && node.textContent !== text) node.textContent = text;
+  }
+
+  function setClass(node, className) {
+    if (node && node.className !== className) node.className = className;
+  }
+
+  function setTitle(node, title) {
+    if (node && node.title !== title) node.title = title;
+  }
+
   function setStatus(text, kind = '') {
     const status = document.getElementById('dpDailyPlanStatus');
     if (!status) return;
-    status.textContent = text;
-    status.className = 'dp-daily-status' + (kind ? ' ' + kind : '');
+    setText(status, text);
+    setClass(status, 'dp-daily-status' + (kind ? ` ${kind}` : ''));
   }
 
   function addStyle() {
@@ -112,6 +130,13 @@
     return label;
   }
 
+  function closeStaleWeekendEditor() {
+    if (!isWeekday(currentDate())) return;
+    const panel = document.getElementById(WEEKEND_PANEL_ID);
+    if (panel && !panel.hidden) panel.hidden = true;
+    document.body.classList.remove('dp-weekend-combined-open');
+  }
+
   function updateMode() {
     const date = currentDate();
     const weekday = isWeekday(date);
@@ -123,32 +148,37 @@
     weekdayButton?.classList.toggle('dp-active-plan', weekday);
     weekendButton?.classList.toggle('dp-active-plan', weekend);
 
-    if (weekdayButton) {
-      weekdayButton.title = weekday
-        ? 'Den ausgewählten Werktagsdienstplan drucken'
-        : 'Dafür ein Datum von Montag bis Freitag auswählen';
-    }
-    if (weekendButton) {
-      weekendButton.title = 'Samstag und Sonntag gemeinsam auf einer Seite drucken';
-    }
+    setTitle(weekdayButton, weekday
+      ? 'Den ausgewählten Werktagsdienstplan drucken'
+      : 'Dafür ein Datum von Montag bis Freitag auswählen');
+    setTitle(weekendButton, 'Samstag und Sonntag gemeinsam auf einer Seite drucken');
 
-    if (label) {
-      label.className = 'dp-daily-plan-mode-label' + (weekday ? ' weekday' : weekend ? ' weekend' : '');
-      label.textContent = weekday
-        ? 'Aktiver Plan: Montag bis Freitag.'
-        : weekend
-          ? 'Aktiver Wochenendplan: Samstag und Sonntag werden gemeinsam bearbeitet, gespeichert und gedruckt.'
-          : 'Samstag und Sonntag können gemeinsam geöffnet und bearbeitet werden.';
-    }
+    const className = 'dp-daily-plan-mode-label' + (weekday ? ' weekday' : weekend ? ' weekend' : '');
+    const text = weekday
+      ? 'Aktiver Plan: Montag bis Freitag.'
+      : weekend
+        ? 'Aktiver Wochenendplan: Samstag und Sonntag werden gemeinsam bearbeitet, gespeichert und gedruckt.'
+        : 'Samstag und Sonntag können gemeinsam geöffnet und bearbeitet werden.';
+    setClass(label, className);
+    setText(label, text);
 
     const empty = document.querySelector('#dpDailyPlanRows .dp-preview-empty');
-    if (empty && /Noch keine Einträge|Standarddienste/.test(empty.textContent || '')) {
-      empty.textContent = weekday
+    if (empty && /Noch keine Einträge|Standarddienste|gemeinsamen Wochenendplan/.test(empty.textContent || '')) {
+      setText(empty, weekday
         ? 'Der Dienstplan Montag bis Freitag wird für dieses Datum automatisch eingefügt.'
         : weekend
           ? 'Den gemeinsamen Wochenendplan über „Samstag und Sonntag gemeinsam bearbeiten“ öffnen.'
-          : 'Bitte ein Datum auswählen.';
+          : 'Bitte ein Datum auswählen.');
     }
+
+    closeStaleWeekendEditor();
+  }
+
+  function hideLegacyButton(button) {
+    if (!button) return;
+    if (!button.hidden) button.hidden = true;
+    if (button.getAttribute('aria-hidden') !== 'true') button.setAttribute('aria-hidden', 'true');
+    if (button.tabIndex !== -1) button.tabIndex = -1;
   }
 
   function install() {
@@ -157,23 +187,12 @@
     const actions = card?.querySelector('.dp-daily-actions');
     if (!card || !actions) return false;
 
-    const insertButton = document.getElementById('dpDailyInsertDefaults');
-    if (insertButton) {
-      insertButton.hidden = true;
-      insertButton.setAttribute('aria-hidden', 'true');
-      insertButton.tabIndex = -1;
-    }
-
-    const oldPrint = document.getElementById('dpDailyPrint');
-    const a4Print = document.getElementById('dpDailyPrintA4');
-    [oldPrint, a4Print].filter(Boolean).forEach((button) => {
-      button.hidden = true;
-      button.setAttribute('aria-hidden', 'true');
-      button.tabIndex = -1;
-    });
+    hideLegacyButton(document.getElementById('dpDailyInsertDefaults'));
+    hideLegacyButton(document.getElementById('dpDailyPrint'));
+    hideLegacyButton(document.getElementById('dpDailyPrintA4'));
 
     const subtitle = card.querySelector('.dp-daily-title .muted');
-    if (subtitle) subtitle.textContent = 'Montag bis Freitag wird getrennt bearbeitet. Samstag und Sonntag werden gemeinsam bearbeitet, gespeichert und auf einer Seite gedruckt.';
+    setText(subtitle, 'Montag bis Freitag wird getrennt bearbeitet. Samstag und Sonntag werden gemeinsam bearbeitet, gespeichert und auf einer Seite gedruckt.');
 
     createPrintButtons(actions);
     installModeLabel(card);
@@ -181,19 +200,23 @@
     return true;
   }
 
-  [0, 150, 500, 1200, 2500].forEach((delay) => window.setTimeout(install, delay));
+  function scheduleInstall(delay = 40) {
+    window.clearTimeout(installTimer);
+    installTimer = window.setTimeout(install, delay);
+  }
+
+  [0, 150, 500, 1200].forEach((delay) => window.setTimeout(install, delay));
+
   document.addEventListener('change', (event) => {
-    if (event.target?.id === 'dpDailyPlanDate') window.setTimeout(updateMode, 80);
+    if (event.target?.id === 'dpDailyPlanDate') scheduleInstall(40);
   });
+
   document.addEventListener('click', (event) => {
-    if (event.target.closest?.('#dpDailyDutyPlanTab,#loginButton,#dpDailyAddRow,#dpDailyClear,#dpDailyEditWeekend')) {
-      [0, 120, 350].forEach((delay) => window.setTimeout(() => {
-        install();
-        updateMode();
-      }, delay));
+    if (event.target.closest?.('#dpDailyDutyPlanTab,#loginButton,#dpDailyAddRow,#dpDailyClear,#dpDailyEditWeekend,#dpWeekendCombinedClose')) {
+      scheduleInstall(40);
     }
   }, true);
-  window.addEventListener('pageshow', () => { install(); updateMode(); });
-  window.addEventListener('focus', () => { install(); updateMode(); });
-  window.setInterval(() => { install(); updateMode(); }, 1500);
+
+  window.addEventListener('pageshow', () => scheduleInstall(40));
+  window.addEventListener('focus', () => scheduleInstall(80));
 })();
