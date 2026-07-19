@@ -140,7 +140,9 @@
     loadScript('dpDailyDutyPlan', 'src/daily-duty-plan.js?v=20260711-1');
     loadScript('dpDailyDutyRenderStabilityV1', 'src/daily-duty-render-stability.js?v=20260719-1');
 
-    // Die zentrale Drucksteuerung wird vor allen weiteren Dienstplan-Erweiterungen geladen.
+    // Der direkte A4-Druck wird zuerst eingerichtet. Die zentrale Drucksteuerung
+    // kann dadurch niemals mehr auf den alten Druckknopf oder eine falsche Vorlage fallen.
+    loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260717-3');
     loadScript('dpDailyDutyPrintAnytimeV4', 'src/daily-duty-plan-print-anytime.js?v=20260718-4');
 
     loadScript('dpHolidayPlan18V5', 'src/holiday-plan-clean-v3.js?v=20260717-5');
@@ -162,7 +164,6 @@
     loadScript('dpSavedDutyPlansFolder', 'src/saved-duty-plans-folder.js?v=20260718-1');
     loadScript('dpWeekendCombinedEditorV1', 'src/weekend-combined-editor.js?v=20260718-1');
     loadScript('dpWeekendSavedPlansV2', 'src/weekend-saved-plans.js?v=20260719-2');
-    loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260717-3');
     loadScript('dpDailyDutySeparationV3', 'src/daily-duty-plan-separation.js?v=20260719-3');
     loadScript('dpWeekendCombinedOpenFixV1', 'src/weekend-combined-open-fix.js?v=20260718-1');
     loadScript('dpDailyDutyWeekendPhotoV2', 'src/daily-duty-plan-weekend-photo.js?v=20260718-2');
