@@ -90,6 +90,7 @@
     loadScript('dpWorkshopVehicles', 'src/workshop-vehicles.js?v=20260717-1');
     loadScript('dpSavedDutyPlansFolder', 'src/saved-duty-plans-folder.js?v=20260718-1');
     loadScript('dpWeekendCombinedEditorV1', 'src/weekend-combined-editor.js?v=20260718-1');
+    loadScript('dpWeekendSavedPlansV1', 'src/weekend-saved-plans.js?v=20260719-1');
     loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260717-3');
     loadScript('dpDailyDutySeparationV2', 'src/daily-duty-plan-separation.js?v=20260718-2');
     loadScript('dpWeekendCombinedOpenFixV1', 'src/weekend-combined-open-fix.js?v=20260718-1');
