@@ -136,7 +136,7 @@
     loadScript('dpDailyDutyPrintAnytimeV4', 'src/daily-duty-plan-print-anytime.js?v=20260718-4');
 
     loadScript('dpHolidayPlan18V5', 'src/holiday-plan-clean-v3.js?v=20260717-5');
-    loadScript('dpDailyDutyDriverSelectV2', 'src/daily-duty-driver-select.js?v=20260717-4');
+    loadScript('dpDailyDutyDriverSelectV4', 'src/daily-duty-driver-select.js?v=20260719-1');
     loadScript('dpSaturdaySplitDutyOptionsV1', 'src/saturday-split-duty-options.js?v=20260718-1');
     loadScript('dpDailyDutyDutySelectV5', 'src/daily-duty-duty-select.js?v=20260718-5');
     loadScript('dpDailyDutyRoleAccess', 'src/daily-duty-role-access.js?v=20260718-3');
