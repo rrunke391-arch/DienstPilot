@@ -31,7 +31,9 @@
       || role === 'admin'
       || role === 'geschaftsleitung'
       || role === 'geschaeftsleitung'
-      || role === 'disposition';
+      || role === 'disposition'
+      || role === 'disponent'
+      || role === 'disponentin';
   }
 
   function addStyle() {
