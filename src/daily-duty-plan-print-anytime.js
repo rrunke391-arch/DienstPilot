@@ -153,7 +153,13 @@
 
   function visibleRows() {
     return [...document.querySelectorAll('#dpDailyPlanRows tr[data-row-id]')].map((row) => {
-      const field = (name) => String(row.querySelector(`[data-field="${name}"]`)?.value || '');
+      const field = (name) => {
+        const controls = [...row.querySelectorAll(`[data-field="${name}"]`)];
+        const active = controls.find((control) => control.type !== 'hidden' && !control.disabled)
+          || controls.find((control) => control.type === 'hidden')
+          || controls[0];
+        return String(active?.value || '');
+      };
       return normalizeRow({
         id: row.dataset.rowId,
         name: field('name'), duty: field('duty'), bus: field('bus'), start: field('start'),
@@ -196,6 +202,11 @@
     const day = selected.getDay();
     if (day >= 1 && day <= 5) return isoDate(selected);
     return isoDate(mondayOfWeek(selected));
+  }
+
+  function selectedDateIsWeekday() {
+    const day = parseDate(currentDate()).getDay();
+    return day >= 1 && day <= 5;
   }
 
   function weekendDates() {
@@ -295,18 +306,33 @@
   function setStatus(text, kind = 'ok') {
     const status = document.getElementById('dpDailyPlanStatus');
     if (!status) return;
-    status.textContent = text;
-    status.className = `dp-daily-status ${kind}`;
+    if (status.textContent !== text) status.textContent = text;
+    const className = `dp-daily-status ${kind}`;
+    if (status.className !== className) status.className = className;
+  }
+
+  function printCurrentVisibleWeekdayPlan() {
+    const button = document.getElementById('dpDailyPrintA4') || document.getElementById('dpDailyPrint');
+    if (!button) return false;
+    button.click();
+    setStatus('Der aktuell sichtbare Dienstplan wurde für den Druck geöffnet.');
+    return true;
   }
 
   function printWeekday() {
+    // An einem ausgewählten Montag bis Freitag muss genau der aktuell bearbeitete
+    // Tabellenplan gedruckt werden. Das gilt auch für Ferienpläne 3031–3045.
+    if (selectedDateIsWeekday() && visibleRows().length && printCurrentVisibleWeekdayPlan()) return;
+
+    // Ist gerade Samstag oder Sonntag ausgewählt, wird weiterhin der Werktagsplan
+    // derselben Kalenderwoche aus dem Speicher beziehungsweise der Vorlage gedruckt.
     const date = weekdayReferenceDate();
     const rows = strictRows(date, WEEKDAY_ASSIGNMENTS, WEEKDAY_ALLOWED, WEEKDAY_ORDER);
     const chunks = [];
     for (let index = 0; index < rows.length; index += 17) chunks.push(rows.slice(index, index + 17));
     const html = chunks.map((chunk, index) => `<div style="${index ? 'break-before:page;' : ''}">${sectionHtml(date, chunk, 'weekday')}</div>`).join('');
     openPrint(html, 'Dienstplan Montag bis Freitag');
-    setStatus('Der Dienstplan Montag bis Freitag wurde für den Druck geöffnet.');
+    setStatus('Der gespeicherte Dienstplan Montag bis Freitag wurde für den Druck geöffnet.');
   }
 
   function printWeekend() {
@@ -360,18 +386,21 @@
     const weekday = document.getElementById(WEEKDAY_BUTTON);
     const weekend = document.getElementById(WEEKEND_BUTTON);
     if (weekday) {
-      weekday.title = 'Den Dienstplan Montag bis Freitag jederzeit drucken';
+      weekday.title = 'Den aktuell ausgewählten Dienstplan von Montag bis Freitag drucken';
       weekday.classList.add('dp-active-plan');
     }
     if (weekend) {
-      weekend.textContent = 'Dienstplan Samstag und Sonntag gemeinsam drucken';
+      if (weekend.textContent !== 'Dienstplan Samstag und Sonntag gemeinsam drucken') {
+        weekend.textContent = 'Dienstplan Samstag und Sonntag gemeinsam drucken';
+      }
       weekend.title = 'Samstags- und Sonntagsdienste gemeinsam auf einer Seite drucken';
       weekend.classList.add('dp-active-plan');
     }
     const label = document.getElementById('dpDailyPlanModeLabel');
     if (label) {
-      label.className = 'dp-daily-plan-mode-label';
-      label.textContent = 'Samstag und Sonntag werden gemeinsam bearbeitet, gemeinsam gespeichert und auf einer Seite gedruckt.';
+      const text = 'Samstag und Sonntag werden gemeinsam bearbeitet, gemeinsam gespeichert und auf einer Seite gedruckt.';
+      if (label.className !== 'dp-daily-plan-mode-label') label.className = 'dp-daily-plan-mode-label';
+      if (label.textContent !== text) label.textContent = text;
     }
     installEditButton();
   }
@@ -386,8 +415,12 @@
     else printWeekend();
   }, true);
 
-  [0, 150, 500, 1200, 2500].forEach((delay) => window.setTimeout(refreshLabels, delay));
+  function scheduleRefresh() {
+    [0, 150, 500, 1200].forEach((delay) => window.setTimeout(refreshLabels, delay));
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', scheduleRefresh, { once: true });
+  else scheduleRefresh();
   window.addEventListener('focus', refreshLabels);
   window.addEventListener('pageshow', refreshLabels);
-  window.setInterval(refreshLabels, 1500);
 })();
