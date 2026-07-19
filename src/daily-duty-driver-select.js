@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotDailyDutyDriverSelectV3) return;
+  if (window.__dienstpilotDailyDutyDriverSelectV4) return;
+  window.__dienstpilotDailyDutyDriverSelectV4 = true;
   window.__dienstpilotDailyDutyDriverSelectV3 = true;
 
   const USER_KEY = 'dienstpilot_user';
@@ -49,6 +50,7 @@
   let timer = 0;
   let observer = null;
   let observedBody = null;
+  let installing = false;
 
   function normalize(value) {
     return String(value || '')
@@ -141,99 +143,123 @@
 
     document.querySelectorAll(`#${TABLE_ID} input[data-field="name"]`).forEach((input) => {
       const value = canonicalName(input.value);
-      if (value.includes('/')) {
-        value.split('/').forEach((part) => addName(part, names));
-      } else {
-        addName(value, names);
-      }
+      if (value.includes('/')) value.split('/').forEach((part) => addName(part, names));
+      else addName(value, names);
     });
 
     return names.sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
   }
 
-  function rebuildOptions(select, selected, names) {
+  function desiredOptions(selected, names) {
     const current = canonicalName(selected);
     const values = [...names];
     if (current && !values.some((name) => normalize(name) === normalize(current))) values.unshift(current);
+    return {
+      current,
+      values,
+      options: [
+        { value: '', text: 'Fahrer auswählen' },
+        ...values.map((name) => ({ value: name, text: name }))
+      ]
+    };
+  }
 
-    select.replaceChildren();
+  function optionsMatch(select, desired) {
+    const current = [...select.options];
+    return current.length === desired.length
+      && current.every((option, index) => option.value === desired[index].value && option.textContent === desired[index].text);
+  }
 
-    const blank = document.createElement('option');
-    blank.value = '';
-    blank.textContent = 'Fahrer auswählen';
-    select.appendChild(blank);
+  function rebuildOptions(select, selected, names) {
+    const desired = desiredOptions(selected, names);
+    if (!optionsMatch(select, desired.options)) {
+      const fragment = document.createDocumentFragment();
+      desired.options.forEach((entry) => {
+        const option = document.createElement('option');
+        option.value = entry.value;
+        option.textContent = entry.text;
+        fragment.appendChild(option);
+      });
+      select.replaceChildren(fragment);
+    }
 
-    values.forEach((name) => {
-      const option = document.createElement('option');
-      option.value = name;
-      option.textContent = name;
-      option.selected = normalize(name) === normalize(current);
-      select.appendChild(option);
-    });
-
-    const selectedName = values.find((name) => normalize(name) === normalize(current));
-    select.value = selectedName || '';
+    const selectedName = desired.values.find((name) => normalize(name) === normalize(desired.current));
+    const nextValue = selectedName || '';
+    if (select.value !== nextValue) select.value = nextValue;
   }
 
   function syncSelect(input, select) {
     const current = canonicalName(input.value);
-    if (![...select.options].some((option) => normalize(option.value) === normalize(current))) {
+    if (current && ![...select.options].some((option) => normalize(option.value) === normalize(current))) {
       const option = document.createElement('option');
       option.value = current;
       option.textContent = current;
       select.appendChild(option);
     }
     const match = [...select.options].find((option) => normalize(option.value) === normalize(current));
-    if (match && select.value !== match.value) select.value = match.value;
+    const nextValue = match?.value || '';
+    if (select.value !== nextValue) select.value = nextValue;
+  }
+
+  function observeCurrentBody() {
+    if (!observer || !observedBody?.isConnected) return;
+    observer.observe(observedBody, { childList: true, subtree: true });
   }
 
   function installSelects() {
-    if (!maySelectDrivers()) return false;
-    addStyle();
+    if (installing || !maySelectDrivers()) return false;
+    installing = true;
+    observer?.disconnect();
 
-    const names = availableDrivers();
-    const inputs = [...document.querySelectorAll(`#${TABLE_ID} input[data-field="name"]`)];
-    if (!inputs.length) return false;
+    try {
+      addStyle();
+      const names = availableDrivers();
+      const inputs = [...document.querySelectorAll(`#${TABLE_ID} input[data-field="name"]`)];
+      if (!inputs.length) return false;
 
-    inputs.forEach((input) => {
-      const cell = input.closest('td');
-      if (!cell) return;
+      inputs.forEach((input) => {
+        const cell = input.closest('td');
+        if (!cell) return;
 
-      const correctedName = canonicalName(input.value);
-      if (correctedName !== String(input.value || '').trim()) {
-        input.value = correctedName;
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-
-      let select = cell.querySelector('.dp-daily-driver-select');
-      if (!select) {
-        select = document.createElement('select');
-        select.className = 'dp-daily-driver-select';
-        select.setAttribute('aria-label', 'Fahrer auswählen');
-
-        select.addEventListener('change', () => {
-          input.value = canonicalName(select.value);
+        const correctedName = canonicalName(input.value);
+        if (correctedName !== String(input.value || '').trim()) {
+          input.value = correctedName;
           input.dispatchEvent(new Event('input', { bubbles: true }));
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-        });
+        }
 
-        cell.insertBefore(select, input);
-      }
+        let select = cell.querySelector('.dp-daily-driver-select');
+        if (!select) {
+          select = document.createElement('select');
+          select.className = 'dp-daily-driver-select';
+          select.setAttribute('aria-label', 'Fahrer auswählen');
 
-      rebuildOptions(select, correctedName, names);
-      input.classList.add('dp-daily-driver-source');
-      input.setAttribute('aria-hidden', 'true');
-      input.tabIndex = -1;
-      input.style.setProperty('display', 'none', 'important');
+          select.addEventListener('change', () => {
+            input.value = canonicalName(select.value);
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+          });
 
-      if (!input.dataset.dpDriverSyncV3) {
-        input.dataset.dpDriverSyncV3 = '1';
-        input.addEventListener('input', () => syncSelect(input, select));
-        input.addEventListener('change', () => syncSelect(input, select));
-      }
-    });
+          cell.insertBefore(select, input);
+        }
 
-    return true;
+        rebuildOptions(select, correctedName, names);
+        input.classList.add('dp-daily-driver-source');
+        input.setAttribute('aria-hidden', 'true');
+        input.tabIndex = -1;
+        input.style.setProperty('display', 'none', 'important');
+
+        if (!input.dataset.dpDriverSyncV4) {
+          input.dataset.dpDriverSyncV4 = '1';
+          input.addEventListener('input', () => syncSelect(input, select));
+          input.addEventListener('change', () => syncSelect(input, select));
+        }
+      });
+
+      return true;
+    } finally {
+      installing = false;
+      observeCurrentBody();
+    }
   }
 
   async function requestDrivers() {
@@ -260,21 +286,25 @@
 
   function scheduleInstall(delay = 80) {
     window.clearTimeout(timer);
-    timer = window.setTimeout(() => installSelects(), delay);
+    timer = window.setTimeout(installSelects, delay);
   }
 
   function installObserver() {
     const body = document.getElementById(TABLE_ID);
-    if (!body || body === observedBody) return;
-    observer?.disconnect();
-    observedBody = body;
-    observer = new MutationObserver(() => scheduleInstall(60));
-    observer.observe(body, { childList: true, subtree: true });
+    if (!body) return;
+    if (body !== observedBody) {
+      observer?.disconnect();
+      observedBody = body;
+      observer = new MutationObserver(() => {
+        if (!installing) scheduleInstall(60);
+      });
+    }
+    observeCurrentBody();
   }
 
   function refresh() {
     installObserver();
-    [0, 120, 350, 800, 1600].forEach((delay) => window.setTimeout(installSelects, delay));
+    [0, 120, 350, 800].forEach((delay) => window.setTimeout(installSelects, delay));
     void requestDrivers();
   }
 
@@ -293,7 +323,7 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', refresh, { once: true });
   else refresh();
 
-  [1200, 3000, 6000, 10000].forEach((delay) => window.setTimeout(refresh, delay));
+  [1200, 3000].forEach((delay) => window.setTimeout(refresh, delay));
   window.addEventListener('pageshow', refresh);
   window.addEventListener('focus', refresh);
 })();
