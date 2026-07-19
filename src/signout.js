@@ -130,6 +130,7 @@
     loadScript('dpXlsmCore', 'src/xlsm-core.js?v=20260711-1');
     loadScript('dpXlsmExchange', 'src/xlsm-exchange.js?v=20260711-1');
     loadScript('dpDailyDutyPlan', 'src/daily-duty-plan.js?v=20260711-1');
+    loadScript('dpDailyDutyRenderStabilityV1', 'src/daily-duty-render-stability.js?v=20260719-1');
 
     // Die zentrale Drucksteuerung wird bewusst vor der Dienstauswahl geladen.
     // So druckt „Montag bis Freitag“ niemals die aktuell sichtbare Samstagsansicht.
@@ -138,14 +139,14 @@
     loadScript('dpHolidayPlan18V5', 'src/holiday-plan-clean-v3.js?v=20260717-5');
     loadScript('dpDailyDutyDriverSelectV4', 'src/daily-duty-driver-select.js?v=20260719-1');
     loadScript('dpSaturdaySplitDutyOptionsV1', 'src/saturday-split-duty-options.js?v=20260718-1');
-    loadScript('dpDailyDutyDutySelectV5', 'src/daily-duty-duty-select.js?v=20260718-5');
+    loadScript('dpDailyDutyDutySelectV6', 'src/daily-duty-duty-select.js?v=20260719-6');
     loadScript('dpDailyDutyRoleAccess', 'src/daily-duty-role-access.js?v=20260718-3');
     loadScript('dpVehiclePlateOptions', 'src/vehicle-plate-options.js?v=20260717-2');
     loadScript('dpDailyDutyBusMove', 'src/daily-duty-plan-bus-move.js?v=20260711-1');
     loadScript('dpDailyDutyPhotoDefaults', 'src/daily-duty-plan-photo-defaults.js?v=20260711-2');
     loadScript('dpDailyDutyPhotoAuto', 'src/daily-duty-plan-photo-auto.js?v=20260711-2');
     loadScript('dpDailyEinsatzwagenLastV1', 'src/daily-duty-einsatzwagen-last.js?v=20260718-1');
-    loadScript('dpSplitShiftDutiesV5NewTimes', 'src/split-shift-duties-v5.js?v=20260717-2');
+    loadScript('dpSplitShiftDutiesV6', 'src/split-shift-duties-v5.js?v=20260719-6');
     loadScript('dpSplitShiftTimeEditorAccess', 'src/split-shift-time-editor-access.js?v=20260718-2');
     loadScript('dpSplitShiftTimeEditor', 'src/split-shift-time-editor.js?v=20260718-1');
     loadScript('dpWorkshopVehicles', 'src/workshop-vehicles.js?v=20260717-1');
@@ -153,7 +154,7 @@
     loadScript('dpWeekendCombinedEditorV1', 'src/weekend-combined-editor.js?v=20260718-1');
     loadScript('dpWeekendSavedPlansV1', 'src/weekend-saved-plans.js?v=20260719-1');
     loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260717-3');
-    loadScript('dpDailyDutySeparationV2', 'src/daily-duty-plan-separation.js?v=20260718-2');
+    loadScript('dpDailyDutySeparationV3', 'src/daily-duty-plan-separation.js?v=20260719-3');
     loadScript('dpWeekendCombinedOpenFixV1', 'src/weekend-combined-open-fix.js?v=20260718-1');
     loadScript('dpDailyDutyWeekendPhotoV2', 'src/daily-duty-plan-weekend-photo.js?v=20260718-2');
     loadScript('dpDailyDutySeparationGuard', 'src/daily-duty-plan-separation-guard.js?v=20260711-2');
