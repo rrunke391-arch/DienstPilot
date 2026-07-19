@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotDailyDutyStorageGuardV1) return;
+  if (window.__dienstpilotDailyDutyStorageGuardV2) return;
+  window.__dienstpilotDailyDutyStorageGuardV2 = true;
   window.__dienstpilotDailyDutyStorageGuardV1 = true;
 
   const API_URL = 'https://api.dienstpilot-runke.de/api/data/daily_duty_plans';
@@ -55,6 +56,14 @@
     return { plans };
   }
 
+  function readLocalStore() {
+    try {
+      return normalizeStore(JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}'));
+    } catch {
+      return { plans: {} };
+    }
+  }
+
   function readSessionBaseline() {
     try {
       return normalizeStore(JSON.parse(sessionStorage.getItem(BASELINE_KEY) || '{}'));
@@ -78,6 +87,49 @@
       savedAt: String(plan.savedAt || '')
     };
     return JSON.stringify(normalized);
+  }
+
+  function stableStore(store) {
+    const normalized = normalizeStore(store);
+    const ordered = {};
+    Object.keys(normalized.plans).sort().forEach((date) => {
+      ordered[date] = normalized.plans[date];
+    });
+    return JSON.stringify({ plans: ordered });
+  }
+
+  function savedTime(plan) {
+    const time = Date.parse(plan?.savedAt || '');
+    return Number.isFinite(time) ? time : null;
+  }
+
+  function chooseLatestPlan(localPlan, remotePlan) {
+    if (!localPlan) return remotePlan || null;
+    if (!remotePlan) return localPlan;
+
+    const localTime = savedTime(localPlan);
+    const remoteTime = savedTime(remotePlan);
+    if (localTime !== null && remoteTime !== null) return localTime >= remoteTime ? localPlan : remotePlan;
+    if (localTime !== null) return localPlan;
+    if (remoteTime !== null) return remotePlan;
+
+    // Ohne verlässlichen Speicherzeitpunkt bleibt der lokale Stand erhalten,
+    // damit eine noch nicht synchronisierte Änderung nicht verloren geht.
+    return localPlan;
+  }
+
+  function mergeForRead(remoteStore, localStore) {
+    const remote = normalizeStore(remoteStore);
+    const local = normalizeStore(localStore);
+    const dates = new Set([...Object.keys(remote.plans), ...Object.keys(local.plans)]);
+    const plans = {};
+
+    dates.forEach((date) => {
+      const selected = chooseLatestPlan(local.plans[date], remote.plans[date]);
+      if (selected) plans[date] = selected;
+    });
+
+    return { plans };
   }
 
   function combinedHeaders(input, init, forceJson = false) {
@@ -105,6 +157,16 @@
       return { ...payload, plans };
     }
     return plans;
+  }
+
+  function responsePayload(wrapper, mergedStore) {
+    if (wrapper && typeof wrapper === 'object' && Object.prototype.hasOwnProperty.call(wrapper, 'data')) {
+      return { ...wrapper, data: mergedStore };
+    }
+    if (wrapper && typeof wrapper === 'object' && wrapper.plans && typeof wrapper.plans === 'object') {
+      return { ...wrapper, plans: mergedStore.plans };
+    }
+    return mergedStore;
   }
 
   function localPlanIsNewer(localPlan, remotePlan) {
@@ -155,23 +217,54 @@
     };
   }
 
-  function persistMerged(store) {
+  function persistLocal(store, notify = true) {
     const normalized = normalizeStore(store);
-    try {
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(normalized));
-    } catch {}
-    rememberBaseline(normalized);
-    window.dispatchEvent(new CustomEvent('dienstpilot:daily-plans-safely-merged', {
-      detail: { planCount: Object.keys(normalized.plans).length }
-    }));
+    const previous = readLocalStore();
+    const changed = stableStore(previous) !== stableStore(normalized);
+
+    if (changed) {
+      try {
+        localStorage.setItem(LOCAL_KEY, JSON.stringify(normalized));
+      } catch {}
+    }
+
+    if (changed && notify) {
+      window.dispatchEvent(new CustomEvent('dienstpilot:daily-plans-safely-merged', {
+        detail: { planCount: Object.keys(normalized.plans).length }
+      }));
+    }
   }
 
-  async function captureGet(response) {
-    if (!response?.ok) return;
+  function persistAfterWrite(store) {
+    const normalized = normalizeStore(store);
+    persistLocal(normalized, true);
+    rememberBaseline(normalized);
+  }
+
+  async function mergeGetResponse(response) {
+    if (!response?.ok) return response;
+
     try {
       const wrapper = await response.clone().json();
-      rememberBaseline(normalizeStore(unwrap(wrapper)));
-    } catch {}
+      const remote = normalizeStore(unwrap(wrapper));
+      const local = readLocalStore();
+      const merged = mergeForRead(remote, local);
+
+      // Die Serverantwort bleibt die Vergleichsbasis. So werden lokal neuere,
+      // noch nicht synchronisierte Tage beim nächsten Speichern hochgeladen.
+      rememberBaseline(remote);
+      persistLocal(merged, true);
+
+      const headers = new Headers(response.headers);
+      headers.set('Content-Type', 'application/json; charset=utf-8');
+      return new Response(JSON.stringify(responsePayload(wrapper, merged)), {
+        status: response.status,
+        statusText: response.statusText,
+        headers
+      });
+    } catch {
+      return response;
+    }
   }
 
   async function performSafePut(input, init) {
@@ -217,8 +310,8 @@
 
     const response = await originalFetch(typeof input === 'string' || input instanceof URL ? input : API_URL, nextInit);
     if (response.ok) {
-      persistMerged(merged.store);
-      window.setTimeout(() => persistMerged(merged.store), 0);
+      persistAfterWrite(merged.store);
+      window.setTimeout(() => persistAfterWrite(merged.store), 0);
     }
     return response;
   }
@@ -228,10 +321,7 @@
     const method = requestMethod(input, init);
 
     if (method === 'GET') {
-      return originalFetch(input, init).then(async (response) => {
-        await captureGet(response);
-        return response;
-      });
+      return originalFetch(input, init).then(mergeGetResponse);
     }
 
     if (method === 'PUT') {
