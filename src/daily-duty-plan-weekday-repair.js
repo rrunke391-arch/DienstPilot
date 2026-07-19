@@ -1,6 +1,9 @@
 (() => {
   'use strict';
 
+  if (window.__dienstpilotWeekdayRepairV2) return;
+  window.__dienstpilotWeekdayRepairV2 = true;
+
   const DATE_ID = 'dpDailyPlanDate';
   const TABLE_ID = 'dpDailyPlanRows';
   const MARKER_KEY = 'dienstpilot_weekday_list_repair_v1';
@@ -10,6 +13,17 @@
     '3010', '3011', '3012', '3013', '3014', '3015', '3016', '3017',
     '3018', '3019', '3020', '3021', '3022', '3023', '3024', '3025',
     '1341', '1941', '3002', 'einsatzwagen'
+  ];
+
+  const HOLIDAY_PERIODS = [
+    ['2025-10-13', '2025-10-25'], ['2025-12-22', '2026-01-05'],
+    ['2026-02-02', '2026-02-03'], ['2026-03-23', '2026-04-07'],
+    ['2026-05-15', '2026-05-15'], ['2026-05-26', '2026-05-26'],
+    ['2026-07-02', '2026-08-12'], ['2026-10-12', '2026-10-24'],
+    ['2026-12-23', '2027-01-09'], ['2027-02-01', '2027-02-02'],
+    ['2027-03-22', '2027-04-03'], ['2027-05-07', '2027-05-07'],
+    ['2027-05-18', '2027-05-18'], ['2027-07-08', '2027-08-18'],
+    ['2027-10-16', '2027-10-30'], ['2027-12-23', '2028-01-08']
   ];
 
   let running = false;
@@ -31,6 +45,10 @@
   function isWeekday(date) {
     const day = dayOfWeek(date);
     return day >= 1 && day <= 5;
+  }
+
+  function isHolidayWeekday(date) {
+    return isWeekday(date) && HOLIDAY_PERIODS.some(([start, end]) => date >= start && date <= end);
   }
 
   function normalize(value) {
@@ -72,8 +90,9 @@
   function setStatus(text, kind = 'ok') {
     const status = document.getElementById('dpDailyPlanStatus');
     if (!status) return;
-    status.textContent = text;
-    status.className = `dp-daily-status ${kind}`;
+    const className = `dp-daily-status ${kind}`;
+    if (status.textContent !== text) status.textContent = text;
+    if (status.className !== className) status.className = className;
   }
 
   async function waitForDuty(duty, timeoutMs = 5000) {
@@ -104,7 +123,7 @@
 
   async function repair() {
     const date = currentDate();
-    if (running || !date || !isWeekday(date) || isMarked(date)) return;
+    if (running || !date || !isWeekday(date) || isHolidayWeekday(date) || isMarked(date)) return;
 
     const table = document.getElementById(TABLE_ID);
     const addButton = document.getElementById('dpDailyAddRow');
