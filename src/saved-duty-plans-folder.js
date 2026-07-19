@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotSavedDutyPlansFolderV1) return;
+  if (window.__dienstpilotSavedDutyPlansFolderV2) return;
+  window.__dienstpilotSavedDutyPlansFolderV2 = true;
   window.__dienstpilotSavedDutyPlansFolderV1 = true;
 
   const API = 'https://api.dienstpilot-runke.de/api/data/daily_duty_plans';
@@ -39,8 +40,11 @@
   }
 
   function hasAccess() {
-    const role = currentRole();
-    return role === 'geschaftsleitung' || role === 'geschaeftsleitung' || role === 'disposition';
+    return [
+      'administrator', 'admin',
+      'geschaftsleitung', 'geschaeftsleitung',
+      'disposition', 'disponent', 'disponentin'
+    ].includes(currentRole());
   }
 
   function escapeHtml(value) {
@@ -64,6 +68,7 @@
   function normalizePlan(date, plan) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || '')) || !plan || typeof plan !== 'object') return null;
     return {
+      ...plan,
       date: String(date),
       rows: Array.isArray(plan.rows) ? plan.rows : [],
       savedAt: String(plan.savedAt || '')
@@ -81,13 +86,33 @@
     return { plans };
   }
 
+  function savedTime(plan) {
+    const time = Date.parse(plan?.savedAt || '');
+    return Number.isFinite(time) ? time : -1;
+  }
+
+  function chooseLatestPlan(localPlan, remotePlan) {
+    if (!localPlan) return remotePlan || null;
+    if (!remotePlan) return localPlan;
+
+    const localTime = savedTime(localPlan);
+    const remoteTime = savedTime(remotePlan);
+    if (remoteTime > localTime) return remotePlan;
+    return localPlan;
+  }
+
   function mergeStores(localStore, remoteStore) {
-    return {
-      plans: {
-        ...(localStore?.plans || {}),
-        ...(remoteStore?.plans || {})
-      }
-    };
+    const local = normalizeStore(localStore);
+    const remote = normalizeStore(remoteStore);
+    const dates = new Set([...Object.keys(local.plans), ...Object.keys(remote.plans)]);
+    const plans = {};
+
+    dates.forEach((date) => {
+      const selected = chooseLatestPlan(local.plans[date], remote.plans[date]);
+      if (selected) plans[date] = selected;
+    });
+
+    return { plans };
   }
 
   async function loadPlans() {
@@ -184,8 +209,8 @@
   function setStatus(text, kind = '') {
     const status = document.getElementById(STATUS_ID);
     if (!status) return;
-    status.textContent = text;
-    status.className = kind;
+    if (status.textContent !== text) status.textContent = text;
+    if (status.className !== kind) status.className = kind;
   }
 
   function renderPlans(store) {
