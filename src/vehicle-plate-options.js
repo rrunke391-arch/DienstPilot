@@ -1,7 +1,8 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotVehiclePlateOptionsV4) return;
+  if (window.__dienstpilotVehiclePlateOptionsV5) return;
+  window.__dienstpilotVehiclePlateOptionsV5 = true;
   window.__dienstpilotVehiclePlateOptionsV4 = true;
 
   const TABLE_ID = 'dpDailyPlanRows';
@@ -60,7 +61,9 @@
 
   function maySavePlans() {
     return [
-      'administrator', 'admin', 'geschaftsleitung', 'geschaeftsleitung', 'disposition'
+      'administrator', 'admin',
+      'geschaftsleitung', 'geschaeftsleitung',
+      'disposition', 'disponent', 'disponentin'
     ].includes(currentRole());
   }
 
@@ -104,8 +107,8 @@
   function setStatus(text) {
     const status = document.getElementById('dpDailyPlanStatus');
     if (!status) return;
-    status.textContent = text;
-    status.className = 'dp-daily-status ok';
+    if (status.textContent !== text) status.textContent = text;
+    if (status.className !== 'dp-daily-status ok') status.className = 'dp-daily-status ok';
   }
 
   function migrateLocalStore() {
@@ -196,6 +199,15 @@
     return plates.sort((a, b) => a.localeCompare(b, 'de', { numeric: true, sensitivity: 'base' }));
   }
 
+  function optionValues(node) {
+    return [...node.options].map((option) => `${option.value}\u001f${option.textContent}`);
+  }
+
+  function sameOptions(node, desired) {
+    const current = optionValues(node);
+    return current.length === desired.length && current.every((value, index) => value === desired[index]);
+  }
+
   function ensureList(plates) {
     let list = document.getElementById(LIST_ID);
     if (!list) {
@@ -203,38 +215,52 @@
       list.id = LIST_ID;
       document.body.appendChild(list);
     }
-    list.replaceChildren(...plates.map((plate) => {
+
+    const desired = plates.map((plate) => `${plate}\u001f`);
+    if (sameOptions(list, desired)) return;
+
+    const fragment = document.createDocumentFragment();
+    plates.forEach((plate) => {
       const option = document.createElement('option');
       option.value = plate;
-      return option;
-    }));
+      fragment.appendChild(option);
+    });
+    list.replaceChildren(fragment);
   }
 
-  function rebuildSelect(select, plates, currentValue) {
+  function desiredSelectOptions(plates, currentValue) {
     const current = canonicalPlate(currentValue);
     const values = [...plates];
     if (current && !values.includes(current)) values.unshift(current);
 
-    const fragment = document.createDocumentFragment();
-    const blank = document.createElement('option');
-    blank.value = '';
-    blank.textContent = 'Kennzeichen auswählen';
-    fragment.appendChild(blank);
+    return {
+      current,
+      values,
+      options: [
+        { value: '', text: 'Kennzeichen auswählen' },
+        ...values.map((plate) => ({ value: plate, text: plate })),
+        { value: MANUAL_VALUE, text: 'Anderes Kennzeichen eingeben …' }
+      ]
+    };
+  }
 
-    values.forEach((plate) => {
-      const option = document.createElement('option');
-      option.value = plate;
-      option.textContent = plate;
-      fragment.appendChild(option);
-    });
+  function rebuildSelect(select, plates, currentValue) {
+    const desired = desiredSelectOptions(plates, currentValue);
+    const signature = desired.options.map((entry) => `${entry.value}\u001f${entry.text}`);
 
-    const manual = document.createElement('option');
-    manual.value = MANUAL_VALUE;
-    manual.textContent = 'Anderes Kennzeichen eingeben …';
-    fragment.appendChild(manual);
+    if (!sameOptions(select, signature)) {
+      const fragment = document.createDocumentFragment();
+      desired.options.forEach((entry) => {
+        const option = document.createElement('option');
+        option.value = entry.value;
+        option.textContent = entry.text;
+        fragment.appendChild(option);
+      });
+      select.replaceChildren(fragment);
+    }
 
-    select.replaceChildren(fragment);
-    select.value = current && values.includes(current) ? current : '';
+    const nextValue = desired.current && desired.values.includes(desired.current) ? desired.current : '';
+    if (select.dataset.manual !== '1' && select.value !== nextValue) select.value = nextValue;
   }
 
   function ensureEditor(input, plates) {
@@ -263,7 +289,7 @@
     input.placeholder = 'Kennzeichen manuell eingeben';
 
     rebuildSelect(select, plates, input.value);
-    select.disabled = input.disabled;
+    if (select.disabled !== input.disabled) select.disabled = input.disabled;
 
     if (!select.dataset.dpVehicleBound) {
       select.dataset.dpVehicleBound = '1';
@@ -278,8 +304,11 @@
 
         select.dataset.manual = '0';
         input.hidden = true;
-        input.value = canonicalPlate(select.value);
-        dispatchInput(input, true);
+        const next = canonicalPlate(select.value);
+        if (input.value !== next) {
+          input.value = next;
+          dispatchInput(input, true);
+        }
       });
     }
 
@@ -298,11 +327,12 @@
       input.addEventListener('input', () => {
         if (select.dataset.manual === '1') return;
         const current = canonicalPlate(input.value);
-        if ([...select.options].some((option) => option.value === current)) select.value = current;
+        if ([...select.options].some((option) => option.value === current) && select.value !== current) select.value = current;
       });
     }
 
-    input.hidden = select.dataset.manual !== '1';
+    const shouldHide = select.dataset.manual !== '1';
+    if (input.hidden !== shouldHide) input.hidden = shouldHide;
   }
 
   function install() {
@@ -326,7 +356,7 @@
     const remoteChanges = await migrateRemoteStore();
     if (localChanges || remoteChanges) {
       setStatus(`Kennzeichen ${OLD_PLATE} wurde dauerhaft in ${NEW_PLATE} geändert.`);
-      [0, 100, 350].forEach((delay) => window.setTimeout(install, delay));
+      [0, 120, 360].forEach((delay) => window.setTimeout(install, delay));
     }
   }
 
@@ -340,18 +370,18 @@
     if (!body || body === observedBody) return;
     observer?.disconnect();
     observedBody = body;
-    observer = new MutationObserver(() => schedule(40));
+    observer = new MutationObserver(() => schedule(50));
     observer.observe(body, { childList: true });
   }
 
   function refresh() {
     installObserver();
-    [0, 120, 400, 900, 1800].forEach((delay) => window.setTimeout(install, delay));
+    [0, 180, 600, 1400].forEach((delay) => window.setTimeout(install, delay));
     void migrateStoredPlans();
   }
 
   document.addEventListener('click', (event) => {
-    if (event.target.closest?.('#dpDailyDutyPlanTab,#dpDailyAddRow,#dpDailyInsertDefaults,#dpDailySave,#loginButton,.tab[data-tab="eingabe"]')) refresh();
+    if (event.target.closest?.('#dpDailyDutyPlanTab,#dpDailyAddRow,#dpDailyInsertDefaults,#loginButton,.tab[data-tab="eingabe"]')) refresh();
   }, true);
 
   document.addEventListener('change', (event) => {
@@ -361,6 +391,6 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', refresh, { once: true });
   else refresh();
 
-  window.addEventListener('pageshow', refresh);
-  window.addEventListener('focus', refresh);
+  window.addEventListener('pageshow', () => schedule(120));
+  window.addEventListener('focus', () => schedule(160));
 })();
