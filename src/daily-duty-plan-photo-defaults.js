@@ -1,12 +1,26 @@
 (() => {
   'use strict';
 
+  if (window.__dienstpilotDailyPhotoDefaultsV4) return;
+  window.__dienstpilotDailyPhotoDefaultsV4 = true;
+
   const TABLE_ID = 'dpDailyPlanRows';
   const DATE_ID = 'dpDailyPlanDate';
   const INSERT_ID = 'dpDailyInsertDefaults';
   const ADD_ID = 'dpDailyAddRow';
   const MARKER_KEY = 'dienstpilot_photo_bus_defaults_v3';
   let running = false;
+
+  const HOLIDAY_PERIODS = [
+    ['2025-10-13', '2025-10-25'], ['2025-12-22', '2026-01-05'],
+    ['2026-02-02', '2026-02-03'], ['2026-03-23', '2026-04-07'],
+    ['2026-05-15', '2026-05-15'], ['2026-05-26', '2026-05-26'],
+    ['2026-07-02', '2026-08-12'], ['2026-10-12', '2026-10-24'],
+    ['2026-12-23', '2027-01-09'], ['2027-02-01', '2027-02-02'],
+    ['2027-03-22', '2027-04-03'], ['2027-05-07', '2027-05-07'],
+    ['2027-05-18', '2027-05-18'], ['2027-07-08', '2027-08-18'],
+    ['2027-10-16', '2027-10-30'], ['2027-12-23', '2028-01-08']
+  ];
 
   const WEEKDAY_ASSIGNMENTS = [
     { duty: '3001', name: 'I.Janzen', bus: 'OS-LK 621' },
@@ -23,7 +37,7 @@
     { duty: '3013', name: 'A.Szczepanik', bus: 'OS-ZT 626' },
     { duty: '3014', name: 'M.Malko', bus: 'OS-KF 526' },
     { duty: '3015', name: 'N.Ghulami', bus: 'OS-YG 120' },
-    { duty: '3016', name: 'P.Lhommel', bus: 'OS-XB 925' },
+    { duty: '3016', name: 'P.Lommel', bus: 'OS-XB 925' },
     { duty: '3017', name: 'A.Hasan', bus: 'OS-WP 918' },
     { duty: '3018', name: 'N.Awdullahi', bus: 'OS-EV 118' },
     { duty: '3019', name: 'K.Giotis', bus: 'OS-BU 816' },
@@ -31,7 +45,7 @@
     { duty: '3021', name: 'W.Blaz', bus: 'OS-RS 725' },
     { duty: '3022', name: 'W.Wüllner', bus: 'OS-DZ 116' },
     { duty: '3023', name: 'T.Wiemann', bus: 'OS-UL 818' },
-    { duty: '3024', name: 'D.Knigge', bus: 'OS-JF 215' },
+    { duty: '3024', name: 'D.Knigge', bus: 'OS-IF 215' },
     { duty: '3025', name: 'N.Murad', bus: 'OS-HD 124' },
     { duty: '1341', name: 'M.Al Dabbah / A.Al Arsan', bus: 'OS-FN 919' },
     { duty: '1941', name: 'S.Yasatemur / M.Eggern', bus: 'OS-AX 716' },
@@ -80,6 +94,11 @@
     const match = String(date || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (!match) return -1;
     return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12, 0, 0).getDay();
+  }
+
+  function isHolidayWeekday(date) {
+    const day = dayOfWeek(date);
+    return day >= 1 && day <= 5 && HOLIDAY_PERIODS.some(([start, end]) => date >= start && date <= end);
   }
 
   function modeForDate(date) {
@@ -144,8 +163,9 @@
   function setStatus(text, kind = '') {
     const status = document.getElementById('dpDailyPlanStatus');
     if (!status) return;
-    status.textContent = text;
-    status.className = 'dp-daily-status' + (kind ? ' ' + kind : '');
+    const className = 'dp-daily-status' + (kind ? ' ' + kind : '');
+    if (status.textContent !== text) status.textContent = text;
+    if (status.className !== className) status.className = className;
   }
 
   function dispatchInput(input) {
@@ -156,7 +176,9 @@
     const input = row?.querySelector(`input[data-field="${field}"]`);
     if (!input || input.disabled) return;
     if (!overwrite && String(input.value || '').trim()) return;
-    input.value = String(value ?? '');
+    const next = String(value ?? '');
+    if (input.value === next) return;
+    input.value = next;
     dispatchInput(input);
   }
 
@@ -199,9 +221,9 @@
   }
 
   async function applyAssignments(createMissing) {
-    if (running) return;
+    if (running) return false;
     const date = currentDate();
-    if (!date) return;
+    if (!date || isHolidayWeekday(date)) return false;
 
     running = true;
     try {
@@ -238,6 +260,7 @@
         sunday: 'Der Sonntagsdienstplan wurde getrennt eingefügt.'
       };
       setStatus(`${labels[mode]} Alle Angaben bleiben bearbeitbar und die Kennzeichen können verschoben werden.`, 'ok');
+      return true;
     } finally {
       running = false;
     }
@@ -245,18 +268,18 @@
 
   async function maybeAutoPopulate() {
     const date = currentDate();
-    if (!date || isApplied(date) || running) return;
+    if (!date || isHolidayWeekday(date) || isApplied(date) || running) return false;
 
     const mode = modeForDate(date);
     const insertButton = document.getElementById(INSERT_ID);
 
     if (mode === 'weekday' && !rows().length) {
-      if (!insertButton || insertButton.disabled) return;
+      if (!insertButton || insertButton.disabled) return false;
       insertButton.click();
       await wait(130);
     }
 
-    await applyAssignments(true);
+    return applyAssignments(true);
   }
 
   window.dienstpilotPopulateDailyPlan = maybeAutoPopulate;
@@ -264,7 +287,7 @@
 
   document.addEventListener('click', (event) => {
     if (event.target.closest?.(`#${INSERT_ID}`)) {
-      window.setTimeout(() => applyAssignments(true), 150);
+      if (!isHolidayWeekday(currentDate())) window.setTimeout(() => applyAssignments(true), 150);
       return;
     }
     if (event.target.closest?.('#dpDailyDutyPlanTab')) {
@@ -279,7 +302,9 @@
   });
 
   function refresh() {
-    if (!isApplied(currentDate())) maybeAutoPopulate();
+    const date = currentDate();
+    if (!date || isHolidayWeekday(date) || isApplied(date)) return;
+    void maybeAutoPopulate();
   }
 
   [0, 250, 700, 1500, 3000].forEach((delay) => window.setTimeout(refresh, delay));
