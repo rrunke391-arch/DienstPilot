@@ -130,6 +130,11 @@
     loadScript('dpXlsmCore', 'src/xlsm-core.js?v=20260711-1');
     loadScript('dpXlsmExchange', 'src/xlsm-exchange.js?v=20260711-1');
     loadScript('dpDailyDutyPlan', 'src/daily-duty-plan.js?v=20260711-1');
+
+    // Die zentrale Drucksteuerung wird bewusst vor der Dienstauswahl geladen.
+    // So druckt „Montag bis Freitag“ niemals die aktuell sichtbare Samstagsansicht.
+    loadScript('dpDailyDutyPrintAnytimeV4', 'src/daily-duty-plan-print-anytime.js?v=20260718-4');
+
     loadScript('dpHolidayPlan18V5', 'src/holiday-plan-clean-v3.js?v=20260717-5');
     loadScript('dpDailyDutyDriverSelectV2', 'src/daily-duty-driver-select.js?v=20260717-4');
     loadScript('dpSaturdaySplitDutyOptionsV1', 'src/saturday-split-duty-options.js?v=20260718-1');
@@ -150,7 +155,6 @@
     loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260717-3');
     loadScript('dpDailyDutySeparationV2', 'src/daily-duty-plan-separation.js?v=20260718-2');
     loadScript('dpWeekendCombinedOpenFixV1', 'src/weekend-combined-open-fix.js?v=20260718-1');
-    loadScript('dpDailyDutyPrintAnytimeV4', 'src/daily-duty-plan-print-anytime.js?v=20260718-4');
     loadScript('dpDailyDutyWeekendPhotoV2', 'src/daily-duty-plan-weekend-photo.js?v=20260718-2');
     loadScript('dpDailyDutySeparationGuard', 'src/daily-duty-plan-separation-guard.js?v=20260711-2');
   }
