@@ -13,6 +13,7 @@
   function loadExtras() {
     loadScript('dpDailyDutyWeekdayRepairV2', 'src/daily-duty-plan-weekday-repair.js?v=20260719-2');
     loadScript('dpDailyDutyStartRepairV2', 'src/daily-duty-plan-start-duties-repair.js?v=20260719-2');
+    loadScript('dpHolidayPlanRecoveryV1', 'src/holiday-plan-recovery.js?v=20260719-1');
     loadScript('dpXlsmCore', 'src/xlsm-core.js?v=20260711-1');
     loadScript('dpXlsmExchange', 'src/xlsm-exchange.js?v=20260711-1');
   }
