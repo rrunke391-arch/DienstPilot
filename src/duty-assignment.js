@@ -2,6 +2,8 @@
   'use strict';
 
   document.getElementById('dpDutyAssignment')?.remove();
+  document.getElementById('dpDutyAssignmentDiagnosticsV1')?.remove();
+  document.getElementById('dpDutyAssignmentDiagnosticsV1Script')?.remove();
 
   if (!document.getElementById('dpAssignmentInputCanonicalizerV1Script')) {
     const canonicalizer = document.createElement('script');
@@ -54,18 +56,8 @@
     document.head.appendChild(normalizer);
   }
 
-  function loadDiagnostics() {
-    if (document.getElementById('dpDutyAssignmentDiagnosticsV1Script')) return;
-    const diagnostic = document.createElement('script');
-    diagnostic.id = 'dpDutyAssignmentDiagnosticsV1Script';
-    diagnostic.src = 'src/duty-assignment-diagnostics.js?v=20260720-1';
-    diagnostic.async = false;
-    document.head.appendChild(diagnostic);
-  }
-
   if (document.getElementById('dpDutyAssignmentV2Script')) {
     loadPutNormalizer();
-    loadDiagnostics();
     return;
   }
 
@@ -73,9 +65,6 @@
   script.id = 'dpDutyAssignmentV2Script';
   script.src = 'src/duty-assignment-v2.js?v=20260712-1';
   script.async = false;
-  script.addEventListener('load', () => {
-    loadPutNormalizer();
-    loadDiagnostics();
-  }, { once: true });
+  script.addEventListener('load', loadPutNormalizer, { once: true });
   document.head.appendChild(script);
 })();
