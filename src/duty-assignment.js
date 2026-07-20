@@ -5,6 +5,14 @@
   document.getElementById('dpDutyAssignmentDiagnosticsV1')?.remove();
   document.getElementById('dpDutyAssignmentDiagnosticsV1Script')?.remove();
 
+  if (!document.getElementById('dpDutyEditPermissionFixV1Script')) {
+    const editFix = document.createElement('script');
+    editFix.id = 'dpDutyEditPermissionFixV1Script';
+    editFix.src = 'src/duty-edit-permission-fix.js?v=20260720-1';
+    editFix.async = false;
+    document.head.appendChild(editFix);
+  }
+
   if (!document.getElementById('dpAssignmentInputCanonicalizerV1Script')) {
     const canonicalizer = document.createElement('script');
     canonicalizer.id = 'dpAssignmentInputCanonicalizerV1Script';
