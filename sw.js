@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'dienstpilot-159';
+const CACHE_VERSION = 'dienstpilot-160';
 const APP_CACHE = `${CACHE_VERSION}-app`;
 
 const CORE_FILES = [
@@ -53,7 +53,7 @@ async function navigationFallback(request) {
     || (await caches.match('./', { ignoreSearch: true }))
     || new Response(
       '<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DienstPilot offline</title><body><h1>DienstPilot ist zurzeit offline</h1><p>Bitte stelle kurz eine Internetverbindung her und öffne die App erneut.</p></body></html>',
-      { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+      { status: 503, headers: { 'Content-Type': 'text/html; charset=UTF-8' } }
     );
 }
 
