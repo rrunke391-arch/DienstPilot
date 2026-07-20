@@ -3,10 +3,11 @@
 
   document.getElementById('dpDutyAssignment')?.remove();
 
-  if (!document.getElementById('dpDriverProfileRouteFixV1Script')) {
+  if (!document.getElementById('dpDriverProfileRouteFixV2Script')) {
+    document.getElementById('dpDriverProfileRouteFixV1Script')?.remove();
     const routeScript = document.createElement('script');
-    routeScript.id = 'dpDriverProfileRouteFixV1Script';
-    routeScript.src = 'src/driver-profile-route-fix.js?v=20260720-1';
+    routeScript.id = 'dpDriverProfileRouteFixV2Script';
+    routeScript.src = 'src/driver-profile-route-fix.js?v=20260720-2';
     routeScript.async = false;
     document.head.appendChild(routeScript);
   }
