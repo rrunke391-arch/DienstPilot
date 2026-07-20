@@ -36,6 +36,14 @@
     document.head.appendChild(printFreeOption);
   }
 
+  if (!document.getElementById('dpDayPlanUniqueDriverV1Script')) {
+    const uniqueDriver = document.createElement('script');
+    uniqueDriver.id = 'dpDayPlanUniqueDriverV1Script';
+    uniqueDriver.src = 'src/day-plan-unique-driver.js?v=20260720-1';
+    uniqueDriver.async = false;
+    document.head.appendChild(uniqueDriver);
+  }
+
   document.getElementById('dpLiveDayPreviewSyncV1Script')?.remove();
   if (!document.getElementById('dpLiveDayPreviewSyncV2Script')) {
     const previewSync = document.createElement('script');
