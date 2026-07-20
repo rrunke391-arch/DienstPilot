@@ -11,12 +11,12 @@
     document.head.appendChild(refreshScript);
   }
 
-  if (!document.getElementById('dpAssignmentMonthFocusV1Script')) {
-    const monthScript = document.createElement('script');
-    monthScript.id = 'dpAssignmentMonthFocusV1Script';
-    monthScript.src = 'src/assignment-month-focus.js?v=20260720-1';
-    monthScript.async = false;
-    document.head.appendChild(monthScript);
+  if (!document.getElementById('dpAssignedPlanTypeFixV1Script')) {
+    const typeFixScript = document.createElement('script');
+    typeFixScript.id = 'dpAssignedPlanTypeFixV1Script';
+    typeFixScript.src = 'src/assigned-plan-type-fix.js?v=20260720-1';
+    typeFixScript.async = false;
+    document.head.appendChild(typeFixScript);
   }
 
   if (!document.getElementById('dpDriverProfileAliasFixV2Script')) {
@@ -26,6 +26,14 @@
     aliasScript.src = 'src/driver-profile-alias-fix.js?v=20260720-2';
     aliasScript.async = false;
     document.head.appendChild(aliasScript);
+  }
+
+  if (!document.getElementById('dpAssignmentMonthFocusV1Script')) {
+    const monthScript = document.createElement('script');
+    monthScript.id = 'dpAssignmentMonthFocusV1Script';
+    monthScript.src = 'src/assignment-month-focus.js?v=20260720-1';
+    monthScript.async = false;
+    document.head.appendChild(monthScript);
   }
 
   if (document.getElementById('dpDutyAssignmentV2Script')) return;
