@@ -1,13 +1,12 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotDriverProfileAliasFixV1) return;
-  window.__dienstpilotDriverProfileAliasFixV1 = true;
+  if (window.__dienstpilotDriverProfileAliasFixV2) return;
+  window.__dienstpilotDriverProfileAliasFixV2 = true;
 
-  const ALIASES = new Map([
-    ['a.gerding', 'gerding'],
-    ['a_gerding', 'gerding']
-  ]);
+  const API = 'https://api.dienstpilot-runke.de';
+  const TOKEN_KEY = 'dienstpilot_api_token';
+  const aliases = new Map();
 
   function normalize(value) {
     return String(value || '')
@@ -18,10 +17,34 @@
       .replace(/[^a-z0-9_-]+/g, '_');
   }
 
+  function remember(alias, profile) {
+    const source = normalize(alias);
+    const target = normalize(profile);
+    if (source && target) aliases.set(source, target);
+  }
+
+  async function loadAliases() {
+    try {
+      const headers = new Headers();
+      const token = sessionStorage.getItem(TOKEN_KEY) || '';
+      if (token) headers.set('Authorization', 'Bearer ' + token);
+      const response = await fetch(API + '/api/users', { cache: 'no-store', headers });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !Array.isArray(data.users)) return;
+
+      data.users.forEach((entry) => {
+        const profile = entry.driverProfile || entry.assigned_driver || entry.fahrer || entry.displayName || entry.username;
+        if (!profile) return;
+        remember(profile, profile);
+        remember(entry.username, profile);
+        remember(entry.displayName, profile);
+      });
+    } catch {}
+  }
+
   function canonicalProfile(value) {
-    const raw = String(value || '').trim();
-    const normalized = normalize(raw);
-    return ALIASES.get(raw.toLowerCase()) || ALIASES.get(normalized) || normalized;
+    const normalized = normalize(value);
+    return aliases.get(normalized) || normalized;
   }
 
   function correctAssignmentDriver() {
@@ -32,15 +55,14 @@
   }
 
   document.addEventListener('click', (event) => {
-    if (event.target.closest?.('#dpAssignSaveV2,#dpAssignLoadV2')) {
-      correctAssignmentDriver();
-    }
+    if (event.target.closest?.('#dpAssignSaveV2,#dpAssignLoadV2')) correctAssignmentDriver();
   }, true);
 
   document.addEventListener('change', (event) => {
     if (event.target?.id === 'dpAssignDriverV2') correctAssignmentDriver();
   }, true);
 
-  window.addEventListener('pageshow', correctAssignmentDriver);
-  window.addEventListener('focus', correctAssignmentDriver);
+  loadAliases().then(correctAssignmentDriver);
+  window.addEventListener('pageshow', () => loadAliases().then(correctAssignmentDriver));
+  window.addEventListener('focus', () => loadAliases().then(correctAssignmentDriver));
 })();
