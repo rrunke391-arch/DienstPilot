@@ -36,10 +36,11 @@
     document.head.appendChild(printFreeOption);
   }
 
-  if (!document.getElementById('dpFreeRowEditControlsV1Script')) {
+  document.getElementById('dpFreeRowEditControlsV1Script')?.remove();
+  if (!document.getElementById('dpFreeRowEditControlsV2Script')) {
     const freeRowControls = document.createElement('script');
-    freeRowControls.id = 'dpFreeRowEditControlsV1Script';
-    freeRowControls.src = 'src/free-row-edit-controls.js?v=20260720-1';
+    freeRowControls.id = 'dpFreeRowEditControlsV2Script';
+    freeRowControls.src = 'src/free-row-edit-controls.js?v=20260720-2';
     freeRowControls.async = false;
     document.head.appendChild(freeRowControls);
   }
