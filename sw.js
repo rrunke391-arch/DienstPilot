@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'dienstpilot-169';
+const CACHE_VERSION = 'dienstpilot-170';
 const APP_CACHE = `${CACHE_VERSION}-app`;
 
 const CORE_FILES = [
@@ -52,8 +52,8 @@ async function navigationFallback(request) {
     || (await caches.match('./index.html', { ignoreSearch: true }))
     || (await caches.match('./', { ignoreSearch: true }))
     || new Response(
-      '<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DienstPilot offline</title><body><h1>DienstPilot ist zurzeit offline</h1><p>Bitte stelle kurz eine Internetverbindung her und öffne die App erneut.</p></body></html>',
-      { status: 503, headers: { 'Content-Type': 'text/html; charset=UTF-8' } }
+      'DienstPilot ist zurzeit offline. Bitte stelle kurz eine Internetverbindung her und öffne die App erneut.',
+      { status: 503, headers: { 'Content-Type': 'text/plain; charset=UTF-8' } }
     );
 }
 
@@ -94,7 +94,6 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
-  // Dienstplan-, Benutzer- und Werkstattdaten werden niemals im PWA-Cache gespeichert.
   if (isServerDataRequest(url)) {
     event.respondWith(fetch(request, { cache: 'no-store' }));
     return;
