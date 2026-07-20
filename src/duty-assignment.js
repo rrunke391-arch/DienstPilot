@@ -2,6 +2,15 @@
   'use strict';
 
   document.getElementById('dpDutyAssignment')?.remove();
+
+  if (!document.getElementById('dpAssignedPlanRefreshV1Script')) {
+    const refreshScript = document.createElement('script');
+    refreshScript.id = 'dpAssignedPlanRefreshV1Script';
+    refreshScript.src = 'src/assigned-plan-refresh.js?v=20260720-1';
+    refreshScript.async = false;
+    document.head.appendChild(refreshScript);
+  }
+
   if (document.getElementById('dpDutyAssignmentV2Script')) return;
 
   const script = document.createElement('script');
