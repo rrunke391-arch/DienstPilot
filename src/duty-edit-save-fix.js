@@ -1,12 +1,15 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotDutyEditSaveFixV1) return;
-  window.__dienstpilotDutyEditSaveFixV1 = true;
+  if (window.__dienstpilotDutyEditSaveFixV2) return;
+  window.__dienstpilotDutyEditSaveFixV2 = true;
 
   const USER_KEY = 'dienstpilot_user';
   const ROLE_KEY = 'dienstpilot_role';
+  const STATE_KEY = 'lenkRuhezeitenRunke20260413';
   const ALLOWED_ROLES = new Set(['administrator', 'geschaftsleitung', 'geschaeftsleitung', 'disposition']);
+  let saveTimer = null;
+  let saving = false;
 
   function normalizeRole(value) {
     return String(value || '')
@@ -26,34 +29,101 @@
     }
   }
 
-  function saveField(input) {
-    if (!mayEdit()) return;
+  function activeProfile() {
+    try {
+      const state = JSON.parse(localStorage.getItem(STATE_KEY) || 'null');
+      const profile = state?.appSettings?.activeProfile;
+      if (profile) return String(profile).trim().toLowerCase();
+    } catch {
+      // Fallback auf sichtbaren Synchronisationsstatus.
+    }
 
+    const text = document.getElementById('syncStatus')?.textContent || '';
+    const match = text.match(/Aktiv:\s*([^·]+)/i);
+    return match ? match[1].trim().toLowerCase() : '';
+  }
+
+  function setStatus(text, state) {
+    const el = document.getElementById('syncStatus');
+    if (!el) return;
+    const profile = activeProfile();
+    const name = profile ? profile.charAt(0).toUpperCase() + profile.slice(1) : '';
+    el.textContent = name ? `Aktiv: ${name} · ${text}` : text;
+    el.className = `sync-status ${state || ''}`.trim();
+  }
+
+  async function persistChange(change) {
+    if (saving || !mayEdit()) return;
+    const profile = activeProfile();
+    if (!profile) {
+      setStatus('kein Fahrerplan geladen', 'offline');
+      return;
+    }
+
+    saving = true;
+    setStatus('speichere…', 'saving');
+
+    try {
+      const url = `/api/plan/${encodeURIComponent(profile)}`;
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Plan konnte nicht geladen werden (${response.status})`);
+
+      const plan = await response.json();
+      const duties = Array.isArray(plan?.duties) ? plan.duties : [];
+      let found = false;
+
+      const nextDuties = duties.map((entry) => {
+        if (String(entry?.id) !== String(change.id)) return entry;
+        found = true;
+        return { ...entry, [change.field]: change.value };
+      });
+
+      if (!found) throw new Error('Der bearbeitete Dienst wurde im Serverplan nicht gefunden.');
+
+      const put = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...plan,
+          duties: nextDuties,
+          savedAt: new Date().toISOString()
+        })
+      });
+
+      if (!put.ok) throw new Error(`Änderung konnte nicht gespeichert werden (${put.status})`);
+
+      setStatus('synchronisiert', 'synced');
+      window.setTimeout(() => window.location.reload(), 250);
+    } catch (error) {
+      console.error('Dienständerung konnte nicht gespeichert werden:', error);
+      setStatus('Speichern fehlgeschlagen', 'offline');
+      window.alert(error.message || 'Die Änderung konnte nicht gespeichert werden.');
+    } finally {
+      saving = false;
+    }
+  }
+
+  function queueField(input) {
+    if (!mayEdit()) return;
     const card = input.closest('[data-duty]');
     const id = card?.dataset?.duty;
     const field = input.dataset.field;
-    if (!id || !field || !['date', 'number', 'start', 'end'].includes(field)) return;
+    if (!id || !['date', 'number', 'start', 'end'].includes(field)) return;
 
-    try {
-      const value = field === 'number'
-        ? String(input.value || '').replace(/\D/g, '').slice(0, 4)
-        : String(input.value || '');
+    const value = field === 'number'
+      ? String(input.value || '').replace(/\D/g, '').slice(0, 4)
+      : String(input.value || '');
 
-      duties = duties.map((entry) => {
-        if (String(entry.id) !== String(id)) return entry;
-        return { ...entry, [field]: value };
-      });
-
-      // renderAll speichert lokal und stößt über saveLocalState den Server-PUT an.
-      renderAll();
-    } catch (error) {
-      console.error('Dienständerung konnte nicht gespeichert werden:', error);
-    }
+    if (saveTimer) window.clearTimeout(saveTimer);
+    saveTimer = window.setTimeout(() => {
+      saveTimer = null;
+      persistChange({ id, field, value });
+    }, 350);
   }
 
   document.addEventListener('change', (event) => {
     const input = event.target?.closest?.('[data-duty] [data-field]');
-    if (input) saveField(input);
+    if (input) queueField(input);
   }, true);
 
   document.addEventListener('keydown', (event) => {
@@ -61,6 +131,6 @@
     const input = event.target?.closest?.('[data-duty] [data-field]');
     if (!input) return;
     event.preventDefault();
-    saveField(input);
+    queueField(input);
   }, true);
 })();
