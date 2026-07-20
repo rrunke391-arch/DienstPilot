@@ -13,10 +13,11 @@
     document.head.appendChild(editFix);
   }
 
-  if (!document.getElementById('dpDutyEditSaveFixV1Script')) {
+  document.getElementById('dpDutyEditSaveFixV1Script')?.remove();
+  if (!document.getElementById('dpDutyEditSaveFixV2Script')) {
     const saveFix = document.createElement('script');
-    saveFix.id = 'dpDutyEditSaveFixV1Script';
-    saveFix.src = 'src/duty-edit-save-fix.js?v=20260720-1';
+    saveFix.id = 'dpDutyEditSaveFixV2Script';
+    saveFix.src = 'src/duty-edit-save-fix.js?v=20260720-2';
     saveFix.async = false;
     document.head.appendChild(saveFix);
   }
