@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotPrintDutyFreeOptionV2) return;
-  window.__dienstpilotPrintDutyFreeOptionV2 = true;
+  if (window.__dienstpilotPrintDutyFreeOptionV3) return;
+  window.__dienstpilotPrintDutyFreeOptionV3 = true;
 
   const FREE_VALUE = 'Frei';
   let listCounter = 0;
@@ -18,8 +18,12 @@
       .replace(/[^a-z0-9]/g, '');
   }
 
+  function fieldOf(cell) {
+    return cell?.querySelector('input, select, textarea') || null;
+  }
+
   function valueOf(cell) {
-    const field = cell?.querySelector('input, select, textarea');
+    const field = fieldOf(cell);
     return String(field?.value ?? cell?.textContent ?? '').trim();
   }
 
@@ -57,36 +61,38 @@
     element.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
-  function removeDuplicateDutyRows(table, freeRow) {
+  function clearDriverFromAssignedDuty(table, freeRow) {
     if (resolving) return;
     const freeName = normalizeName(valueOf(freeRow.cells?.[0]));
     if (!freeName) return;
 
-    const duplicates = [...table.querySelectorAll('tbody tr')].filter((row) => {
+    const assignedRows = [...table.querySelectorAll('tbody tr')].filter((row) => {
       if (row === freeRow) return false;
       const sameDriver = normalizeName(valueOf(row.cells?.[0])) === freeName;
       const duty = valueOf(row.cells?.[1]).toLowerCase();
       return sameDriver && duty && duty !== 'frei';
     });
 
-    if (!duplicates.length) return;
+    if (!assignedRows.length) return;
     resolving = true;
-    duplicates.forEach((row) => {
-      const buttons = [...row.querySelectorAll('button')];
-      const deleteButton = row.querySelector('[data-delete], .delete-row, .remove-row, .btn-delete')
-        || buttons.find((button) => /löschen|entfernen|^×$|^x$/i.test(String(button.textContent || '').trim()))
-        || buttons.at(-1);
 
-      if (deleteButton && !deleteButton.disabled) {
-        deleteButton.click();
-      } else {
-        row.remove();
+    assignedRows.forEach((row) => {
+      const driverField = fieldOf(row.cells?.[0]);
+      if (!driverField) return;
+
+      if (driverField.tagName === 'SELECT' && ![...driverField.options].some((option) => option.value === '')) {
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Fahrer auswählen';
+        driverField.insertBefore(placeholder, driverField.firstChild);
       }
+
+      setValue(driverField, '');
+      driverField.disabled = false;
+      driverField.removeAttribute('aria-disabled');
     });
+
     window.setTimeout(() => {
-      duplicates.forEach((row) => {
-        if (row.isConnected) row.remove();
-      });
       resolving = false;
       document.dispatchEvent(new Event('change', { bubbles: true }));
     }, 80);
@@ -97,8 +103,7 @@
     row.classList.toggle('dp-print-free-row', isFree);
 
     const cells = [...row.cells];
-    const fieldsToClear = [2, 3, 4, 5, 6];
-    fieldsToClear.forEach((index) => {
+    [2, 3, 4, 5, 6].forEach((index) => {
       cells[index]?.querySelectorAll('input, select, textarea').forEach((field) => {
         if (isFree) setValue(field, '');
         field.disabled = isFree;
@@ -109,19 +114,19 @@
     dutyInput.disabled = false;
     dutyInput.removeAttribute('aria-disabled');
 
-    if (isFree) removeDuplicateDutyRows(row.closest('table'), row);
+    if (isFree) clearDriverFromAssignedDuty(row.closest('table'), row);
   }
 
   function enhanceTable(table) {
     if (!isTargetTable(table)) return;
 
     table.querySelectorAll('tbody tr').forEach((row) => {
-      const dutyInput = row.cells?.[1]?.querySelector('input, select');
+      const dutyInput = fieldOf(row.cells?.[1]);
       if (!dutyInput) return;
 
       ensureFreeOption(dutyInput);
-      if (!dutyInput.dataset.dpFreeBoundV2) {
-        dutyInput.dataset.dpFreeBoundV2 = '1';
+      if (!dutyInput.dataset.dpFreeBoundV3) {
+        dutyInput.dataset.dpFreeBoundV3 = '1';
         dutyInput.addEventListener('input', () => applyFree(row, dutyInput));
         dutyInput.addEventListener('change', () => applyFree(row, dutyInput));
       }
