@@ -3,6 +3,14 @@
 
   document.getElementById('dpDutyAssignment')?.remove();
 
+  if (!document.getElementById('dpDriverProfileRouteFixV1Script')) {
+    const routeScript = document.createElement('script');
+    routeScript.id = 'dpDriverProfileRouteFixV1Script';
+    routeScript.src = 'src/driver-profile-route-fix.js?v=20260720-1';
+    routeScript.async = false;
+    document.head.appendChild(routeScript);
+  }
+
   if (!document.getElementById('dpAssignedPlanRefreshV1Script')) {
     const refreshScript = document.createElement('script');
     refreshScript.id = 'dpAssignedPlanRefreshV1Script';
