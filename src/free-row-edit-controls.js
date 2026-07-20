@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotFreeRowEditControlsV3) return;
-  window.__dienstpilotFreeRowEditControlsV3 = true;
+  if (window.__dienstpilotFreeRowEditControlsV4) return;
+  window.__dienstpilotFreeRowEditControlsV4 = true;
 
   let installTimer = null;
 
@@ -36,14 +36,21 @@
   }
 
   function setEditing(row, editing) {
+    if (!row?.isConnected) return;
+    const nextState = editing ? '1' : '0';
+    if (row.dataset.dpFreeEditing === nextState) return;
+
     editableFields(row).forEach((field) => {
-      field.disabled = !editing;
-      field.readOnly = !editing;
+      if (field.disabled === editing) field.disabled = !editing;
+      if ('readOnly' in field && field.readOnly === editing) field.readOnly = !editing;
       field.toggleAttribute('aria-disabled', !editing);
     });
-    row.dataset.dpFreeEditing = editing ? '1' : '0';
-    row.querySelector('.dp-free-edit')?.toggleAttribute('hidden', editing);
-    row.querySelector('.dp-free-save')?.toggleAttribute('hidden', !editing);
+
+    row.dataset.dpFreeEditing = nextState;
+    const edit = row.querySelector('.dp-free-edit');
+    const save = row.querySelector('.dp-free-save');
+    if (edit) edit.hidden = editing;
+    if (save) save.hidden = !editing;
   }
 
   function findOriginalDelete(row) {
@@ -72,6 +79,7 @@
 
     if (!row.querySelector('.dp-free-row-actions')) {
       actionCell.prepend(createActions());
+      row.dataset.dpFreeEditing = '';
     }
     if (row.dataset.dpFreeEditing !== '1') setEditing(row, false);
   }
@@ -85,8 +93,7 @@
 
   function scheduleInstall() {
     clearTimeout(installTimer);
-    installTimer = setTimeout(install, 20);
-    [80, 200, 500, 1000, 2000].forEach((delay) => setTimeout(install, delay));
+    installTimer = setTimeout(install, 60);
   }
 
   function handleClick(event) {
@@ -95,14 +102,15 @@
     const row = button.closest('tr');
     if (!row) return;
 
+    event.preventDefault();
+    event.stopPropagation();
+
     if (button.classList.contains('dp-free-edit')) {
-      event.preventDefault();
       setEditing(row, true);
       return;
     }
 
     if (button.classList.contains('dp-free-save')) {
-      event.preventDefault();
       editableFields(row).forEach((field) => {
         field.dispatchEvent(new Event('input', { bubbles: true }));
         field.dispatchEvent(new Event('change', { bubbles: true }));
@@ -112,14 +120,11 @@
       return;
     }
 
-    if (button.classList.contains('dp-free-delete')) {
-      event.preventDefault();
-      if (!window.confirm('Diesen Frei-Eintrag wirklich löschen?')) return;
-      const originalDelete = findOriginalDelete(row);
-      if (originalDelete && !originalDelete.disabled) originalDelete.click();
-      else row.remove();
-      scheduleInstall();
-    }
+    if (!window.confirm('Diesen Frei-Eintrag wirklich löschen?')) return;
+    const originalDelete = findOriginalDelete(row);
+    if (originalDelete && !originalDelete.disabled) originalDelete.click();
+    else row.remove();
+    scheduleInstall();
   }
 
   function addStyle() {
@@ -139,14 +144,19 @@
 
   addStyle();
   document.addEventListener('click', handleClick, true);
-  document.addEventListener('input', scheduleInstall, true);
-  document.addEventListener('change', scheduleInstall, true);
+  document.addEventListener('change', (event) => {
+    if (event.target.closest?.('table')) scheduleInstall();
+  }, true);
 
-  const observer = new MutationObserver(scheduleInstall);
+  const observer = new MutationObserver((mutations) => {
+    if (mutations.some((mutation) => mutation.addedNodes.length || mutation.removedNodes.length)) {
+      scheduleInstall();
+    }
+  });
+
   const start = () => {
     install();
-    observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['value', 'disabled', 'class'] });
-    window.setInterval(install, 750);
+    observer.observe(document.body, { childList: true, subtree: true });
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
