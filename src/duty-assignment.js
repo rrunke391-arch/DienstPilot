@@ -11,6 +11,14 @@
     document.head.appendChild(refreshScript);
   }
 
+  if (!document.getElementById('dpDriverProfileAliasFixV1Script')) {
+    const aliasScript = document.createElement('script');
+    aliasScript.id = 'dpDriverProfileAliasFixV1Script';
+    aliasScript.src = 'src/driver-profile-alias-fix.js?v=20260720-1';
+    aliasScript.async = false;
+    document.head.appendChild(aliasScript);
+  }
+
   if (document.getElementById('dpDutyAssignmentV2Script')) return;
 
   const script = document.createElement('script');
