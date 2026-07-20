@@ -36,6 +36,14 @@
     document.head.appendChild(printFreeOption);
   }
 
+  if (!document.getElementById('dpFreeRowEditControlsV1Script')) {
+    const freeRowControls = document.createElement('script');
+    freeRowControls.id = 'dpFreeRowEditControlsV1Script';
+    freeRowControls.src = 'src/free-row-edit-controls.js?v=20260720-1';
+    freeRowControls.async = false;
+    document.head.appendChild(freeRowControls);
+  }
+
   if (!document.getElementById('dpDayPlanUniqueDriverV1Script')) {
     const uniqueDriver = document.createElement('script');
     uniqueDriver.id = 'dpDayPlanUniqueDriverV1Script';
