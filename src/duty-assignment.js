@@ -13,6 +13,14 @@
     document.head.appendChild(editFix);
   }
 
+  if (!document.getElementById('dpDutyEditSaveFixV1Script')) {
+    const saveFix = document.createElement('script');
+    saveFix.id = 'dpDutyEditSaveFixV1Script';
+    saveFix.src = 'src/duty-edit-save-fix.js?v=20260720-1';
+    saveFix.async = false;
+    document.head.appendChild(saveFix);
+  }
+
   if (!document.getElementById('dpAssignmentInputCanonicalizerV1Script')) {
     const canonicalizer = document.createElement('script');
     canonicalizer.id = 'dpAssignmentInputCanonicalizerV1Script';
