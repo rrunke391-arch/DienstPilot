@@ -11,14 +11,6 @@
     document.head.appendChild(refreshScript);
   }
 
-  if (!document.getElementById('dpAssignedPlanTypeFixV1Script')) {
-    const typeFixScript = document.createElement('script');
-    typeFixScript.id = 'dpAssignedPlanTypeFixV1Script';
-    typeFixScript.src = 'src/assigned-plan-type-fix.js?v=20260720-1';
-    typeFixScript.async = false;
-    document.head.appendChild(typeFixScript);
-  }
-
   if (!document.getElementById('dpDriverProfileAliasFixV2Script')) {
     document.getElementById('dpDriverProfileAliasFixV1Script')?.remove();
     const aliasScript = document.createElement('script');
@@ -36,11 +28,24 @@
     document.head.appendChild(monthScript);
   }
 
-  if (document.getElementById('dpDutyAssignmentV2Script')) return;
+  function loadPutNormalizer() {
+    if (document.getElementById('dpAssignedPlanPutNormalizerV1Script')) return;
+    const normalizer = document.createElement('script');
+    normalizer.id = 'dpAssignedPlanPutNormalizerV1Script';
+    normalizer.src = 'src/assigned-plan-put-normalizer.js?v=20260720-1';
+    normalizer.async = false;
+    document.head.appendChild(normalizer);
+  }
+
+  if (document.getElementById('dpDutyAssignmentV2Script')) {
+    loadPutNormalizer();
+    return;
+  }
 
   const script = document.createElement('script');
   script.id = 'dpDutyAssignmentV2Script';
   script.src = 'src/duty-assignment-v2.js?v=20260712-1';
   script.async = false;
+  script.addEventListener('load', loadPutNormalizer, { once: true });
   document.head.appendChild(script);
 })();
