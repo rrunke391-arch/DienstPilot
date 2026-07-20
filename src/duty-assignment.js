@@ -37,6 +37,14 @@
     document.head.appendChild(monthScript);
   }
 
+  if (!document.getElementById('dpColleagueServerPlanLoaderFixV1Script')) {
+    const loaderScript = document.createElement('script');
+    loaderScript.id = 'dpColleagueServerPlanLoaderFixV1Script';
+    loaderScript.src = 'src/colleague-server-plan-loader-fix.js?v=20260720-1';
+    loaderScript.async = false;
+    document.head.appendChild(loaderScript);
+  }
+
   function loadPutNormalizer() {
     if (document.getElementById('dpAssignedPlanPutNormalizerV1Script')) return;
     const normalizer = document.createElement('script');
