@@ -37,10 +37,11 @@
   }
 
   document.getElementById('dpFreeRowEditControlsV1Script')?.remove();
-  if (!document.getElementById('dpFreeRowEditControlsV2Script')) {
+  document.getElementById('dpFreeRowEditControlsV2Script')?.remove();
+  if (!document.getElementById('dpFreeRowEditControlsV3Script')) {
     const freeRowControls = document.createElement('script');
-    freeRowControls.id = 'dpFreeRowEditControlsV2Script';
-    freeRowControls.src = 'src/free-row-edit-controls.js?v=20260720-2';
+    freeRowControls.id = 'dpFreeRowEditControlsV3Script';
+    freeRowControls.src = 'src/free-row-edit-controls.js?v=20260720-3';
     freeRowControls.async = false;
     document.head.appendChild(freeRowControls);
   }
