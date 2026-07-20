@@ -38,10 +38,11 @@
 
   document.getElementById('dpFreeRowEditControlsV1Script')?.remove();
   document.getElementById('dpFreeRowEditControlsV2Script')?.remove();
-  if (!document.getElementById('dpFreeRowEditControlsV3Script')) {
+  document.getElementById('dpFreeRowEditControlsV3Script')?.remove();
+  if (!document.getElementById('dpFreeRowEditControlsV4Script')) {
     const freeRowControls = document.createElement('script');
-    freeRowControls.id = 'dpFreeRowEditControlsV3Script';
-    freeRowControls.src = 'src/free-row-edit-controls.js?v=20260720-3';
+    freeRowControls.id = 'dpFreeRowEditControlsV4Script';
+    freeRowControls.src = 'src/free-row-edit-controls.js?v=20260720-4';
     freeRowControls.async = false;
     document.head.appendChild(freeRowControls);
   }
