@@ -27,10 +27,11 @@
   }
 
   document.getElementById('dpPrintDutyFreeOptionV1Script')?.remove();
-  if (!document.getElementById('dpPrintDutyFreeOptionV2Script')) {
+  document.getElementById('dpPrintDutyFreeOptionV2Script')?.remove();
+  if (!document.getElementById('dpPrintDutyFreeOptionV3Script')) {
     const printFreeOption = document.createElement('script');
-    printFreeOption.id = 'dpPrintDutyFreeOptionV2Script';
-    printFreeOption.src = 'src/print-duty-free-option.js?v=20260720-2';
+    printFreeOption.id = 'dpPrintDutyFreeOptionV3Script';
+    printFreeOption.src = 'src/print-duty-free-option.js?v=20260720-3';
     printFreeOption.async = false;
     document.head.appendChild(printFreeOption);
   }
