@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotLiveDayPreviewSyncV1) return;
-  window.__dienstpilotLiveDayPreviewSyncV1 = true;
+  if (window.__dienstpilotLiveDayPreviewSyncV2) return;
+  window.__dienstpilotLiveDayPreviewSyncV2 = true;
 
   let timer = null;
 
@@ -14,6 +14,9 @@
   const esc = (value) => String(value ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+
+  const normalizeName = (value) => String(value || '').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
 
   function targetTable() {
     return [...document.querySelectorAll('table')].find((table) => {
@@ -63,6 +66,16 @@
     };
   }
 
+  function currentRows(table) {
+    const byDriver = new Map();
+    [...table.querySelectorAll('tbody tr')].map(rowData).filter(Boolean).forEach((row) => {
+      const key = normalizeName(row.name);
+      const previous = byDriver.get(key);
+      if (!previous || row.free || !previous.free) byDriver.set(key, row);
+    });
+    return [...byDriver.values()];
+  }
+
   function render() {
     const table = targetTable();
     if (!table) return;
@@ -70,7 +83,7 @@
     if (!preview) return;
 
     const meta = existingMeta(preview);
-    const rows = [...table.querySelectorAll('tbody tr')].map(rowData).filter(Boolean);
+    const rows = currentRows(table);
 
     preview.classList.add('dp-live-day-preview');
     preview.innerHTML = `
