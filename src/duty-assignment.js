@@ -18,6 +18,14 @@
     document.head.appendChild(controls);
   }
 
+  if (!document.getElementById('dpAssignmentFreeOptionV1Script')) {
+    const freeOption = document.createElement('script');
+    freeOption.id = 'dpAssignmentFreeOptionV1Script';
+    freeOption.src = 'src/assignment-free-option.js?v=20260720-1';
+    freeOption.async = false;
+    document.head.appendChild(freeOption);
+  }
+
   if (!document.getElementById('dpAssignmentInputCanonicalizerV1Script')) {
     const canonicalizer = document.createElement('script');
     canonicalizer.id = 'dpAssignmentInputCanonicalizerV1Script';
