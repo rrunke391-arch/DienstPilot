@@ -3,6 +3,14 @@
 
   document.getElementById('dpDutyAssignment')?.remove();
 
+  if (!document.getElementById('dpAssignmentInputCanonicalizerV1Script')) {
+    const canonicalizer = document.createElement('script');
+    canonicalizer.id = 'dpAssignmentInputCanonicalizerV1Script';
+    canonicalizer.src = 'src/assignment-input-canonicalizer.js?v=20260720-1';
+    canonicalizer.async = false;
+    document.head.appendChild(canonicalizer);
+  }
+
   if (!document.getElementById('dpDriverProfileRouteFixV2Script')) {
     document.getElementById('dpDriverProfileRouteFixV1Script')?.remove();
     const routeScript = document.createElement('script');
@@ -35,14 +43,6 @@
     monthScript.src = 'src/assignment-month-focus.js?v=20260720-1';
     monthScript.async = false;
     document.head.appendChild(monthScript);
-  }
-
-  if (!document.getElementById('dpColleagueServerPlanLoaderFixV1Script')) {
-    const loaderScript = document.createElement('script');
-    loaderScript.id = 'dpColleagueServerPlanLoaderFixV1Script';
-    loaderScript.src = 'src/colleague-server-plan-loader-fix.js?v=20260720-1';
-    loaderScript.async = false;
-    document.head.appendChild(loaderScript);
   }
 
   function loadPutNormalizer() {
