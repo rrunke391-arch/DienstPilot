@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotDutyEditSaveFixV3) return;
-  window.__dienstpilotDutyEditSaveFixV3 = true;
+  if (window.__dienstpilotDutyEditSaveFixV4) return;
+  window.__dienstpilotDutyEditSaveFixV4 = true;
 
   const USER_KEY = 'dienstpilot_user';
   const ROLE_KEY = 'dienstpilot_role';
@@ -52,6 +52,22 @@
     el.className = `sync-status ${state || ''}`.trim();
   }
 
+  function catalogTimesFor(number, date) {
+    try {
+      if (typeof window.catalogTimes === 'function') {
+        const times = window.catalogTimes(String(number), String(date || ''));
+        if (times?.start && times?.end) return times;
+      }
+      if (typeof catalogTimes === 'function') {
+        const times = catalogTimes(String(number), String(date || ''));
+        if (times?.start && times?.end) return times;
+      }
+    } catch (error) {
+      console.warn('Katalogzeiten konnten nicht ermittelt werden:', error);
+    }
+    return null;
+  }
+
   async function persistChange(change) {
     if (saving || !mayEdit()) return;
     const profile = activeProfile();
@@ -75,7 +91,16 @@
       const nextDuties = duties.map((entry) => {
         if (String(entry?.id) !== String(change.id)) return entry;
         found = true;
-        return { ...entry, [change.field]: change.value };
+
+        const next = { ...entry, [change.field]: change.value };
+        if (change.field === 'number') {
+          const times = catalogTimesFor(change.value, entry.date);
+          if (times) {
+            next.start = times.start;
+            next.end = times.end;
+          }
+        }
+        return next;
       });
 
       if (!found) throw new Error('Der bearbeitete Dienst wurde im Serverplan nicht gefunden.');
@@ -124,8 +149,6 @@
     }, field === 'number' ? 50 : 350);
   }
 
-  // Dienstnummer: alten Katalog-Change-Handler nicht mehr bis zur Bubble-Phase
-  // durchlassen, weil er die gerade eingegebene Nummer erneut überschreibt.
   document.addEventListener('change', (event) => {
     const input = event.target?.closest?.('[data-duty] [data-field]');
     if (!input) return;
