@@ -26,6 +26,14 @@
     document.head.appendChild(freeOption);
   }
 
+  if (!document.getElementById('dpPrintDutyFreeOptionV1Script')) {
+    const printFreeOption = document.createElement('script');
+    printFreeOption.id = 'dpPrintDutyFreeOptionV1Script';
+    printFreeOption.src = 'src/print-duty-free-option.js?v=20260720-1';
+    printFreeOption.async = false;
+    document.head.appendChild(printFreeOption);
+  }
+
   if (!document.getElementById('dpAssignmentInputCanonicalizerV1Script')) {
     const canonicalizer = document.createElement('script');
     canonicalizer.id = 'dpAssignmentInputCanonicalizerV1Script';
