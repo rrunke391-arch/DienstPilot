@@ -11,6 +11,14 @@
     document.head.appendChild(refreshScript);
   }
 
+  if (!document.getElementById('dpAssignmentMonthFocusV1Script')) {
+    const monthScript = document.createElement('script');
+    monthScript.id = 'dpAssignmentMonthFocusV1Script';
+    monthScript.src = 'src/assignment-month-focus.js?v=20260720-1';
+    monthScript.async = false;
+    document.head.appendChild(monthScript);
+  }
+
   if (!document.getElementById('dpDriverProfileAliasFixV2Script')) {
     document.getElementById('dpDriverProfileAliasFixV1Script')?.remove();
     const aliasScript = document.createElement('script');
