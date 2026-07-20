@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotDutyEditSaveFixV2) return;
-  window.__dienstpilotDutyEditSaveFixV2 = true;
+  if (window.__dienstpilotDutyEditSaveFixV3) return;
+  window.__dienstpilotDutyEditSaveFixV3 = true;
 
   const USER_KEY = 'dienstpilot_user';
   const ROLE_KEY = 'dienstpilot_role';
@@ -114,15 +114,31 @@
       ? String(input.value || '').replace(/\D/g, '').slice(0, 4)
       : String(input.value || '');
 
+    if (field === 'number') input.value = value;
+    if (!value) return;
+
     if (saveTimer) window.clearTimeout(saveTimer);
     saveTimer = window.setTimeout(() => {
       saveTimer = null;
       persistChange({ id, field, value });
-    }, 350);
+    }, field === 'number' ? 50 : 350);
   }
 
+  // Dienstnummer: alten Katalog-Change-Handler nicht mehr bis zur Bubble-Phase
+  // durchlassen, weil er die gerade eingegebene Nummer erneut überschreibt.
   document.addEventListener('change', (event) => {
     const input = event.target?.closest?.('[data-duty] [data-field]');
+    if (!input) return;
+    if (input.dataset.field === 'number') {
+      event.stopPropagation();
+      queueField(input);
+      return;
+    }
+    queueField(input);
+  }, true);
+
+  document.addEventListener('blur', (event) => {
+    const input = event.target?.closest?.('[data-duty] [data-field="number"]');
     if (input) queueField(input);
   }, true);
 
@@ -131,6 +147,7 @@
     const input = event.target?.closest?.('[data-duty] [data-field]');
     if (!input) return;
     event.preventDefault();
+    if (input.dataset.field === 'number') event.stopPropagation();
     queueField(input);
   }, true);
 })();
