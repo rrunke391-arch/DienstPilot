@@ -34,10 +34,11 @@
     document.head.appendChild(printFreeOption);
   }
 
-  if (!document.getElementById('dpLiveDayPreviewSyncV1Script')) {
+  document.getElementById('dpLiveDayPreviewSyncV1Script')?.remove();
+  if (!document.getElementById('dpLiveDayPreviewSyncV2Script')) {
     const previewSync = document.createElement('script');
-    previewSync.id = 'dpLiveDayPreviewSyncV1Script';
-    previewSync.src = 'src/live-day-preview-sync.js?v=20260720-1';
+    previewSync.id = 'dpLiveDayPreviewSyncV2Script';
+    previewSync.src = 'src/live-day-preview-sync.js?v=20260720-2';
     previewSync.async = false;
     document.head.appendChild(previewSync);
   }
