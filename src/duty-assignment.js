@@ -4,24 +4,18 @@
   document.getElementById('dpDutyAssignment')?.remove();
   document.getElementById('dpDutyAssignmentDiagnosticsV1')?.remove();
   document.getElementById('dpDutyAssignmentDiagnosticsV1Script')?.remove();
-
-  if (!document.getElementById('dpDutyEditPermissionFixV1Script')) {
-    const editFix = document.createElement('script');
-    editFix.id = 'dpDutyEditPermissionFixV1Script';
-    editFix.src = 'src/duty-edit-permission-fix.js?v=20260720-1';
-    editFix.async = false;
-    document.head.appendChild(editFix);
-  }
-
+  document.getElementById('dpDutyEditPermissionFixV1Script')?.remove();
   document.getElementById('dpDutyEditSaveFixV1Script')?.remove();
   document.getElementById('dpDutyEditSaveFixV2Script')?.remove();
   document.getElementById('dpDutyEditSaveFixV3Script')?.remove();
-  if (!document.getElementById('dpDutyEditSaveFixV4Script')) {
-    const saveFix = document.createElement('script');
-    saveFix.id = 'dpDutyEditSaveFixV4Script';
-    saveFix.src = 'src/duty-edit-save-fix.js?v=20260720-4';
-    saveFix.async = false;
-    document.head.appendChild(saveFix);
+  document.getElementById('dpDutyEditSaveFixV4Script')?.remove();
+
+  if (!document.getElementById('dpDutyEditControlsV1Script')) {
+    const controls = document.createElement('script');
+    controls.id = 'dpDutyEditControlsV1Script';
+    controls.src = 'src/duty-edit-controls.js?v=20260720-1';
+    controls.async = false;
+    document.head.appendChild(controls);
   }
 
   if (!document.getElementById('dpAssignmentInputCanonicalizerV1Script')) {
