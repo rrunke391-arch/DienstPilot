@@ -1,8 +1,10 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotFreeRowEditControlsV1) return;
-  window.__dienstpilotFreeRowEditControlsV1 = true;
+  if (window.__dienstpilotFreeRowEditControlsV2) return;
+  window.__dienstpilotFreeRowEditControlsV2 = true;
+
+  let installTimer = null;
 
   const text = (node) => String(node?.textContent || '').trim().toLowerCase();
   const valueOf = (cell) => {
@@ -46,52 +48,42 @@
       || null;
   }
 
-  function enhanceRow(row) {
-    if (!isFreeRow(row)) return;
-    if (row.querySelector('.dp-free-row-actions')) return;
-
-    const actionCell = row.cells?.[row.cells.length - 1];
-    if (!actionCell) return;
-
+  function buildActions(row) {
     const actions = document.createElement('div');
     actions.className = 'dp-free-row-actions';
+    actions.innerHTML = `
+      <button type="button" class="dp-free-edit">Bearbeiten</button>
+      <button type="button" class="dp-free-save" hidden>Speichern</button>
+      <button type="button" class="dp-free-delete">Löschen</button>`;
 
-    const edit = document.createElement('button');
-    edit.type = 'button';
-    edit.className = 'dp-free-edit';
-    edit.textContent = 'Bearbeiten';
-
-    const save = document.createElement('button');
-    save.type = 'button';
-    save.className = 'dp-free-save';
-    save.textContent = 'Speichern';
-    save.hidden = true;
-
-    const remove = document.createElement('button');
-    remove.type = 'button';
-    remove.className = 'dp-free-delete';
-    remove.textContent = 'Löschen';
-
-    edit.addEventListener('click', () => setEditing(row, true));
-
-    save.addEventListener('click', () => {
+    actions.querySelector('.dp-free-edit').addEventListener('click', () => setEditing(row, true));
+    actions.querySelector('.dp-free-save').addEventListener('click', () => {
       editableFields(row).forEach((field) => {
         field.dispatchEvent(new Event('input', { bubbles: true }));
         field.dispatchEvent(new Event('change', { bubbles: true }));
       });
       setEditing(row, false);
+      scheduleInstall();
     });
-
-    remove.addEventListener('click', () => {
+    actions.querySelector('.dp-free-delete').addEventListener('click', () => {
       if (!window.confirm('Diesen Frei-Eintrag wirklich löschen?')) return;
       const originalDelete = findOriginalDelete(row);
       if (originalDelete && !originalDelete.disabled) originalDelete.click();
       else row.remove();
+      scheduleInstall();
     });
+    return actions;
+  }
 
-    actions.append(edit, save, remove);
-    actionCell.prepend(actions);
-    setEditing(row, false);
+  function enhanceRow(row) {
+    if (!isFreeRow(row)) return;
+    const actionCell = row.cells?.[row.cells.length - 1];
+    if (!actionCell) return;
+
+    if (!row.querySelector('.dp-free-row-actions')) {
+      actionCell.prepend(buildActions(row));
+    }
+    if (row.dataset.dpFreeEditing !== '1') setEditing(row, false);
   }
 
   function install() {
@@ -99,6 +91,13 @@
       if (!isTargetTable(table)) return;
       table.querySelectorAll('tbody tr').forEach(enhanceRow);
     });
+  }
+
+  function scheduleInstall() {
+    clearTimeout(installTimer);
+    installTimer = setTimeout(install, 30);
+    setTimeout(install, 150);
+    setTimeout(install, 500);
   }
 
   function addStyle() {
@@ -116,11 +115,16 @@
   }
 
   addStyle();
-  const observer = new MutationObserver(() => install());
+  const observer = new MutationObserver(scheduleInstall);
   const start = () => {
     install();
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    document.addEventListener('input', scheduleInstall, true);
+    document.addEventListener('change', scheduleInstall, true);
+    document.addEventListener('click', scheduleInstall, true);
+    window.setInterval(install, 1000);
   };
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
   else start();
 })();
