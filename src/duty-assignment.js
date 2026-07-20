@@ -34,6 +34,14 @@
     document.head.appendChild(printFreeOption);
   }
 
+  if (!document.getElementById('dpLiveDayPreviewSyncV1Script')) {
+    const previewSync = document.createElement('script');
+    previewSync.id = 'dpLiveDayPreviewSyncV1Script';
+    previewSync.src = 'src/live-day-preview-sync.js?v=20260720-1';
+    previewSync.async = false;
+    document.head.appendChild(previewSync);
+  }
+
   if (!document.getElementById('dpAssignmentInputCanonicalizerV1Script')) {
     const canonicalizer = document.createElement('script');
     canonicalizer.id = 'dpAssignmentInputCanonicalizerV1Script';
