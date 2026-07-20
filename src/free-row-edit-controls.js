@@ -1,16 +1,13 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotFreeRowEditControlsV2) return;
-  window.__dienstpilotFreeRowEditControlsV2 = true;
+  if (window.__dienstpilotFreeRowEditControlsV3) return;
+  window.__dienstpilotFreeRowEditControlsV3 = true;
 
   let installTimer = null;
 
-  const text = (node) => String(node?.textContent || '').trim().toLowerCase();
-  const valueOf = (cell) => {
-    const field = cell?.querySelector('input, select, textarea');
-    return String(field?.value ?? cell?.textContent ?? '').trim();
-  };
+  const normalize = (value) => String(value || '').trim().toLowerCase();
+  const text = (node) => normalize(node?.textContent);
 
   function isTargetTable(table) {
     const headers = [...table.querySelectorAll('thead th, tr:first-child th')].map(text);
@@ -19,8 +16,18 @@
       && headers.includes('ende');
   }
 
+  function fieldValues(cell) {
+    return [...(cell?.querySelectorAll('input, select, textarea') || [])]
+      .map((field) => normalize(field.value));
+  }
+
   function isFreeRow(row) {
-    return valueOf(row.cells?.[1]).toLowerCase() === 'frei';
+    const dutyCell = row.cells?.[1];
+    if (!dutyCell) return false;
+    const values = fieldValues(dutyCell);
+    if (values.some((value) => value === 'frei' || value === 'dienst frei')) return true;
+    const dutyText = text(dutyCell);
+    return dutyText === 'frei' || dutyText.includes('dienst frei');
   }
 
   function editableFields(row) {
@@ -48,30 +55,13 @@
       || null;
   }
 
-  function buildActions(row) {
+  function createActions() {
     const actions = document.createElement('div');
     actions.className = 'dp-free-row-actions';
     actions.innerHTML = `
       <button type="button" class="dp-free-edit">Bearbeiten</button>
       <button type="button" class="dp-free-save" hidden>Speichern</button>
       <button type="button" class="dp-free-delete">Löschen</button>`;
-
-    actions.querySelector('.dp-free-edit').addEventListener('click', () => setEditing(row, true));
-    actions.querySelector('.dp-free-save').addEventListener('click', () => {
-      editableFields(row).forEach((field) => {
-        field.dispatchEvent(new Event('input', { bubbles: true }));
-        field.dispatchEvent(new Event('change', { bubbles: true }));
-      });
-      setEditing(row, false);
-      scheduleInstall();
-    });
-    actions.querySelector('.dp-free-delete').addEventListener('click', () => {
-      if (!window.confirm('Diesen Frei-Eintrag wirklich löschen?')) return;
-      const originalDelete = findOriginalDelete(row);
-      if (originalDelete && !originalDelete.disabled) originalDelete.click();
-      else row.remove();
-      scheduleInstall();
-    });
     return actions;
   }
 
@@ -81,7 +71,7 @@
     if (!actionCell) return;
 
     if (!row.querySelector('.dp-free-row-actions')) {
-      actionCell.prepend(buildActions(row));
+      actionCell.prepend(createActions());
     }
     if (row.dataset.dpFreeEditing !== '1') setEditing(row, false);
   }
@@ -95,9 +85,41 @@
 
   function scheduleInstall() {
     clearTimeout(installTimer);
-    installTimer = setTimeout(install, 30);
-    setTimeout(install, 150);
-    setTimeout(install, 500);
+    installTimer = setTimeout(install, 20);
+    [80, 200, 500, 1000, 2000].forEach((delay) => setTimeout(install, delay));
+  }
+
+  function handleClick(event) {
+    const button = event.target.closest?.('.dp-free-edit, .dp-free-save, .dp-free-delete');
+    if (!button) return;
+    const row = button.closest('tr');
+    if (!row) return;
+
+    if (button.classList.contains('dp-free-edit')) {
+      event.preventDefault();
+      setEditing(row, true);
+      return;
+    }
+
+    if (button.classList.contains('dp-free-save')) {
+      event.preventDefault();
+      editableFields(row).forEach((field) => {
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      setEditing(row, false);
+      scheduleInstall();
+      return;
+    }
+
+    if (button.classList.contains('dp-free-delete')) {
+      event.preventDefault();
+      if (!window.confirm('Diesen Frei-Eintrag wirklich löschen?')) return;
+      const originalDelete = findOriginalDelete(row);
+      if (originalDelete && !originalDelete.disabled) originalDelete.click();
+      else row.remove();
+      scheduleInstall();
+    }
   }
 
   function addStyle() {
@@ -105,8 +127,9 @@
     const style = document.createElement('style');
     style.id = 'dpFreeRowEditControlsStyle';
     style.textContent = `
-      .dp-free-row-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-right:6px}
-      .dp-free-row-actions button{border:1px solid #cbd5e1;border-radius:8px;padding:6px 9px;background:#fff;font-weight:800;cursor:pointer}
+      .dp-free-row-actions{display:flex!important;gap:6px;align-items:center;flex-wrap:wrap;margin-right:6px}
+      .dp-free-row-actions button{display:inline-flex;border:1px solid #cbd5e1;border-radius:8px;padding:6px 9px;background:#fff;font-weight:800;cursor:pointer}
+      .dp-free-row-actions button[hidden]{display:none!important}
       .dp-free-row-actions .dp-free-save{background:#0f172a;color:#fff;border-color:#0f172a}
       .dp-free-row-actions .dp-free-delete{background:#fff1f2;color:#b91c1c;border-color:#fecdd3}
       @media(max-width:760px){.dp-free-row-actions{width:100%;margin-top:6px}}
@@ -115,14 +138,15 @@
   }
 
   addStyle();
+  document.addEventListener('click', handleClick, true);
+  document.addEventListener('input', scheduleInstall, true);
+  document.addEventListener('change', scheduleInstall, true);
+
   const observer = new MutationObserver(scheduleInstall);
   const start = () => {
     install();
-    observer.observe(document.documentElement, { childList: true, subtree: true });
-    document.addEventListener('input', scheduleInstall, true);
-    document.addEventListener('change', scheduleInstall, true);
-    document.addEventListener('click', scheduleInstall, true);
-    window.setInterval(install, 1000);
+    observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['value', 'disabled', 'class'] });
+    window.setInterval(install, 750);
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
