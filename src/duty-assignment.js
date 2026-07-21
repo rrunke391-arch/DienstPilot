@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   'use strict';
 
   document.getElementById('dpDutyAssignment')?.remove();
@@ -31,19 +31,19 @@
   if (!document.getElementById('dpPrintDutyFreeOptionV3Script')) {
     const printFreeOption = document.createElement('script');
     printFreeOption.id = 'dpPrintDutyFreeOptionV3Script';
-    printFreeOption.src = 'src/print-duty-free-option.js?v=20260720-3';
+    printFreeOption.src = 'src/print-duty-free-option.js?v=20260721-6';
     printFreeOption.async = false;
     document.head.appendChild(printFreeOption);
   }
 
-  document.getElementById('dpFreeRowEditControlsV1Script')?.remove();
-  document.getElementById('dpFreeRowEditControlsV2Script')?.remove();
-  document.getElementById('dpFreeRowEditControlsV3Script')?.remove();
-  document.getElementById('dpFreeRowEditControlsV4Script')?.remove();
-  if (!document.getElementById('dpFreeRowEditControlsV5Script')) {
+  document.getElementById('dpFreeRowEditControlsV7Script')?.remove();
+  document.getElementById('dpFreeRowEditControlsV7Script')?.remove();
+  document.getElementById('dpFreeRowEditControlsV7Script')?.remove();
+  document.getElementById('dpFreeRowEditControlsV7Script')?.remove();
+  if (!document.getElementById('dpFreeRowEditControlsV7Script')) {
     const freeRowControls = document.createElement('script');
-    freeRowControls.id = 'dpFreeRowEditControlsV5Script';
-    freeRowControls.src = 'src/free-row-edit-controls.js?v=20260720-5';
+    freeRowControls.id = 'dpFreeRowEditControlsV7Script';
+    freeRowControls.src = 'src/free-row-edit-controls.js?v=20260721-7';
     freeRowControls.async = false;
     document.head.appendChild(freeRowControls);
   }
@@ -128,3 +128,8 @@
   script.addEventListener('load', loadPutNormalizer, { once: true });
   document.head.appendChild(script);
 })();
+
+
+
+
+

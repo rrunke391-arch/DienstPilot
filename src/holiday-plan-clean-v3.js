@@ -1,9 +1,9 @@
-(() => {
+﻿(() => {
   'use strict';
   if (window.__dienstpilotHolidayPlan18V5) return;
   window.__dienstpilotHolidayPlan18V5 = true;
 
-  // Alte Ferien-Bausteine dürfen keine zusätzlichen Zeilen mehr erzeugen.
+  // Alte Ferien-Bausteine dÃ¼rfen keine zusÃ¤tzlichen Zeilen mehr erzeugen.
   window.__dienstpilotNiedersachsenHolidayDutyPlan = true;
   window.__dienstpilotHolidayExtraDutiesV3 = true;
   window.__dienstpilotHolidayPhotoTemplateV2 = true;
@@ -35,14 +35,14 @@
   // 1941 und 1743 werden im blauen Schichtbereich verwaltet.
   const TEMPLATE = [
     ['3031','A.Gerding','OS-LF 223','05:03','13:21','05:20','Wellingholzhausen, Schule'],
-    ['3032','D.Knigge','OS-VH 721','04:45','12:04','05:26','Osnabrück, HBF'],
+    ['3032','D.Knigge','OS-VH 721','04:45','12:04','05:26','OsnabrÃ¼ck, HBF'],
     ['3033','Y.Yasar','OS-QS 519','05:43','12:21','06:16','Buer, Schulzentrum'],
     ['3034','S.Wittwer','OS-SU 722','05:47','15:39','06:12','Neuenkirchen, Schulzentrum'],
     ['3035','H.AI Sayek','OS-IF 215','05:51','17:21','06:18','Westerhausen, Vinkenaue'],
     ['3036','P.Lommel','OS-XB 925','06:03','18:04','06:27','Gesmold, Schimmweg'],
     ['3037','K.Igelbrink','OS-YG 120','06:03','16:05','06:20','Wellingholzhausen, Schule'],
-    ['3038','W.Wüllner','OS-DZ 116','06:03','12:06','06:28','Neuenkirchen, Schulzentrum'],
-    ['3039','A.Hergerdt','OS-ZT 626','06:42','19:21','07:15','Bruchmühlen, Schule'],
+    ['3038','W.WÃ¼llner','OS-DZ 116','06:03','12:06','06:28','Neuenkirchen, Schulzentrum'],
+    ['3039','A.Hergerdt','OS-ZT 626','06:42','19:21','07:15','BruchmÃ¼hlen, Schule'],
     ['3040','N.Awdullahi','OS-EV 118','07:20','19:33','07:45','Melle, ZOB'],
     ['3041','A.Hasan','OS-BU 816','08:20','19:41','08:45','Melle, ZOB'],
     ['3042','K.Giotis','OS-KX 220','11:20','21:05','11:45','Melle, ZOB'],
@@ -111,7 +111,7 @@
     const button = document.getElementById(HOLIDAY_INSERT);
     if (!button) return;
     if (button.id !== INSERT) button.id = INSERT;
-    if (button.textContent !== 'Standarddienste einfügen') button.textContent = 'Standarddienste einfügen';
+    if (button.textContent !== 'Standarddienste einfÃ¼gen') button.textContent = 'Standarddienste einfÃ¼gen';
   }
 
   function setHolidayUi(active) {
@@ -147,12 +147,12 @@
       node.id = 'dpNiHolidayDutyStatus';
       document.getElementById('dpDailyPlanStatus')?.insertAdjacentElement('afterend', node);
     }
-    const bannerText = 'Niedersachsen-Ferien: 18 Dienste – 3031 bis 3045 sowie 1341, 1941 und 1743. Der Einsatzwagen wird separat geführt. Über „＋ Frei“ können beliebig viele freie Fahrer ergänzt werden.';
+    const bannerText = 'Niedersachsen-Ferien: 18 Dienste â€“ 3031 bis 3045 sowie 1341, 1941 und 1743. Der Einsatzwagen wird separat gefÃ¼hrt. Ãœber â€žï¼‹ Freiâ€œ kÃ¶nnen beliebig viele freie Fahrer ergÃ¤nzt werden.';
     if (node.textContent !== bannerText) node.textContent = bannerText;
     const button = document.getElementById(INSERT) || document.getElementById(HOLIDAY_INSERT);
     if (button) {
       if (button.id !== HOLIDAY_INSERT) button.id = HOLIDAY_INSERT;
-      if (button.textContent !== '18 Ferien-Dienste einfügen') button.textContent = '18 Ferien-Dienste einfügen';
+      if (button.textContent !== '18 Ferien-Dienste einfÃ¼gen') button.textContent = '18 Ferien-Dienste einfÃ¼gen';
     }
     setHolidayUi(true);
   }
@@ -273,9 +273,9 @@
     window.__dienstpilotHolidayPhotoRebuilding = true;
     mark(GENERAL_MARKER, date);
     const old = snapshot();
-    status('Der Ferienplan wird auf 18 Dienste bereinigt …');
+    status('Der Ferienplan wird auf 18 Dienste bereinigt â€¦');
     try {
-      if (!await clearRows()) throw new Error('Alte Zeilen konnten nicht vollständig entfernt werden.');
+      if (!await clearRows()) throw new Error('Alte Zeilen konnten nicht vollstÃ¤ndig entfernt werden.');
       for (const template of TEMPLATE) {
         const previous = old.services.get(template.duty) || {};
         const data = {
@@ -283,22 +283,22 @@
           name: previous.name || template.name,
           bus: previous.bus && previous.bus !== 'OS-XX 123' ? previous.bus : template.bus
         };
-        if (!await addRow(data)) throw new Error(`Dienst ${template.duty} konnte nicht eingefügt werden.`);
+        if (!await addRow(data)) throw new Error(`Dienst ${template.duty} konnte nicht eingefÃ¼gt werden.`);
       }
       for (const freeRow of old.free) {
         if (!await addRow(freeRow)) throw new Error('Ein vorhandener Frei-Eintrag konnte nicht wiederhergestellt werden.');
       }
-      if (!exact()) throw new Error('Die Dienstfolge 3031 bis 3045 ist noch nicht vollständig.');
+      if (!exact()) throw new Error('Die Dienstfolge 3031 bis 3045 ist noch nicht vollstÃ¤ndig.');
       mark(MIGRATION, date, VERSION);
       mark(GENERAL_MARKER, date);
       installOptions();
       installFreeControl();
       banner();
-      status(`Korrekt: 18 Feriendienste. Zusätzlich sind ${old.free.length} Frei-Einträge vorhanden.`, 'ok');
+      status(`Korrekt: 18 Feriendienste. ZusÃ¤tzlich sind ${old.free.length} Frei-EintrÃ¤ge vorhanden.`, 'ok');
       setTimeout(() => document.getElementById('dpDailySave')?.click(), 350);
       return true;
     } catch (error) {
-      status(`Ferienplan konnte nicht vollständig aufgebaut werden: ${error.message}`, 'error');
+      status(`Ferienplan konnte nicht vollstÃ¤ndig aufgebaut werden: ${error.message}`, 'error');
       return false;
     } finally {
       window.__dienstpilotHolidayPhotoRebuilding = false;
@@ -328,7 +328,7 @@
       const select = row.querySelector('.dp-daily-duty-select');
       if (!dutyInput || !select) return;
       const current = clean(dutyInput.value);
-      const desired = [{ value:'', text:'Feriendienst oder Frei auswählen' }];
+      const desired = [{ value:'', text:'Feriendienst oder Frei auswÃ¤hlen' }];
       ['Frei', ...DUTIES].forEach((duty) => {
         if (duty !== current && usedElsewhere(duty, dutyInput)) return;
         desired.push({ value:duty, text:duty === 'Frei' ? 'Frei' : duty === 'Einsatzwagen' ? 'Einsatzwagen' : `Dienst ${duty}` });
@@ -377,7 +377,7 @@
       const newest = freeRows.at(-1);
       const driverSelect = newest?.querySelector('.dp-daily-driver-select');
       if (driverSelect) driverSelect.focus({ preventScroll:true });
-      status('Frei wurde hinzugefügt. Bitte den Fahrer auswählen und anschließend speichern.', 'ok');
+      status('Frei wurde hinzugefÃ¼gt. Bitte den Fahrer auswÃ¤hlen und anschlieÃŸend speichern.', 'ok');
     } catch (error) {
       status(error.message, 'error');
     } finally {
@@ -397,13 +397,13 @@
       control.id = CONTROL_ID;
       const cell = document.createElement('td');
       cell.colSpan = 8;
-      cell.innerHTML = '<div class="dp-free-control"><button type="button" class="dp-free-button">＋ Frei</button><span class="dp-free-help"></span></div>';
+      cell.innerHTML = '<div class="dp-free-control"><button type="button" class="dp-free-button">ï¼‹ Frei</button><span class="dp-free-help"></span></div>';
       control.appendChild(cell);
       control.querySelector('.dp-free-button')?.addEventListener('click', addFreeRow);
     }
 
     const count = rows().filter((row) => value(row,'duty') === 'Frei').length;
-    const helpText = `Fahrer ohne Dienst hinzufügen${count ? ` · aktuell ${count} Fahrer frei` : ''}`;
+    const helpText = `Fahrer ohne Dienst hinzufÃ¼gen${count ? ` Â· aktuell ${count} Fahrer frei` : ''}`;
     const help = control.querySelector('.dp-free-help');
     if (help && help.textContent !== helpText) help.textContent = helpText;
 
@@ -479,6 +479,16 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true });
   else start();
+  window.addEventListener('dienstpilot:free-row-deleted', () => {
+    [0, 120, 350, 800].forEach((delay) => {
+      window.setTimeout(() => {
+        observedBody = null;
+        observe();
+        refresh();
+      }, delay);
+    });
+  });
+
   window.addEventListener('pageshow', () => schedule(500));
   window.addEventListener('focus', () => schedule(500));
 })();
