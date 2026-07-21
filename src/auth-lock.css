@@ -9,3 +9,25 @@ body.auth-locked .app {
 body:not(.auth-locked) #loginScreen {
   display: none !important;
 }
+
+/* Rein optische Korrektur der beschädigten UTF-8-Beschriftung.
+   Die Frei-Funktion und ihre JavaScript-Dateien bleiben unverändert. */
+.dp-free-button {
+  font-size: 0 !important;
+}
+
+.dp-free-button::after {
+  content: "+ Frei";
+  font-size: 13px;
+  font-weight: inherit;
+}
+
+.dp-free-control > span {
+  font-size: 0 !important;
+}
+
+.dp-free-control > span::after {
+  content: "Fahrer ohne Dienst hinzufügen";
+  font-size: 12px;
+  font-weight: inherit;
+}
