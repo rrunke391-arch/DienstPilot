@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   'use strict';
 
   const STORE_MAIN = 'lenkRuhezeitenRunke20260413';
@@ -346,7 +346,32 @@
   function planName(profile) { return ({ 'al-sayek':'alsayek', wuellner:'wullner', lommel:'lhommel' })[profile] || profile; }
   function norm(v) { return String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z]/g,''); }
   function colleagueName(profile) { return (KOLLEGEN.find(([id]) => id === profile) || [profile, profile])[1]; }
-  function setTitle(profile) { const t = document.getElementById(PROFILE_TITLE_ID); if (t && profile) { t.textContent = 'Dienstplan ' + colleagueName(profile); t.classList.remove('empty'); } }
+  function formatProfileTitle(profile) {
+  const value = String(profile || '').trim();
+
+  const match = value.match(/^([a-zäöü])_(.+)$/i);
+  if (match) {
+    const initial = match[1].toUpperCase();
+    const surname = match[2]
+      .replace(/_/g, ' ')
+      .replace(/\b\p{L}/gu, letter => letter.toUpperCase());
+
+    return `${initial}. ${surname}`;
+  }
+
+  return colleagueName(value)
+    .replace(/_/g, ' ')
+    .replace(/\b\p{L}/gu, letter => letter.toUpperCase());
+}
+
+function setTitle(profile) {
+  const t = document.getElementById(PROFILE_TITLE_ID);
+  if (t && profile) {
+    t.textContent = 'Dienstplan ' + formatProfileTitle(profile);
+    t.classList.remove('empty');
+  }
+}
   function escapeHtml(v) { return String(v ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;'); }
   function escapeAttr(v) { return escapeHtml(v).replaceAll('`','&#096;'); }
 })();
+

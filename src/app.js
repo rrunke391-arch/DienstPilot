@@ -1,4 +1,4 @@
-"use strict";
+﻿"use strict";
 
 // Phase 4: catalog is fetched from data/dienstkatalog-erweitert.json (preferred)
 // or data/dienstkatalog.json (fallback) at startup. RUNTIME_CATALOG is empty
@@ -300,10 +300,28 @@ function setSyncStatus(state) {
 // Wird bei jeder Profil-Änderung aufgerufen (Bootstrap, loadProfile,
 // saveProfile). setSyncStatus ruft das NICHT auf, weil sich das Profil
 // dort nicht ändert — nur der Sync-Zustand.
+function formatProfileDisplayName(profile) {
+  const value = String(profile || "").trim();
+
+  const initialSurname = value.match(/^([a-zäöü])_(.+)$/i);
+  if (initialSurname) {
+    const initial = initialSurname[1].toUpperCase();
+    const surname = initialSurname[2]
+      .replace(/_/g, " ")
+      .replace(/\b\p{L}/gu, letter => letter.toUpperCase());
+
+    return `${initial}. ${surname}`;
+  }
+
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\p{L}/gu, letter => letter.toUpperCase());
+}
+
 function updateProfileUI() {
   const profile = appSettings.activeProfile;
   const label = profile
-    ? `Dienstplan ${profile.charAt(0).toUpperCase() + profile.slice(1)}`
+    ? `Dienstplan ${formatProfileDisplayName(profile)}`
     : "Kein Dienstplan geladen";
 
   const titleEl = document.getElementById("profileTitle");
@@ -4346,3 +4364,4 @@ loadCatalog().then(async () => {
   updateProfileUI();                 // H1/title/aktiver Lade-Knopf.
   setSyncStatus(serverSyncStatus);   // Badge nach Render aktualisieren.
 });
+
