@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   'use strict';
 
   const API_BASE = 'https://api.dienstpilot-runke.de';
@@ -97,6 +97,11 @@
   function activeProfile() {
     const main = readJson(localStorage, MAIN_KEY, {});
     const user = currentUser() || {};
+
+    if (String(user.role || "").trim() === "Fahrer") {
+      return normalize(user.driverProfile || user.username);
+    }
+
     return normalize(
       main?.appSettings?.activeProfile ||
       localStorage.getItem(ACTIVE_PROFILE_KEY) ||

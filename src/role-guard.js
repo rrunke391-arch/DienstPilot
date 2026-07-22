@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   'use strict';
 
   const API_BASE = 'https://api.dienstpilot-runke.de';
@@ -64,7 +64,7 @@
   function makePublicUser(serverUser) {
     const username = String(serverUser.username || '').trim();
     const role = String(serverUser.role || 'Fahrer').trim();
-    const profile = normalize(username);
+    const profile = normalize(serverUser.driverProfile || username);
     return {
       username,
       displayName: String(serverUser.displayName || username).trim(),
@@ -384,3 +384,4 @@
     observeChanges();
   }
 })();
+
