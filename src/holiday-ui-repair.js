@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const API = '__dienstpilotHolidayUiRepairV2';
+  const API = '__dienstpilotHolidayUiRepairV3';
   if (window[API]?.restart) {
     window[API].restart();
     return;
@@ -22,8 +22,17 @@
     ['2027-10-16','2027-10-30'],['2027-12-23','2028-01-08']
   ];
 
+  const CP1252_BYTES = new Map([
+    [0x20AC,0x80],[0x201A,0x82],[0x0192,0x83],[0x201E,0x84],[0x2026,0x85],
+    [0x2020,0x86],[0x2021,0x87],[0x02C6,0x88],[0x2030,0x89],[0x0160,0x8A],
+    [0x2039,0x8B],[0x0152,0x8C],[0x017D,0x8E],[0x2018,0x91],[0x2019,0x92],
+    [0x201C,0x93],[0x201D,0x94],[0x2022,0x95],[0x2013,0x96],[0x2014,0x97],
+    [0x02DC,0x98],[0x2122,0x99],[0x0161,0x9A],[0x203A,0x9B],[0x0153,0x9C],
+    [0x017E,0x9E],[0x0178,0x9F]
+  ]);
+
   let observer = null;
-  let observedBody = null;
+  let observedSection = null;
   let timer = 0;
   let adding = false;
 
@@ -43,18 +52,44 @@
     return Boolean(section && !section.classList.contains('hidden'));
   }
 
+  function suspiciousScore(value) {
+    const text = String(value || '');
+    const matches = text.match(/Ã|Â|â|ð|ï¿½|�|ƒ|€|™|œ|ž|Ä/g);
+    return matches ? matches.length : 0;
+  }
+
+  function windows1252Bytes(value) {
+    const bytes = [];
+    for (const character of String(value || '')) {
+      const code = character.codePointAt(0);
+      if (code <= 0xFF) bytes.push(code);
+      else if (CP1252_BYTES.has(code)) bytes.push(CP1252_BYTES.get(code));
+      else return null;
+    }
+    return new Uint8Array(bytes);
+  }
+
+  function decodeOnePass(value) {
+    const bytes = windows1252Bytes(value);
+    if (!bytes) return String(value || '');
+    try {
+      return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch {
+      return String(value || '');
+    }
+  }
+
   function repairText(value) {
     let text = String(value ?? '');
-    const replacements = [
-      [/ÃƒÂ¼/g, 'ü'], [/ÃƒÂ¤/g, 'ä'], [/ÃƒÂ¶/g, 'ö'], [/ÃƒÅ¸/g, 'ß'],
-      [/ÃƒÅ“/g, 'Ü'], [/Ãƒâ€ž/g, 'Ä'], [/Ãƒâ€“/g, 'Ö'],
-      [/Ã¼/g, 'ü'], [/Ã¤/g, 'ä'], [/Ã¶/g, 'ö'], [/ÃŸ/g, 'ß'],
-      [/Ãœ/g, 'Ü'], [/Ã„/g, 'Ä'], [/Ã–/g, 'Ö'],
-      [/â€“/g, '–'], [/â€”/g, '—'], [/â€ž/g, '„'], [/â€œ/g, '“'],
-      [/â€¦/g, '…'], [/ï¼‹/g, '+'], [/Â·/g, '·'], [/Â /g, ' ']
-    ];
-    replacements.forEach(([pattern, replacement]) => { text = text.replace(pattern, replacement); });
-    return text;
+    for (let pass = 0; pass < 5; pass += 1) {
+      const decoded = decodeOnePass(text);
+      if (decoded === text || suspiciousScore(decoded) >= suspiciousScore(text)) break;
+      text = decoded;
+    }
+    return text
+      .replace(/ï¼‹/g, '+')
+      .replace(/Â·/g, '·')
+      .replace(/Â /g, ' ');
   }
 
   function repairVisibleText() {
@@ -72,9 +107,11 @@
     section.querySelectorAll('option').forEach((option) => {
       const next = repairText(option.textContent);
       if (next !== option.textContent) option.textContent = next;
+      const nextValue = repairText(option.value);
+      if (nextValue !== option.value) option.value = nextValue;
     });
 
-    section.querySelectorAll('input[type="text"], textarea').forEach((field) => {
+    section.querySelectorAll('input, textarea').forEach((field) => {
       const next = repairText(field.value);
       if (next !== field.value) field.value = next;
       if (field.placeholder) field.placeholder = repairText(field.placeholder);
@@ -161,17 +198,17 @@
     if (control.parentElement !== body || control.nextElementSibling !== firstFree) body.insertBefore(control, firstFree);
   }
 
-  function observeTable() {
-    const body = document.getElementById(TABLE_ID);
-    if (!body || body === observedBody) return;
+  function observeSection() {
+    const section = document.getElementById(SECTION_ID);
+    if (!section || section === observedSection) return;
     observer?.disconnect();
-    observedBody = body;
-    observer = new MutationObserver(() => schedule(80));
-    observer.observe(body, { childList: true, subtree: true, characterData: true });
+    observedSection = section;
+    observer = new MutationObserver(() => schedule(60));
+    observer.observe(section, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['value','title','aria-label','class'] });
   }
 
   function run() {
-    observeTable();
+    observeSection();
     repairVisibleText();
     ensureFreeControl();
   }
@@ -182,21 +219,23 @@
   }
 
   function restart() {
-    observedBody = null;
+    observedSection = null;
     observer?.disconnect();
     observer = null;
     [0,100,300,700,1500,3000,6000,12000].forEach((delay) => setTimeout(run, delay));
   }
 
   window[API] = { restart };
+  window.__dienstpilotHolidayUiRepairV2 = window[API];
   window.__dienstpilotHolidayUiRepairV1 = window[API];
   document.addEventListener('click', (event) => {
-    if (event.target.closest?.('#dpDailyDutyPlanTab,#loginButton,.tab[data-tab="eingabe"]')) restart();
+    if (event.target.closest?.('#dpDailyDutyPlanTab,#loginButton,.tab[data-tab="eingabe"],.tab[data-tab="katalog"]')) restart();
   }, true);
   document.addEventListener('change', (event) => {
     if (event.target?.id === DATE_ID) restart();
   }, true);
   window.addEventListener('dienstpilot:login-ready', restart);
+  window.addEventListener('dienstpilot:authenticated', restart);
   window.addEventListener('pageshow', restart);
   window.addEventListener('focus', () => schedule(100));
   restart();
