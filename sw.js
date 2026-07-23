@@ -1,4 +1,4 @@
-﻿const CACHE_VERSION = 'dienstpilot-184';
+﻿const CACHE_VERSION = 'dienstpilot-185';
 const APP_CACHE = `${CACHE_VERSION}-app`;
 
 const CORE_FILES = [
@@ -52,7 +52,7 @@ async function navigationFallback(request) {
     || (await caches.match('./index.html', { ignoreSearch: true }))
     || (await caches.match('./', { ignoreSearch: true }))
     || new Response(
-      'DienstPilot ist zurzeit offline. Bitte stelle kurz eine Internetverbindung her und Ã¶ffne die App erneut.',
+      'DienstPilot ist zurzeit offline. Bitte stelle kurz eine Internetverbindung her und öffne die App erneut.',
       { status: 503, headers: { 'Content-Type': 'text/plain; charset=UTF-8' } }
     );
 }
@@ -64,7 +64,7 @@ async function networkFirst(request) {
   } catch {
     const cached = await cachedResponse(request);
     if (cached) return cached;
-    throw new Error('Netzwerk und Cache nicht verfÃ¼gbar');
+    throw new Error('Netzwerk und Cache nicht verfügbar');
   }
 }
 
@@ -118,9 +118,3 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(networkFirst(request).catch(() => new Response('', { status: 504 })));
 });
-
-
-
-
-
-
