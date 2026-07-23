@@ -1,10 +1,19 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotPasswordEyeV2) return;
-  window.__dienstpilotPasswordEyeV2 = true;
+  if (window.__dienstpilotPasswordEyeV3) return;
+  window.__dienstpilotPasswordEyeV3 = true;
 
   let dailyDutyInputPatchInstalled = false;
+
+  function loadServerLoginSession() {
+    if (document.getElementById('dpServerLoginSessionV1')) return;
+    const script = document.createElement('script');
+    script.id = 'dpServerLoginSessionV1';
+    script.src = 'src/server-login-session.js?v=20260723-1';
+    script.async = false;
+    document.head.appendChild(script);
+  }
 
   const eyeIcon = (slashed) => `
     <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
@@ -85,10 +94,12 @@
   }
 
   function start() {
+    loadServerLoginSession();
     startPasswordEye();
     installDailyDutyInputPatch();
   }
 
+  loadServerLoginSession();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
   else start();
 })();
