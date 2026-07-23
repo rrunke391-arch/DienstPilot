@@ -1,4 +1,4 @@
-﻿const CACHE_VERSION = 'dienstpilot-186';
+const CACHE_VERSION = 'dienstpilot-187';
 const APP_CACHE = `${CACHE_VERSION}-app`;
 
 const CORE_FILES = [
@@ -42,37 +42,9 @@ async function storeSuccessfulResponse(request, response) {
   return response;
 }
 
-async function cachedResponse(request) {
-  return (await caches.match(request))
-    || (await caches.match(request, { ignoreSearch: true }));
-}
-
-async function navigationFallback(request) {
-  return (await cachedResponse(request))
-    || (await caches.match('./index.html', { ignoreSearch: true }))
-    || (await caches.match('./', { ignoreSearch: true }))
-    || new Response(
-      'DienstPilot ist zurzeit offline. Bitte stelle kurz eine Internetverbindung her und öffne die App erneut.',
-      { status: 503, headers: { 'Content-Type': 'text/plain; charset=UTF-8' } }
-    );
-}
-
-async function networkFirst(request) {
-  try {
-    const response = await fetch(request, { cache: 'no-store' });
-    return storeSuccessfulResponse(request, response);
-  } catch {
-    const cached = await cachedResponse(request);
-    if (cached) return cached;
-    throw new Error('Netzwerk und Cache nicht verfügbar');
-  }
-}
-
 self.addEventListener('install', (event) => {
-  event.waitUntil((async () => {
-    await precacheCoreFiles();
-    await self.skipWaiting();
-  })());
+  event.waitUntil(precacheCoreFiles());
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -80,11 +52,6 @@ self.addEventListener('activate', (event) => {
     const keys = await caches.keys();
     await Promise.all(keys.filter((key) => key !== APP_CACHE).map((key) => caches.delete(key)));
     await self.clients.claim();
-
-    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    for (const client of clients) {
-      client.postMessage({ type: 'sw-activated', version: CACHE_VERSION });
-    }
   })());
 });
 
@@ -93,28 +60,15 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
+  if (isServerDataRequest(url)) return;
 
-  if (isServerDataRequest(url)) {
-    event.respondWith(fetch(request, { cache: 'no-store' }));
-    return;
-  }
-
-  if (url.origin !== self.location.origin) {
-    event.respondWith(fetch(request));
-    return;
-  }
-
-  if (request.mode === 'navigate') {
-    event.respondWith((async () => {
-      try {
-        const response = await fetch(request, { cache: 'no-store' });
-        return storeSuccessfulResponse(request, response);
-      } catch {
-        return navigationFallback(request);
-      }
-    })());
-    return;
-  }
-
-  event.respondWith(networkFirst(request).catch(() => new Response('', { status: 504 })));
+  event.respondWith((async () => {
+    try {
+      const response = await fetch(request);
+      return storeSuccessfulResponse(request, response);
+    } catch {
+      const cached = await caches.match(request);
+      return cached || caches.match('./index.html');
+    }
+  })());
 });
