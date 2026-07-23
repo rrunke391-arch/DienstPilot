@@ -1,23 +1,23 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotDailyPlanImmediateRefreshV3) {
+  if (window.__dienstpilotDailyPlanImmediateRefreshV4) {
+    window.__dienstpilotHolidayUiRepairV2?.restart?.();
     window.__dienstpilotHolidayUiRepairV1?.restart?.();
     return;
   }
-  window.__dienstpilotDailyPlanImmediateRefreshV3 = true;
+  window.__dienstpilotDailyPlanImmediateRefreshV4 = true;
 
-  // Keine kuenstlichen Eingabe- oder Tab-Ereignisse. Diese hatten den
-  // Werktagsplan zuvor unbeabsichtigt auf die Wochenendansicht umgeschaltet.
   function loadRepair() {
-    if (window.__dienstpilotHolidayUiRepairV1?.restart) {
-      window.__dienstpilotHolidayUiRepairV1.restart();
+    const api = window.__dienstpilotHolidayUiRepairV2 || window.__dienstpilotHolidayUiRepairV1;
+    if (api?.restart) {
+      api.restart();
       return;
     }
-    if (document.getElementById('dpHolidayUiRepairV1')) return;
+    if (document.getElementById('dpHolidayUiRepairV2')) return;
     const script = document.createElement('script');
-    script.id = 'dpHolidayUiRepairV1';
-    script.src = 'src/holiday-ui-repair.js?v=20260723-1';
+    script.id = 'dpHolidayUiRepairV2';
+    script.src = 'src/holiday-ui-repair.js?v=20260723-2';
     script.async = false;
     document.head.appendChild(script);
   }
