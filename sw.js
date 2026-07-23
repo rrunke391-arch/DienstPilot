@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'dienstpilot-187';
+const CACHE_VERSION = 'dienstpilot-188';
 const APP_CACHE = `${CACHE_VERSION}-app`;
 
 const CORE_FILES = [
