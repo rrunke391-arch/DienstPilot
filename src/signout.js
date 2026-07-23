@@ -1,13 +1,11 @@
 (() => {
   'use strict';
 
-  if (window.__dienstpilotPrimaryModuleLoaderV2) return;
-  window.__dienstpilotPrimaryModuleLoaderV2 = true;
+  if (window.__dienstpilotPrimaryModuleLoaderV1) return;
+  window.__dienstpilotPrimaryModuleLoaderV1 = true;
 
   let catalogStaticRepairDone = false;
   let catalogFallbackInstalled = false;
-  let userModulesRequested = false;
-  let loginWaitTimer = 0;
 
   function onReady(fn) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, { once: true });
@@ -20,10 +18,6 @@
     } catch {
       return null;
     }
-  }
-
-  function hasServerSession() {
-    return Boolean(readUser() && sessionStorage.getItem('dienstpilot_api_token'));
   }
 
   function addStyle() {
@@ -67,7 +61,6 @@
   }
 
   function createButton() {
-    if (!readUser()) return;
     if (document.getElementById('dpSignoutButton')) {
       refreshName();
       return;
@@ -110,10 +103,9 @@
   }
 
   function loadUserModules() {
-    if (userModulesRequested || !hasServerSession()) return;
-    userModulesRequested = true;
+    if (!readUser() || !sessionStorage.getItem('dienstpilot_api_token')) return;
 
-    loadScript('dpPlanApiBridge', 'src/plan-api-bridge.js?v=20260723-1');
+    loadScript('dpPlanApiBridge', 'src/plan-api-bridge.js?v=20260712-1');
     loadScript('dpDailyDutyStorageGuardV2', 'src/daily-duty-storage-guard.js?v=20260719-2');
     loadScript('dpRalfRunkePlan20260813To20261009V6', 'src/runke-plan-2026-08-13-to-10-09.js?v=20260718-6');
     loadScript('dpRunkeWeekDisplayFix', 'src/runke-week-display-fix.js?v=20260718-1');
@@ -125,7 +117,7 @@
     loadScript('dpDriverVacationButton', 'src/driver-vacation-button.js?v=20260713-2');
     loadScript('dpVacationRequestWorkflow', 'src/vacation-request-workflow.js?v=20260713-1');
     loadScript('dpVacationReviewPanel', 'src/vacation-review-panel.js?v=20260713-1');
-    loadScript('dpDutyAssignment', 'src/duty-assignment.js?v=20260723-1');
+    loadScript('dpDutyAssignment', 'src/duty-assignment.js?v=20260712-2');
     loadScript('dpNewDriverProfile', 'src/new-driver-profile.js?v=20260718-1');
     loadScript('dpMonthSelectorFinalV7', 'src/month-selector-final.js?v=20260712-7');
 
@@ -147,24 +139,26 @@
     loadScript('dpXlsmCore', 'src/xlsm-core.js?v=20260711-1');
     loadScript('dpXlsmExchange', 'src/xlsm-exchange.js?v=20260711-1');
 
-    loadScript('dpDailyDutyPlan', 'src/daily-duty-plan.js?v=20260723-1');
+    loadScript('dpDailyDutyPlan', 'src/daily-duty-plan.js?v=20260711-1');
     loadScript('dpDailyDutyRenderStabilityV1', 'src/daily-duty-render-stability.js?v=20260719-1');
+    loadScript('dpDailyPlanImmediateRefreshV1', 'src/daily-plan-immediate-refresh.js?v=20260723-1');
+
     loadScript('dpDailyDutyPrintA4', 'src/daily-duty-plan-print-a4.js?v=20260717-3');
     loadScript('dpDailyDutyPrintAnytimeV4', 'src/daily-duty-plan-print-anytime.js?v=20260718-4');
 
-    loadScript('dpHolidayPlan18V5', 'src/holiday-plan-clean-v3.js?v=20260723-1');
+    loadScript('dpHolidayPlan18V5', 'src/holiday-plan-clean-v3.js?v=20260717-5');
     loadScript('dpDailyDutyDriverSelectV4', 'src/daily-duty-driver-select.js?v=20260719-1');
     loadScript('dpDriverMAlsaba', 'src/driver-m-alsaba.js?v=20260717-1');
     loadScript('dpDriverNameCorrectionsV2', 'src/driver-name-corrections.js?v=20260719-2');
     loadScript('dpSaturdaySplitDutyOptionsV1', 'src/saturday-split-duty-options.js?v=20260718-1');
-    loadScript('dpDailyDutyDutySelectV6', 'src/daily-duty-duty-select.js?v=20260723-1');
+    loadScript('dpDailyDutyDutySelectV6', 'src/daily-duty-duty-select.js?v=20260719-6');
     loadScript('dpDailyDutyRoleAccess', 'src/daily-duty-role-access.js?v=20260718-3');
     loadScript('dpVehiclePlateOptions', 'src/vehicle-plate-options.js?v=20260717-2');
     loadScript('dpDailyDutyBusMove', 'src/daily-duty-plan-bus-move.js?v=20260711-1');
     loadScript('dpDailyDutyPhotoDefaults', 'src/daily-duty-plan-photo-defaults.js?v=20260711-2');
     loadScript('dpDailyDutyPhotoAuto', 'src/daily-duty-plan-photo-auto.js?v=20260711-2');
     loadScript('dpDailyEinsatzwagenLastV1', 'src/daily-duty-einsatzwagen-last.js?v=20260718-1');
-    loadScript('dpSplitShiftDutiesV6', 'src/split-shift-duties-v5.js?v=20260723-1');
+    loadScript('dpSplitShiftDutiesV6', 'src/split-shift-duties-v5.js?v=20260719-6');
     loadScript('dpSplitShiftTimeEditorAccess', 'src/split-shift-time-editor-access.js?v=20260718-2');
     loadScript('dpSplitShiftTimeEditor', 'src/split-shift-time-editor.js?v=20260718-1');
     loadScript('dpWorkshopVehicles', 'src/workshop-vehicles.js?v=20260717-1');
@@ -175,12 +169,6 @@
     loadScript('dpWeekendCombinedOpenFixV1', 'src/weekend-combined-open-fix.js?v=20260718-1');
     loadScript('dpDailyDutyWeekendPhotoV2', 'src/daily-duty-plan-weekend-photo.js?v=20260718-2');
     loadScript('dpDailyDutySeparationGuard', 'src/daily-duty-plan-separation-guard.js?v=20260711-2');
-
-    window.setTimeout(() => {
-      window.dispatchEvent(new Event('focus'));
-      window.dispatchEvent(new Event('pageshow'));
-      document.getElementById('dpDailyDutyPlanTab')?.click();
-    }, 250);
   }
 
   function recreateCatalogAddButtonOnce() {
@@ -215,33 +203,28 @@
     }, true);
   }
 
-  function activateAuthenticatedSession() {
-    if (!hasServerSession()) return false;
-    window.clearTimeout(loginWaitTimer);
+  function refreshAfterLogin() {
+    loadUserModules();
     createButton();
     refreshName();
-    loadUserModules();
-    window.setTimeout(recreateCatalogAddButtonOnce, 250);
-    window.setTimeout(recreateCatalogAddButtonOnce, 800);
-    return true;
-  }
-
-  function waitForAuthenticatedSession(attempt = 0) {
-    if (activateAuthenticatedSession()) return;
-    if (attempt >= 40) return;
-    loginWaitTimer = window.setTimeout(() => waitForAuthenticatedSession(attempt + 1), 150);
   }
 
   onReady(() => {
+    createButton();
     installCatalogAddFallback();
-    activateAuthenticatedSession();
+    recreateCatalogAddButtonOnce();
+    loadUserModules();
+    window.setTimeout(recreateCatalogAddButtonOnce, 250);
+    window.setTimeout(recreateCatalogAddButtonOnce, 800);
 
     window.addEventListener('dienstpilot:authenticated', () => {
-      window.setTimeout(() => activateAuthenticatedSession(), 0);
+      [0, 80, 220, 500].forEach((delay) => window.setTimeout(refreshAfterLogin, delay));
     });
 
     document.addEventListener('click', (event) => {
-      if (event.target.closest?.('#loginButton')) waitForAuthenticatedSession();
+      if (event.target.closest?.('#loginButton')) {
+        [200, 600, 1400].forEach((delay) => window.setTimeout(refreshAfterLogin, delay));
+      }
     }, true);
   });
 })();
