@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const API = '__dienstpilotHolidayUiRepairV1';
+  const API = '__dienstpilotHolidayUiRepairV2';
   if (window[API]?.restart) {
     window[API].restart();
     return;
@@ -44,7 +44,7 @@
   }
 
   function repairText(value) {
-    let text = String(value || '');
+    let text = String(value ?? '');
     const replacements = [
       [/ÃƒÂ¼/g, 'ü'], [/ÃƒÂ¤/g, 'ä'], [/ÃƒÂ¶/g, 'ö'], [/ÃƒÅ¸/g, 'ß'],
       [/ÃƒÅ“/g, 'Ü'], [/Ãƒâ€ž/g, 'Ä'], [/Ãƒâ€“/g, 'Ö'],
@@ -60,12 +60,31 @@
   function repairVisibleText() {
     const section = document.getElementById(SECTION_ID);
     if (!section) return;
+
     const walker = document.createTreeWalker(section, NodeFilter.SHOW_TEXT);
     const nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
     nodes.forEach((node) => {
       const next = repairText(node.nodeValue);
       if (next !== node.nodeValue) node.nodeValue = next;
+    });
+
+    section.querySelectorAll('option').forEach((option) => {
+      const next = repairText(option.textContent);
+      if (next !== option.textContent) option.textContent = next;
+    });
+
+    section.querySelectorAll('input[type="text"], textarea').forEach((field) => {
+      const next = repairText(field.value);
+      if (next !== field.value) field.value = next;
+      if (field.placeholder) field.placeholder = repairText(field.placeholder);
+      if (field.title) field.title = repairText(field.title);
+    });
+
+    section.querySelectorAll('[title],[aria-label]').forEach((element) => {
+      if (element.title) element.title = repairText(element.title);
+      const label = element.getAttribute('aria-label');
+      if (label) element.setAttribute('aria-label', repairText(label));
     });
 
     const banner = document.getElementById('dpNiHolidayDutyStatus');
@@ -139,9 +158,7 @@
     const help = control.querySelector('.dp-free-help');
     if (help) help.textContent = `Fahrer ohne Dienst hinzufügen${freeRows.length ? ` · aktuell ${freeRows.length} Fahrer frei` : ''}`;
     const firstFree = freeRows[0] || null;
-    if (control.parentElement !== body || control.nextElementSibling !== firstFree) {
-      body.insertBefore(control, firstFree);
-    }
+    if (control.parentElement !== body || control.nextElementSibling !== firstFree) body.insertBefore(control, firstFree);
   }
 
   function observeTable() {
@@ -172,6 +189,7 @@
   }
 
   window[API] = { restart };
+  window.__dienstpilotHolidayUiRepairV1 = window[API];
   document.addEventListener('click', (event) => {
     if (event.target.closest?.('#dpDailyDutyPlanTab,#loginButton,.tab[data-tab="eingabe"]')) restart();
   }, true);
